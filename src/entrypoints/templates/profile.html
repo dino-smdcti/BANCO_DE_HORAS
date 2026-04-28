@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h4 class="mb-0">Meus Dados de Acesso</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">E-mail</label>
+                        <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nova Senha (deixe em branco para não alterar)</label>
+                        <input type="password" name="password" class="form-control">
+                    </div>
+                    <hr>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary text-white">Salvar Alterações</button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-light">Voltar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

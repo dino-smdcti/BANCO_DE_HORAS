@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Painel do Gestor</h2>
+    <div>
+        <a href="{{ url_for('register') }}" class="btn btn-success me-2">Novo Usuário</a>
+        <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#holidayModal">Cadastrar Feriado</button>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Lista de Funcionários</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome Completo</th>
+                        <th>Matrícula</th>
+                        <th>Departamento</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for employee in employees %}
+                        <tr>
+                            <td>{{ employee.profile.full_name or employee.email }}</td>
+                            <td>{{ employee.profile.registration_number or '-' }}</td>
+                            <td>{{ employee.profile.department or '-' }}</td>
+                            <td>
+                                <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-outline-success">Relatório</a>
+                                <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" class="btn btn-sm btn-warning">Corrigir</a>
+                                <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#vacationModal{{ employee.user_id }}">Férias</button>
+                                <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-dark" onclick="return confirm('Deseja promover este funcionário a GESTOR?')">Promover</button>
+                                </form>
+                                <form action="{{ url_for('delete_user', user_id=employee.user_id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja excluir este usuário?')">Excluir</button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <!-- Vacation Modal -->
+                        <div class="modal fade" id="vacationModal{{ employee.user_id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <form action="{{ url_for('add_vacation', employee_id=employee.user_id) }}" method="POST" class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Lançar Férias - {{ employee.profile.full_name }}</h5>
+                                        <button type="button" class="btn-close" data-bs-validate="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Início</label>
+                                            <input type="date" name="start_date" class="form-control" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Término</label>
+                                            <input type="date" name="end_date" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" class="btn btn-primary">Salvar Férias</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">Nenhum funcionário cadastrado.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Holiday Modal -->
+<div class="modal fade" id="holidayModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ url_for('add_holiday') }}" method="POST" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cadastrar Feriado / Ponto Facultativo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Descrição</label>
+                    <input type="text" name="description" class="form-control" placeholder="Ex: Natal" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Data</label>
+                    <input type="date" name="holiday_date" class="form-control" required>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_mandatory" id="isMandatory" checked>
+                    <label class="form-check-label" for="isMandatory">Feriado Obrigatório</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-dark">Cadastrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

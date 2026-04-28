@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-9">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Registrar Ponto - <span class="text-primary">{{ current_stage }}</span></h5>
+                {% if current_stage != "Jornada Completa" %}
+                <button type="button" class="btn btn-primary" onclick="showConfirmModal()">
+                    Registrar {{ current_stage }}
+                </button>
+                {% else %}
+                <button class="btn btn-secondary" disabled>Jornada Completa</button>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data</th>
+                                <th>Chegada</th>
+                                <th>Almoço (Saída)</th>
+                                <th>Almoço (Volta)</th>
+                                <th>Fim Jornada</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in recent_entries %}
+                                <tr>
+                                    <td>{{ p.entry_date }}</td>
+                                    <td>{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '-' }}</td>
+                                    <td>{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}</td>
+                                    <td>{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '-' }}</td>
+                                    <td>{{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}</td>
+                                    <td class="fw-bold text-primary">{{ p.worked_minutes // 60 }}h {{ p.worked_minutes % 60 }}m</td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="6" class="text-center py-4">Nenhum registro.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer bg-white text-end">
+                <a href="{{ url_for('download_report', user_id=current_user.id) }}" class="btn btn-sm btn-outline-success">Baixar Excel Completo</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        {% if maps_url %}
+        <div class="card shadow-sm mb-4">
+            <div class="card-header" style="background-color: var(--primary-mint) !important; color: var(--dark-accent)">
+                Localização Atual
+            </div>
+            <div class="card-body p-0">
+                <iframe 
+                    width="100%" 
+                    height="200" 
+                    frameborder="0" 
+                    style="border:0; border-radius: 0 0 12px 12px" 
+                    src="{{ maps_url }}" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card shadow border-primary mb-4">
+            <div class="card-body text-center">
+                <h6 class="text-muted text-uppercase small">Saldo Atual</h6>
+                <h2 class="display-5 fw-bold text-primary">0h 00m</h2>
+            </div>
+        </div>
+        
+        <div class="card shadow">
+            <div class="card-body">
+                <h5>Minhas Informações</h5>
+                <hr>
+                <p class="mb-1"><strong>E-mail:</strong> <br><small>{{ current_user.email }}</small></p>
+                <p class="mb-1"><strong>Role:</strong> <br><small>{{ current_user.role }}</small></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="confirmPontoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Registro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Você está prestes a registrar o seguinte ponto:</p>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong>Tipo:</strong> {{ current_stage }}</li>
+                        <li class="list-group-item"><strong>Hora Atual:</strong> <span id="confirmTime"></span></li>
+                        <li class="list-group-item"><strong>Localização:</strong> <span id="confirmLoc">Obtendo...</span></li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <form id="clockForm" action="{{ url_for('clock') }}" method="POST">
+                        <input type="hidden" name="location" id="locationInput">
+                        <button type="submit" class="btn btn-primary">Confirmar e Registrar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

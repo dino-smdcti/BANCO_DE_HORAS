@@ -1,0 +1,72 @@
+:root {
+    --bg-color: #EEEEEE;
+    --primary-mint: #6FCF97;
+    --secondary-teal: #2FA084;
+    --dark-accent: #1F6F5F;
+    --text-dark: #333333;
+    --white: #ffffff;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-dark);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar {
+    background-color: var(--dark-accent) !important;
+    border-bottom: 4px solid var(--primary-mint);
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    background-color: var(--white);
+    transition: transform 0.2s;
+}
+
+.card-header {
+    background-color: transparent !important;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    font-weight: 600;
+}
+
+.btn-primary {
+    background-color: var(--secondary-teal);
+    border-color: var(--secondary-teal);
+}
+
+.btn-primary:hover {
+    background-color: var(--dark-accent);
+    border-color: var(--dark-accent);
+}
+
+.btn-success {
+    background-color: var(--primary-mint);
+    border-color: var(--primary-mint);
+    color: var(--dark-accent);
+    font-weight: 600;
+}
+
+.btn-success:hover {
+    background-color: var(--secondary-teal);
+    border-color: var(--secondary-teal);
+    color: var(--white);
+}
+
+.table {
+    background-color: var(--white);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.badge-primary {
+    background-color: var(--primary-mint);
+    color: var(--dark-accent);
+}
+
+/* Custom styles for desktop/mobile optimization */
+@media (max-width: 768px) {
+    .container { padding: 10px; }
+    .display-5 { font-size: 1.8rem; }
+}
