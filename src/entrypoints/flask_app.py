@@ -183,7 +183,7 @@ def login():
                 if user.role == "employee" and not user.work_schedule:
                     return redirect(url_for("choose_journey"))
                 return redirect(url_for("dashboard"))
-            flash("Invalid email or password", "danger")
+            flash("E-mail ou senha inválidos", "danger")
     return render_template("login.html", form=form)
 
 @app.route("/register", methods=["GET", "POST"])
@@ -210,7 +210,10 @@ def register():
             
             return redirect(url_for("dashboard"))
         except ValueError as e:
-            flash(str(e), "danger")
+            msg = str(e)
+            if "already exists" in msg:
+                msg = f"O usuário com e-mail {form.email.data} já está cadastrado."
+            flash(msg, "danger")
     return render_template("register.html", form=form)
 
 @app.route("/choose-journey", methods=["GET", "POST"])
@@ -265,7 +268,7 @@ def complete_profile():
             form.secretariat.data,
             form.full_name.data
         )
-        flash("Profile completed successfully!", "success")
+        flash("Perfil preenchido com sucesso!", "success")
         return redirect(url_for("dashboard"))
     return render_template("complete_profile.html", form=form)
 
@@ -284,14 +287,17 @@ def profile():
                 flash("Perfil atualizado!", "success")
                 return redirect(url_for("dashboard"))
             except ValueError as e:
-                flash(str(e), "danger")
+                msg = str(e)
+                if "already exists" in msg:
+                    msg = "Este e-mail já está em uso por outro usuário."
+                flash(msg, "danger")
         return render_template("profile.html", user=user)
 
 @app.route("/manager/edit-employee/<int:employee_id>", methods=["GET", "POST"])
 @login_required
 def edit_employee(employee_id):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     uow = SqlAlchemyUnitOfWork()
@@ -364,7 +370,7 @@ def dashboard():
     with uow:
         user = uow.users.get_user_by_id(current_user.id)
         if not user:
-             flash("User not found", "danger")
+             flash("Usuário não encontrado", "danger")
              return redirect(url_for("logout"))
              
         today_date = date.today()
@@ -466,7 +472,7 @@ def download_report(user_id):
 @login_required
 def view_employee_logs(employee_id):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     uow = SqlAlchemyUnitOfWork()
@@ -483,7 +489,7 @@ def view_employee_logs(employee_id):
 @login_required
 def fix_ponto(employee_id):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
 
     uow = SqlAlchemyUnitOfWork()
@@ -515,7 +521,7 @@ def fix_ponto(employee_id):
 @login_required
 def add_vacation(employee_id):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     start_date = datetime.strptime(request.form.get("start_date"), "%Y-%m-%d").date()
@@ -523,14 +529,14 @@ def add_vacation(employee_id):
     
     uow = SqlAlchemyUnitOfWork()
     services.add_vacation(uow, current_user.id, employee_id, start_date, end_date)
-    flash("Vacation period added.", "success")
+    flash("Período de férias adicionado.", "success")
     return redirect(url_for("dashboard"))
 
 @app.route("/manager/add-holiday", methods=["POST"])
 @login_required
 def add_holiday():
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     h_date = datetime.strptime(request.form.get("holiday_date"), "%Y-%m-%d").date()
@@ -539,26 +545,26 @@ def add_holiday():
     
     uow = SqlAlchemyUnitOfWork()
     services.add_holiday(uow, current_user.id, h_date, desc, mandatory)
-    flash("Holiday added.", "success")
+    flash("Feriado adicionado.", "success")
     return redirect(url_for("dashboard"))
 
 @app.route("/manager/delete-user/<int:user_id>", methods=["POST"])
 @login_required
 def delete_user(user_id):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     uow = SqlAlchemyUnitOfWork()
     services.delete_user(uow, current_user.id, user_id)
-    flash("User deleted.", "warning")
+    flash("Usuário excluído.", "warning")
     return redirect(url_for("dashboard"))
 
 @app.route("/manager/set-schedule/<int:employee_id>", methods=["GET", "POST"])
 @login_required
 def set_schedule(employee_id):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
 
     uow = SqlAlchemyUnitOfWork()
@@ -606,7 +612,7 @@ def set_schedule(employee_id):
 @login_required
 def manage_journeys():
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     uow = SqlAlchemyUnitOfWork()
@@ -625,7 +631,7 @@ def manage_journeys():
             int(form.tolerance.data)
         )
         flash("Tipo de Jornada criado.", "success")
-        return redirect(url_for("manage_journeys"))
+        return redirect(url_for("management_panel"))
     
     with uow:
         journeys = services.list_journey_types(uow)
@@ -654,7 +660,7 @@ def get_journey_json(journey_id):
 @login_required
 def edit_journey(journey_id):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     uow = SqlAlchemyUnitOfWork()
@@ -698,7 +704,7 @@ def edit_journey(journey_id):
 @login_required
 def delete_journey(journey_id):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     uow = SqlAlchemyUnitOfWork()
@@ -710,7 +716,7 @@ def delete_journey(journey_id):
 @login_required
 def generate_missing():
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     target_date_str = request.form.get("target_date")
@@ -728,7 +734,7 @@ def generate_missing():
 @login_required
 def justify_ponto(employee_id, entry_date):
     if current_user.role not in ["manager", "admin"]:
-        flash("Unauthorized", "danger")
+        flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     approved = request.form.get("justified") == "true"

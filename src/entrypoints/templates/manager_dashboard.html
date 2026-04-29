@@ -3,12 +3,13 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Painel de Gestão</h2>
-    <div>
+</div>
+
+<div class="d-grid gap-2 mb-4 d-flex flex-wrap">
         <a href="{{ url_for('manage_journeys') }}" class="btn btn-outline-dark me-2">Templates de Jornada</a>
         <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#missingModal">Processar Faltas</button>
         <a href="{{ url_for('register') }}" class="btn btn-success me-2">Novo Usuário</a>
         <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#holidayModal">Cadastrar Feriado</button>
-    </div>
 </div>
 
 <div class="card shadow mb-4">
@@ -66,9 +67,8 @@
                                 <form action="{{ url_for('add_vacation', employee_id=employee.user_id) }}" method="POST" class="modal-content">
                                     <div class="modal-header">
                                         <h5 class="modal-title">Lançar Férias - {{ employee.profile.full_name }}</h5>
-                                        <button type="button" class="btn-close" data-bs-validate="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>                                    <div class="modal-body">
                                         <div class="mb-3">
                                             <label class="form-label">Início</label>
                                             <input type="date" name="start_date" class="form-control" required>

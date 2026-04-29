@@ -36,8 +36,9 @@
                         <label class="form-label">Tolerância (min)</label>
                         {{ form.tolerance(class="form-control") }}
                     </div>
-                    <div class="d-grid">
+                    <div class="d-grid gap-2">
                         {{ form.submit(class="btn btn-dark") }}
+                        <a href="{{ url_for('management_panel') }}" class="btn btn-outline-secondary">Voltar ao Painel</a>
                     </div>
                 </form>
             </div>

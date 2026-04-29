@@ -1,26 +1,20 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row">
+<div class="row flex-column-reverse flex-md-row">
     <div class="col-md-9">
         <div class="card shadow mb-4">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Registrar Ponto - <span class="text-primary">{{ current_stage }}</span></h5>
                 <div class="d-flex gap-2">
                     <form action="{{ url_for('dashboard') }}" method="GET" class="d-flex align-items-center gap-2">
-                        <input type="date" name="date" class="form-control form-control-sm" value="{{ filter_date or '' }}">
+                        <input type="date" lang="pt-BR" name="date" class="form-control form-control-sm" value="{{ filter_date or '' }}">
                         <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
                         {% if filter_date %}
                         <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">Limpar</a>
                         {% endif %}
                     </form>
-                    {% if current_stage != "Jornada Completa" %}
-                    <button type="button" class="btn btn-primary" onclick="showConfirmModal()">
-                        Registrar {{ current_stage }}
-                    </button>
-                    {% else %}
-                    <button class="btn btn-secondary" disabled>Jornada Completa</button>
-                    {% endif %}
+                    
                 </div>
             </div>
             <div class="card-body p-0">
@@ -99,7 +93,7 @@
         </div>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-3 mb-4 mb-md-0">
         {% if maps_url %}
         <div class="card shadow-sm mb-4">
             <div class="card-header" style="background-color: var(--primary-mint) !important; color: var(--dark-accent)">
@@ -117,7 +111,21 @@
             </div>
         </div>
         {% endif %}
-
+        <div class="card shadow-lg custom-card mb-4">
+    <div class="card-body text-center p-4">
+        {% if current_stage != "Jornada Completa" %}
+            <button type="button" 
+                    class="btn btn-lg w-100 py-4 fs-2 text-uppercase btn-grab-attention" 
+                    onclick="showConfirmModal()">
+                Registrar {{ current_stage }}
+            </button>
+        {% else %}
+            <button class="btn btn-lg w-100 py-4 fs-2 fw-bold btn-disabled-custom" disabled>
+                Jornada Completa
+            </button>
+        {% endif %}
+    </div>
+</div>
         <div class="card shadow border-primary mb-4">
             <div class="card-body text-center">
                 <h6 class="text-muted text-uppercase small">Saldo do Período</h6>
@@ -130,7 +138,7 @@
                 <h5>Minhas Informações</h5>
                 <hr>
                 <p class="mb-1"><strong>E-mail:</strong> <br><small>{{ current_user.email }}</small></p>
-                <p class="mb-1"><strong>Role:</strong> <br><small>{{ current_user.role }}</small></p>
+                <p class="mb-1"><strong>Cargo:</strong> <br><small>{{ current_user.role }}</small></p>
             </div>
         </div>
     </div>
