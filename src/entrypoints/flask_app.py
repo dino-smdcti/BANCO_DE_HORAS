@@ -804,7 +804,11 @@ def logout():
     return redirect(url_for("index"))
 
 def init_db():
-    engine = create_engine("sqlite:///banco_de_horas.db")
+    db_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    
+    engine = create_engine(db_url)
     metadata.create_all(engine)
     start_mappers()
     
