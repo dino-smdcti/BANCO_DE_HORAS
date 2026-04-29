@@ -12,7 +12,7 @@
                 <form method="POST">
                     <div class="mb-3">
                         <label class="form-label">Data do Registro</label>
-                        <input type="date" name="entry_date" class="form-control" value="{{ today }}" required>
+                        <input type="date" name="entry_date" class="form-control" value="{{ request.args.get('date') or today }}" required>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">

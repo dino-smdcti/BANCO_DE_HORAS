@@ -24,6 +24,7 @@
                                 <th>Almoço (Saída)</th>
                                 <th>Almoço (Volta)</th>
                                 <th>Fim Jornada</th>
+                                <th>Status</th>
                                 <th>Total</th>
                             </tr>
                         </thead>
@@ -35,6 +36,19 @@
                                     <td>{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}</td>
                                     <td>{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '-' }}</td>
                                     <td>{{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}</td>
+                                    <td>
+                                        {% if p.status.value == 'No Horário' %}
+                                            <span class="badge bg-success">{{ p.status.value }}</span>
+                                        {% elif p.status.value == 'Atrasado' %}
+                                            <span class="badge bg-warning text-dark">{{ p.status.value }}</span>
+                                        {% elif p.status.value == 'Faltante' %}
+                                            <span class="badge bg-danger">{{ p.status.value }}</span>
+                                        {% elif p.status.value == 'Justificado' %}
+                                            <span class="badge bg-info text-dark">{{ p.status.value }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ p.status.value }}</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="fw-bold text-primary">{{ p.worked_minutes // 60 }}h {{ p.worked_minutes % 60 }}m</td>
                                 </tr>
                             {% else %}

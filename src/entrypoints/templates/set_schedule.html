@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Configurar Horário: {{ employee.profile.full_name or employee.email }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="mb-4 p-3 bg-light rounded">
+                    <label class="form-label fw-bold">Usar Template Predefinido</label>
+                    {{ form.journey_type(class="form-select", id="journey_select") }}
+                </div>
+
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label">Entrada (Chegada)</label>
+                        {{ form.arrival(class="form-control", id="arrival", placeholder="HH:MM") }}
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">Saída Almoço</label>
+                            {{ form.lunch_start(class="form-control", id="lunch_start", placeholder="HH:MM") }}
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Retorno Almoço</label>
+                            {{ form.lunch_end(class="form-control", id="lunch_end", placeholder="HH:MM") }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fim de Jornada</label>
+                        {{ form.departure(class="form-control", id="departure", placeholder="HH:MM") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tolerância (minutos)</label>
+                        {{ form.tolerance(class="form-control", id="tolerance") }}
+                    </div>
+
+                    <hr>
+                    <div class="mb-3 border-start border-primary ps-3">
+                        <label class="form-label text-primary small fw-bold">Salvar estes horários como novo template?</label>
+                        {{ form.save_as_new(class="form-control", placeholder="Nome do novo template (opcional)") }}
+                    </div>
+
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+            
+            <script>
+                document.getElementById('journey_select').addEventListener('change', function() {
+                    const journeyId = this.value;
+                    if (journeyId == "0") return;
+
+                    fetch(`/manager/get-journey/${journeyId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) return;
+                            document.getElementById('arrival').value = data.arrival;
+                            document.getElementById('lunch_start').value = data.lunch_start;
+                            document.getElementById('lunch_end').value = data.lunch_end;
+                            document.getElementById('departure').value = data.departure;
+                            document.getElementById('tolerance').value = data.tolerance;
+                        });
+                });
+            </script>
+            <div class="card-footer">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-link">Voltar ao Painel</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

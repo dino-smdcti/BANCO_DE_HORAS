@@ -4,6 +4,8 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>Painel do Gestor</h2>
     <div>
+        <a href="{{ url_for('manage_journeys') }}" class="btn btn-outline-dark me-2">Templates de Jornada</a>
+        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#missingModal">Processar Faltas</button>
         <a href="{{ url_for('register') }}" class="btn btn-success me-2">Novo Usuário</a>
         <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#holidayModal">Cadastrar Feriado</button>
     </div>
@@ -21,6 +23,7 @@
                         <th>Nome Completo</th>
                         <th>Matrícula</th>
                         <th>Departamento</th>
+                        <th>Horário</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -31,7 +34,16 @@
                             <td>{{ employee.profile.registration_number or '-' }}</td>
                             <td>{{ employee.profile.department or '-' }}</td>
                             <td>
+                                {% if employee.work_schedule %}
+                                    <small>{{ employee.work_schedule.expected_arrival.strftime('%H:%M') }} - {{ employee.work_schedule.expected_departure.strftime('%H:%M') }}</small>
+                                {% else %}
+                                    <span class="text-warning">Não definido</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('view_employee_logs', employee_id=employee.user_id) }}" class="btn btn-sm btn-info text-white">Visualizar</a>
                                 <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-outline-success">Relatório</a>
+                                <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary">Horário</a>
                                 <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" class="btn btn-sm btn-warning">Corrigir</a>
                                 <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#vacationModal{{ employee.user_id }}">Férias</button>
                                 <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="d-inline">
@@ -78,6 +90,56 @@
     </div>
 </div>
 
+<div class="card shadow border-danger mb-4">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">Faltas Pendentes de Justificativa</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Funcionário</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set has_missing = namespace(found=false) %}
+                    {% for emp in employees %}
+                        {% for p in emp.time_entries %}
+                            {% if p.status.value == 'Faltante' %}
+                                {% set has_missing.found = true %}
+                                <tr>
+                                    <td>{{ emp.profile.full_name or emp.email }}</td>
+                                    <td>{{ p.entry_date }}</td>
+                                    <td><span class="badge bg-danger">{{ p.status.value }}</span></td>
+                                    <td>
+                                        <form action="{{ url_for('justify_ponto', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                            <input type="hidden" name="justified" value="true">
+                                            <button type="submit" class="btn btn-sm btn-success">Justificar</button>
+                                        </form>
+                                        <form action="{{ url_for('justify_ponto', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                            <input type="hidden" name="justified" value="false">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Confirmar Falta</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                    {% if not has_missing.found %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">Nenhuma falta pendente.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- Holiday Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
     <div class="modal-dialog">
@@ -102,6 +164,30 @@
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-dark">Cadastrar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_modals %}
+<!-- Missing Logs Modal -->
+<div class="modal fade" id="missingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ url_for('generate_missing') }}" method="POST" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Processar Faltas do Dia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>O sistema criará registros de falta para todos os funcionários que não registraram ponto na data selecionada.</p>
+                <div class="mb-3">
+                    <label class="form-label">Data de Verificação</label>
+                    <input type="date" name="target_date" class="form-control" value="{{ today }}" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Processar</button>
             </div>
         </form>
     </div>

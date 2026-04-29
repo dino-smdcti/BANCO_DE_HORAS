@@ -7,6 +7,32 @@ class UserRole(str, Enum):
     MANAGER = "manager"
     EMPLOYEE = "employee"
 
+class PontoStatus(str, Enum):
+    ON_TIME = "No Horário"
+    LATE = "Atrasado"
+    MISSING = "Faltante"
+    JUSTIFIED = "Justificado"
+
+@dataclass
+class WorkSchedule:
+    user_id: int
+    expected_arrival: time
+    expected_lunch_start: time
+    expected_lunch_end: time
+    expected_departure: time
+    tolerance_minutes: int = 15
+    schedule_id: Optional[int] = None
+
+@dataclass
+class JourneyType:
+    name: str
+    expected_arrival: time
+    expected_lunch_start: time
+    expected_lunch_end: time
+    expected_departure: time
+    tolerance_minutes: int = 15
+    journey_id: Optional[int] = None
+
 @dataclass(frozen=True)
 class Holiday:
     holiday_date: date
@@ -29,6 +55,7 @@ class DailyPonto:
     lunch_end: Optional[time] = None
     departure: Optional[time] = None
     location_data: str = "" # Formato: "Chegada: ... | Almoço: ..."
+    status: PontoStatus = PontoStatus.ON_TIME
     ponto_id: Optional[int] = None
 
     @property
@@ -75,13 +102,15 @@ class User:
         password_hash: str, 
         role: UserRole,
         user_id: Optional[int] = None,
-        profile: Optional[UserProfile] = None
+        profile: Optional[UserProfile] = None,
+        work_schedule: Optional[WorkSchedule] = None
     ):
         self.user_id = user_id
         self.email = email
         self.password_hash = password_hash
         self.role = role
         self.profile = profile or UserProfile()
+        self.work_schedule = work_schedule
         self.time_entries: List[DailyPonto] = []
         self.vacations: List[Vacation] = []
 

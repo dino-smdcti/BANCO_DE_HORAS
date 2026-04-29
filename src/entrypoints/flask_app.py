@@ -3,8 +3,8 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from src.adapters.orm import start_mappers, metadata
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
-from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm
-from src.domain.model import User
+from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm, WorkScheduleForm, JourneyTypeForm
+from src.domain.model import User, PontoStatus, JourneyType
 from werkzeug.security import check_password_hash
 from sqlalchemy import create_engine
 from datetime import datetime, date
@@ -132,12 +132,16 @@ def dashboard():
         return redirect(url_for("complete_profile"))
     
     uow = SqlAlchemyUnitOfWork()
-    if current_user.role == "manager":
-        employees = services.get_all_employees(uow)
-        return render_template("manager_dashboard.html", employees=employees)
-    
     with uow:
+        if current_user.role == "manager":
+            employees = services.get_all_employees(uow)
+            return render_template("manager_dashboard.html", employees=employees, today=date.today())
+        
         user = uow.users.get_user_by_id(current_user.id)
+        if not user:
+             flash("User not found", "danger")
+             return redirect(url_for("logout"))
+             
         today_date = date.today()
         ponto_hoje = next((p for p in user.time_entries if p.entry_date == today_date), None)
         current_stage = ponto_hoje.current_stage if ponto_hoje else "Chegada"
@@ -184,6 +188,23 @@ def download_report(user_id):
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+@app.route("/manager/view-logs/<int:employee_id>")
+@login_required
+def view_employee_logs(employee_id):
+    if current_user.role != "manager":
+        flash("Unauthorized", "danger")
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    with uow:
+        employee = uow.users.get_user_by_id(employee_id)
+        if not employee:
+            flash("Funcionário não encontrado.", "danger")
+            return redirect(url_for("dashboard"))
+        
+        recent_entries = sorted(employee.time_entries, key=lambda x: x.entry_date, reverse=True)
+        return render_template("view_employee_logs.html", employee=employee, recent_entries=recent_entries)
 
 @app.route("/manager/fix-ponto/<int:employee_id>", methods=["GET", "POST"])
 @login_required
@@ -257,6 +278,195 @@ def delete_user(user_id):
     uow = SqlAlchemyUnitOfWork()
     services.delete_user(uow, current_user.id, user_id)
     flash("User deleted.", "warning")
+    return redirect(url_for("dashboard"))
+
+@app.route("/manager/set-schedule/<int:employee_id>", methods=["GET", "POST"])
+@login_required
+def set_schedule(employee_id):
+    if current_user.role != "manager":
+        flash("Unauthorized", "danger")
+        return redirect(url_for("dashboard"))
+
+    uow = SqlAlchemyUnitOfWork()
+    form = WorkScheduleForm()
+    
+    with uow:
+        journeys = services.list_journey_types(uow)
+        form.journey_type.choices = [(0, "Selecione um template...")] + [(j.journey_id, j.name) for j in journeys]
+
+    if form.validate_on_submit():
+        def parse_time(val):
+            return datetime.strptime(val, "%H:%M").time()
+
+        try:
+            arr = parse_time(form.arrival.data)
+            l_s = parse_time(form.lunch_start.data)
+            l_e = parse_time(form.lunch_end.data)
+            dep = parse_time(form.departure.data)
+            tol = int(form.tolerance.data)
+
+            services.set_work_schedule(uow, current_user.id, employee_id, arr, l_s, l_e, dep, tol)
+            
+            if form.save_as_new.data:
+                services.create_journey_type(uow, current_user.id, form.save_as_new.data, arr, l_s, l_e, dep, tol)
+                flash(f"Template '{form.save_as_new.data}' salvo!", "info")
+
+            flash("Horário de trabalho configurado.", "success")
+            return redirect(url_for("dashboard"))
+        except Exception as e:
+            flash(f"Erro: {str(e)}", "danger")
+
+    with uow:
+        employee = uow.users.get_user_by_id(employee_id)
+        if not request.method == "POST" and employee.work_schedule:
+            form.arrival.data = employee.work_schedule.expected_arrival.strftime("%H:%M")
+            form.lunch_start.data = employee.work_schedule.expected_lunch_start.strftime("%H:%M")
+            form.lunch_end.data = employee.work_schedule.expected_lunch_end.strftime("%H:%M")
+            form.departure.data = employee.work_schedule.expected_departure.strftime("%H:%M")
+            form.tolerance.data = str(employee.work_schedule.tolerance_minutes)
+        
+        journeys = services.list_journey_types(uow)
+        return render_template("set_schedule.html", form=form, employee=employee, journeys=journeys)
+
+@app.route("/manager/journey-types", methods=["GET", "POST"])
+@login_required
+def manage_journeys():
+    if current_user.role != "manager":
+        flash("Unauthorized", "danger")
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    form = JourneyTypeForm()
+    
+    if form.validate_on_submit():
+        def parse_time(val):
+            return datetime.strptime(val, "%H:%M").time()
+        
+        services.create_journey_type(
+            uow, current_user.id, form.name.data,
+            parse_time(form.arrival.data),
+            parse_time(form.lunch_start.data),
+            parse_time(form.lunch_end.data),
+            parse_time(form.departure.data),
+            int(form.tolerance.data)
+        )
+        flash("Tipo de Jornada criado.", "success")
+        return redirect(url_for("manage_journeys"))
+    
+    with uow:
+        journeys = services.list_journey_types(uow)
+        return render_template("manage_journeys.html", form=form, journeys=journeys)
+
+@app.route("/manager/get-journey/<int:journey_id>")
+@login_required
+def get_journey_json(journey_id):
+    if current_user.role != "manager":
+        return {"error": "Unauthorized"}, 403
+    
+    uow = SqlAlchemyUnitOfWork()
+    j = services.get_journey_type(uow, journey_id)
+    if not j:
+        return {"error": "Not found"}, 404
+    
+    return {
+        "arrival": j.expected_arrival.strftime("%H:%M"),
+        "lunch_start": j.expected_lunch_start.strftime("%H:%M"),
+        "lunch_end": j.expected_lunch_end.strftime("%H:%M"),
+        "departure": j.expected_departure.strftime("%H:%M"),
+        "tolerance": j.tolerance_minutes
+    }
+
+@app.route("/manager/edit-journey/<int:journey_id>", methods=["GET", "POST"])
+@login_required
+def edit_journey(journey_id):
+    if current_user.role != "manager":
+        flash("Unauthorized", "danger")
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    form = JourneyTypeForm()
+    
+    if form.validate_on_submit():
+        def parse_time(val):
+            return datetime.strptime(val, "%H:%M").time()
+        
+        try:
+            services.update_journey_type(
+                uow, current_user.id, journey_id, form.name.data,
+                parse_time(form.arrival.data),
+                parse_time(form.lunch_start.data),
+                parse_time(form.lunch_end.data),
+                parse_time(form.departure.data),
+                int(form.tolerance.data)
+            )
+            flash("Tipo de Jornada atualizado.", "success")
+            return redirect(url_for("manage_journeys"))
+        except Exception as e:
+            flash(f"Erro: {str(e)}", "danger")
+    
+    with uow:
+        j = services.get_journey_type(uow, journey_id)
+        if not j:
+            flash("Jornada não encontrada.", "danger")
+            return redirect(url_for("manage_journeys"))
+        
+        if not request.method == "POST":
+            form.name.data = j.name
+            form.arrival.data = j.expected_arrival.strftime("%H:%M")
+            form.lunch_start.data = j.expected_lunch_start.strftime("%H:%M")
+            form.lunch_end.data = j.expected_lunch_end.strftime("%H:%M")
+            form.departure.data = j.expected_departure.strftime("%H:%M")
+            form.tolerance.data = str(j.tolerance_minutes)
+        
+        return render_template("edit_journey.html", form=form, journey=j)
+
+@app.route("/manager/delete-journey/<int:journey_id>", methods=["POST"])
+@login_required
+def delete_journey(journey_id):
+    if current_user.role != "manager":
+        flash("Unauthorized", "danger")
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    services.delete_journey_type(uow, current_user.id, journey_id)
+    flash("Tipo de Jornada excluído.", "warning")
+    return redirect(url_for("manage_journeys"))
+
+@app.route("/manager/generate-missing", methods=["POST"])
+@login_required
+def generate_missing():
+    if current_user.role != "manager":
+        flash("Unauthorized", "danger")
+        return redirect(url_for("dashboard"))
+    
+    target_date_str = request.form.get("target_date")
+    if not target_date_str:
+        flash("Data não fornecida.", "warning")
+        return redirect(url_for("dashboard"))
+        
+    target_date = datetime.strptime(target_date_str, "%Y-%m-%d").date()
+    uow = SqlAlchemyUnitOfWork()
+    services.generate_missing_logs(uow, current_user.id, target_date)
+    flash(f"Faltas processadas para {target_date}.", "info")
+    return redirect(url_for("dashboard"))
+
+@app.route("/manager/justify-ponto/<int:employee_id>/<string:entry_date>", methods=["POST"])
+@login_required
+def justify_ponto(employee_id, entry_date):
+    if current_user.role != "manager":
+        flash("Unauthorized", "danger")
+        return redirect(url_for("dashboard"))
+    
+    justified = request.form.get("justified") == "true"
+    e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+    
+    uow = SqlAlchemyUnitOfWork()
+    try:
+        services.justify_missing_log(uow, current_user.id, employee_id, e_date, justified)
+        flash("Status atualizado.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+        
     return redirect(url_for("dashboard"))
 
 @app.route("/logout")

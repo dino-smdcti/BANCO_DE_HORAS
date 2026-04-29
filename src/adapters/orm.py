@@ -1,9 +1,33 @@
 from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean
 from sqlalchemy.orm import registry, relationship, composite
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType
 
 metadata = MetaData()
 mapper_registry = registry(metadata=metadata)
+
+journey_types = Table(
+    "journey_types",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("name", String(100), nullable=False, unique=True),
+    Column("expected_arrival", Time, nullable=False),
+    Column("expected_lunch_start", Time, nullable=False),
+    Column("expected_lunch_end", Time, nullable=False),
+    Column("expected_departure", Time, nullable=False),
+    Column("tolerance_minutes", Integer, default=15),
+)
+
+work_schedules = Table(
+    "work_schedules",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id"), unique=True, nullable=False),
+    Column("expected_arrival", Time, nullable=False),
+    Column("expected_lunch_start", Time, nullable=False),
+    Column("expected_lunch_end", Time, nullable=False),
+    Column("expected_departure", Time, nullable=False),
+    Column("tolerance_minutes", Integer, default=15),
+)
 
 users = Table(
     "users",
@@ -31,6 +55,7 @@ daily_pontos = Table(
     Column("lunch_end", Time, nullable=True),
     Column("departure", Time, nullable=True),
     Column("location_data", String(1000), nullable=True),
+    Column("status", SQLEnum(PontoStatus), default=PontoStatus.ON_TIME),
 )
 
 vacations = Table(
@@ -68,8 +93,17 @@ def start_mappers():
                 users.c.secretariat,
                 users.c.full_name,
             ),
-            "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date),
-            "vacations": relationship(Vacation, backref="user")
+            "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date, cascade="all, delete-orphan"),
+            "vacations": relationship(Vacation, backref="user", cascade="all, delete-orphan"),
+            "work_schedule": relationship(WorkSchedule, backref="user", uselist=False, cascade="all, delete-orphan")
+        }
+    )
+
+    mapper_registry.map_imperatively(
+        WorkSchedule,
+        work_schedules,
+        properties={
+            "schedule_id": work_schedules.c.id,
         }
     )
 
@@ -90,3 +124,11 @@ def start_mappers():
     )
 
     mapper_registry.map_imperatively(Holiday, holidays)
+    
+    mapper_registry.map_imperatively(
+        JourneyType,
+        journey_types,
+        properties={
+            "journey_id": journey_types.c.id,
+        }
+    )

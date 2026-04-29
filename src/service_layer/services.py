@@ -1,6 +1,6 @@
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from typing import Optional, List, Dict
-from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday
+from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from werkzeug.security import generate_password_hash
 import pandas as pd
@@ -82,6 +82,8 @@ def promote_to_manager(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None) -> str:
     with uow:
         user = uow.users.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found.")
         today = date.today()
         now_time = datetime.now().time()
 
@@ -92,6 +94,12 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             ponto.location_data = f"Chegada: {location or 'Desconhecido'}"
             user.time_entries.append(ponto)
             msg = "Chegada registrada"
+            # Check for lateness on arrival
+            if user.work_schedule:
+                limit = (datetime.combine(today, user.work_schedule.expected_arrival) + 
+                         timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
+                if now_time > limit:
+                    ponto.status = PontoStatus.LATE
         elif not ponto.lunch_start:
             ponto.lunch_start = now_time
             ponto.location_data += f" | Almoço (Sai): {location or 'Desconhecido'}"
@@ -100,6 +108,12 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             ponto.lunch_end = now_time
             ponto.location_data += f" | Almoço (Vol): {location or 'Desconhecido'}"
             msg = "Retorno do almoço registrado"
+            # Check for lateness on return from lunch
+            if user.work_schedule:
+                limit = (datetime.combine(today, user.work_schedule.expected_lunch_end) + 
+                         timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
+                if now_time > limit:
+                    ponto.status = PontoStatus.LATE
         elif not ponto.departure:
             ponto.departure = now_time
             ponto.location_data += f" | Fim: {location or 'Desconhecido'}"
@@ -109,6 +123,85 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         
         uow.commit()
         return msg
+
+def set_work_schedule(
+    uow: AbstractUnitOfWork,
+    manager_id: int,
+    employee_id: int,
+    arrival: time,
+    lunch_start: time,
+    lunch_end: time,
+    departure: time,
+    tolerance: int = 15
+):
+    with uow:
+        ensure_manager(uow, manager_id)
+        user = uow.users.get_user_by_id(employee_id)
+        if not user:
+            raise ValueError("Employee not found.")
+        
+        if user.work_schedule:
+            user.work_schedule.expected_arrival = arrival
+            user.work_schedule.expected_lunch_start = lunch_start
+            user.work_schedule.expected_lunch_end = lunch_end
+            user.work_schedule.expected_departure = departure
+            user.work_schedule.tolerance_minutes = tolerance
+        else:
+            user.work_schedule = WorkSchedule(
+                user_id=employee_id,
+                expected_arrival=arrival,
+                expected_lunch_start=lunch_start,
+                expected_lunch_end=lunch_end,
+                expected_departure=departure,
+                tolerance_minutes=tolerance
+            )
+        uow.commit()
+
+def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date: date):
+    with uow:
+        ensure_manager(uow, manager_id)
+        employees = uow.users.list_employees()
+        
+        # Check if it's a holiday or weekend (optional, but good for production)
+        # For now, let's just generate for everyone who doesn't have a log.
+        
+        for emp in employees:
+            ponto = next((p for p in emp.time_entries if p.entry_date == target_date), None)
+            if not ponto:
+                # Check if user has vacation on this date
+                on_vacation = any(v.start_date <= target_date <= v.end_date for v in emp.vacations)
+                if on_vacation:
+                    continue
+                
+                # Create missing log
+                ponto = DailyPonto(
+                    user_id=emp.user_id,
+                    entry_date=target_date,
+                    status=PontoStatus.MISSING,
+                    location_data="Sistema: Falta detectada"
+                )
+                emp.time_entries.append(ponto)
+        uow.commit()
+
+def justify_missing_log(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date, justified: bool):
+    with uow:
+        ensure_manager(uow, manager_id)
+        user = uow.users.get_user_by_id(employee_id)
+        if not user:
+            raise ValueError("Employee not found.")
+        
+        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
+        if not ponto or ponto.status != PontoStatus.MISSING:
+            raise ValueError("Missing log not found for this date.")
+        
+        if justified:
+            ponto.status = PontoStatus.JUSTIFIED
+            ponto.location_data += f" | Justificado por Gestor ID {manager_id}"
+        else:
+            # If not justified, it stays MISSING but we can add a note.
+            ponto.location_data += f" | Falta confirmada por Gestor ID {manager_id}"
+        
+        uow.commit()
 
 def manual_ponto_correction(
     uow: AbstractUnitOfWork, 
@@ -123,6 +216,8 @@ def manual_ponto_correction(
     with uow:
         ensure_manager(uow, manager_id)
         user = uow.users.get_user_by_id(employee_id)
+        if not user:
+            raise ValueError("Employee not found.")
         ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
         
         if not ponto:
@@ -139,6 +234,8 @@ def manual_ponto_correction(
 def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
     with uow:
         user = uow.users.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found.")
         data = []
         for p in user.time_entries:
             data.append({
@@ -163,6 +260,8 @@ def add_vacation(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, sta
         ensure_manager(uow, manager_id)
         vacation = Vacation(user_id=employee_id, start_date=start_date, end_date=end_date)
         employee = uow.users.get_user_by_id(employee_id)
+        if not employee:
+            raise ValueError("Employee not found.")
         employee.vacations.append(vacation)
         uow.commit()
 
@@ -183,4 +282,68 @@ def delete_user(uow: AbstractUnitOfWork, manager_id: int, user_id: int):
         user = uow.users.get_user_by_id(user_id)
         if user:
             uow.session.delete(user)
+            uow.commit()
+
+def create_journey_type(
+    uow: AbstractUnitOfWork,
+    manager_id: int,
+    name: str,
+    arrival: time,
+    lunch_start: time,
+    lunch_end: time,
+    departure: time,
+    tolerance: int = 15
+):
+    with uow:
+        ensure_manager(uow, manager_id)
+        jt = JourneyType(
+            name=name,
+            expected_arrival=arrival,
+            expected_lunch_start=lunch_start,
+            expected_lunch_end=lunch_end,
+            expected_departure=departure,
+            tolerance_minutes=tolerance
+        )
+        uow.session.add(jt)
+        uow.commit()
+
+def list_journey_types(uow: AbstractUnitOfWork) -> List[JourneyType]:
+    with uow:
+        return uow.session.query(JourneyType).all()
+
+def get_journey_type(uow: AbstractUnitOfWork, journey_id: int) -> Optional[JourneyType]:
+    with uow:
+        return uow.session.query(JourneyType).filter_by(journey_id=journey_id).first()
+
+def update_journey_type(
+    uow: AbstractUnitOfWork,
+    manager_id: int,
+    journey_id: int,
+    name: str,
+    arrival: time,
+    lunch_start: time,
+    lunch_end: time,
+    departure: time,
+    tolerance: int = 15
+):
+    with uow:
+        ensure_manager(uow, manager_id)
+        jt = uow.session.query(JourneyType).filter_by(journey_id=journey_id).first()
+        if not jt:
+            raise ValueError("Journey Type not found.")
+        
+        jt.name = name
+        jt.expected_arrival = arrival
+        jt.expected_lunch_start = lunch_start
+        jt.expected_lunch_end = lunch_end
+        jt.expected_departure = departure
+        jt.tolerance_minutes = tolerance
+        uow.commit()
+
+def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: int):
+    with uow:
+        ensure_manager(uow, manager_id)
+        jt = uow.session.query(JourneyType).filter_by(journey_id=journey_id).first()
+        if jt:
+            uow.session.delete(jt)
             uow.commit()
