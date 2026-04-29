@@ -376,6 +376,9 @@ def dashboard():
         else:
             recent_entries = sorted(user.time_entries, key=lambda x: x.entry_date, reverse=True)[:10]
         
+        total_worked_mins = sum(p.worked_minutes for p in user.time_entries)
+        saldo_formatted = f"{total_worked_mins // 60}h {total_worked_mins % 60:02d}m"
+
         maps_url = None
         if ponto_hoje and ponto_hoje.location_data:
             locs = ponto_hoje.location_data.split("|")
@@ -386,7 +389,8 @@ def dashboard():
                              recent_entries=recent_entries, 
                              current_stage=current_stage,
                              maps_url=maps_url,
-                             filter_date=filter_date_str)
+                             filter_date=filter_date_str,
+                             saldo_atual=saldo_formatted)
 
 @app.route("/management")
 @login_required
@@ -727,12 +731,12 @@ def justify_ponto(employee_id, entry_date):
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
-    justified = request.form.get("justified") == "true"
+    approved = request.form.get("justified") == "true"
     e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
     
     uow = SqlAlchemyUnitOfWork()
     try:
-        services.justify_missing_log(uow, current_user.id, employee_id, e_date, justified, email_sender=send_email)
+        services.review_justification(uow, current_user.id, employee_id, e_date, approved, email_sender=send_email)
         flash("Status atualizado.", "success")
     except ValueError as e:
         flash(str(e), "danger")

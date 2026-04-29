@@ -140,6 +140,13 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             ponto.lunch_start = now_time
             ponto.location_data += f" | Almoço (Sai): {location or 'Desconhecido'}"
             msg = "Saída para almoço registrada"
+            # Check for early lunch (optional, but good for completeness)
+            if user.work_schedule:
+                limit = (datetime.combine(today, user.work_schedule.expected_lunch_start) - 
+                         timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
+                if now_time < limit:
+                    ponto.status = PontoStatus.LATE
+                    ponto.lunch_start_late = True # Using 'late' flag for any anomaly
         elif not ponto.lunch_end:
             ponto.lunch_end = now_time
             ponto.location_data += f" | Almoço (Vol): {location or 'Desconhecido'}"
@@ -155,6 +162,13 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             ponto.departure = now_time
             ponto.location_data += f" | Fim: {location or 'Desconhecido'}"
             msg = "Fim de jornada registrado"
+            # Check for early departure
+            if user.work_schedule:
+                limit = (datetime.combine(today, user.work_schedule.expected_departure) - 
+                         timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
+                if now_time < limit:
+                    ponto.status = PontoStatus.LATE
+                    ponto.departure_early = True
         else:
             raise ValueError("Jornada de hoje já está completa.")
         
@@ -227,7 +241,7 @@ def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date:
                 emp.time_entries.append(ponto)
         uow.commit()
 
-def justify_missing_log(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date, justified: bool, email_sender=None):
+def review_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date, approved: bool, email_sender=None):
     with uow:
         manager = ensure_manager(uow, manager_id)
         ensure_not_self(manager_id, employee_id)
@@ -236,22 +250,22 @@ def justify_missing_log(uow: AbstractUnitOfWork, manager_id: int, employee_id: i
             raise ValueError("Employee not found.")
         
         ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
-        if not ponto or ponto.status != PontoStatus.MISSING:
-            raise ValueError("Missing log not found for this date.")
+        if not ponto or not ponto.has_anomaly:
+            raise ValueError("No anomaly found for this date to justify.")
         
         manager_name = manager.profile.full_name or manager.email
-        if justified:
+        if approved:
             ponto.status = PontoStatus.JUSTIFIED
-            ponto.location_data += f" | Justificado por Gestor: {manager_name}"
-            msg = f"Sua falta em {entry_date} foi JUSTIFICADA pelo gestor {manager_name}."
+            ponto.location_data += f" | Justificativa APROVADA por Gestor: {manager_name}"
+            msg = f"Sua justificativa para o dia {entry_date} foi APROVADA pelo gestor {manager_name}."
         else:
-            # If not justified, it stays MISSING but we can add a note.
-            ponto.location_data += f" | Falta confirmada por Gestor: {manager_name}"
-            msg = f"Sua falta em {entry_date} foi CONFIRMADA pelo gestor {manager_name}."
+            ponto.status = PontoStatus.REJECTED
+            ponto.location_data += f" | Justificativa REJEITADA por Gestor: {manager_name}"
+            msg = f"Sua justificativa para o dia {entry_date} foi REJEITADA pelo gestor {manager_name}."
         
         add_notification(uow, employee_id, msg, email_sender=email_sender)
         uow.commit()
-        uow.record_action(manager_id, "JUSTIFY_LOG", target_id=employee_id, details=f"Date: {entry_date}, Justified: {justified}")
+        uow.record_action(manager_id, "REVIEW_JUSTIFICATION", target_id=employee_id, details=f"Date: {entry_date}, Approved: {approved}")
         uow.commit()
 
 def manual_ponto_correction(
@@ -297,7 +311,7 @@ def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
         data = []
         for p in user.time_entries:
             data.append({
-                "Data": p.entry_date,
+                "Data": p.entry_date.strftime("%d/%m/%Y"),
                 "Chegada": p.arrival.strftime("%H:%M:%S") if p.arrival else "-",
                 "Almoço (Sai)": p.lunch_start.strftime("%H:%M:%S") if p.lunch_start else "-",
                 "Almoço (Vol)": p.lunch_end.strftime("%H:%M:%S") if p.lunch_end else "-",

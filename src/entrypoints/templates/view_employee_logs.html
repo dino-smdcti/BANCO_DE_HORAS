@@ -28,7 +28,7 @@
                 <tbody>
                     {% for p in recent_entries %}
                         <tr>
-                            <td>{{ p.entry_date }}</td>
+                            <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
                             <td>{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '-' }}</td>
                             <td>{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}</td>
                             <td>{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '-' }}</td>

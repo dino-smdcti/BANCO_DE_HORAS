@@ -38,45 +38,51 @@
                         </thead>
                         <tbody>
                             {% for p in recent_entries %}
-                                <tr {% if p.status.value == 'Faltante' %}class="table-danger-light"{% endif %}>
-                                    <td>{{ p.entry_date }}</td>
+                                <tr class="{% if p.status.value == 'Faltante' %}table-danger-light{% elif p.status.value == 'Justificado' %}table-success-light{% elif p.has_anomaly %}table-warning-light{% endif %}">
+                                    <td>
+                                        {{ p.entry_date.strftime('%d/%m/%Y') }}
+                                        {% if p.has_anomaly and not p.justification %}
+                                            <div class="mt-1">
+                                                <button class="btn btn-xs btn-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
+                                                    Justificar
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    </td>
                                     
                                     <!-- Chegada -->
                                     <td class="{% if p.status.value == 'Faltante' and not p.arrival %}text-danger fw-bold{% elif p.arrival_late %}text-warning-dark fw-bold{% elif p.arrival %}text-success{% endif %}">
                                         {{ p.arrival.strftime('%H:%M:%S') if p.arrival else ('FALTA' if p.status.value == 'Faltante' else '-') }}
-                                        {% if p.arrival_late %}
-                                            <div class="mt-1">
-                                                <button class="btn btn-xs btn-outline-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
-                                                    Justificar
-                                                </button>
-                                            </div>
-                                        {% endif %}
                                     </td>
 
                                     <!-- Saída Almoço -->
-                                    <td>{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}</td>
+                                    <td class="{% if p.lunch_start_late %}text-warning-dark fw-bold{% endif %}">
+                                        {{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}
+                                    </td>
 
                                     <!-- Volta Almoço -->
                                     <td class="{% if p.lunch_end_late %}text-warning-dark fw-bold{% elif p.lunch_end %}text-success{% endif %}">
                                         {{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '-' }}
-                                        {% if p.lunch_end_late %}
-                                            <div class="mt-1">
-                                                <button class="btn btn-xs btn-outline-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
-                                                    Justificar
-                                                </button>
-                                            </div>
-                                        {% endif %}
                                     </td>
 
                                     <!-- Fim Jornada -->
-                                    <td>{{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}</td>
+                                    <td class="{% if p.departure_early %}text-warning-dark fw-bold{% endif %}">
+                                        {{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}
+                                    </td>
 
                                     <td class="fw-bold text-primary">{{ p.worked_minutes // 60 }}h {{ p.worked_minutes % 60 }}m</td>
                                 </tr>
                                 {% if p.justification %}
                                 <tr class="table-light">
                                     <td colspan="6" class="py-1 px-4">
-                                        <small class="text-muted"><strong>Justificativa:</strong> {{ p.justification }}</small>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted"><strong>Justificativa:</strong> {{ p.justification }}</small>
+                                            {% if p.status.value != 'Justificado' %}
+                                                <span class="badge bg-warning text-dark">Em análise</span>
+                                            {% else %}
+                                                <span class="badge bg-success">Aprovada</span>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endif %}
@@ -114,8 +120,8 @@
 
         <div class="card shadow border-primary mb-4">
             <div class="card-body text-center">
-                <h6 class="text-muted text-uppercase small">Saldo Atual</h6>
-                <h2 class="display-5 fw-bold text-primary">0h 00m</h2>
+                <h6 class="text-muted text-uppercase small">Saldo do Período</h6>
+                <h2 class="display-5 fw-bold text-primary">{{ saldo_atual }}</h2>
             </div>
         </div>
         

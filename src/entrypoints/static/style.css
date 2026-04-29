@@ -73,6 +73,14 @@ body {
     background-color: rgba(220, 53, 69, 0.05) !important;
 }
 
+.table-warning-light {
+    background-color: rgba(255, 193, 7, 0.05) !important;
+}
+
+.table-success-light {
+    background-color: rgba(40, 167, 69, 0.05) !important;
+}
+
 .btn-xs {
     padding: 0.1rem 0.3rem;
     font-size: 0.75rem;

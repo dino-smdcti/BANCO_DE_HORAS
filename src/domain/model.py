@@ -13,6 +13,7 @@ class PontoStatus(str, Enum):
     LATE = "Atrasado"
     MISSING = "Faltante"
     JUSTIFIED = "Justificado"
+    REJECTED = "Rejeitado"
 
 @dataclass
 class WorkSchedule:
@@ -68,9 +69,21 @@ class DailyPonto:
     justification: Optional[str] = None
     ponto_id: Optional[int] = None
     
-    # Flags for lateness
+    # Flags for lateness/deviations
     arrival_late: bool = False
+    lunch_start_late: bool = False
     lunch_end_late: bool = False
+    departure_early: bool = False
+
+    @property
+    def has_anomaly(self) -> bool:
+        return any([
+            self.arrival_late,
+            self.lunch_start_late,
+            self.lunch_end_late,
+            self.departure_early,
+            self.status == PontoStatus.MISSING
+        ])
 
     @property
     def current_stage(self) -> str:
