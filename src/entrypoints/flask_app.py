@@ -27,6 +27,31 @@ app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
+def init_db():
+    db_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    
+    engine = create_engine(db_url)
+    metadata.create_all(engine)
+    try:
+        start_mappers()
+    except Exception:
+        # Mappers might already be initialized in some environments
+        pass
+    
+    # Initialize basic data
+    uow = SqlAlchemyUnitOfWork()
+    with uow:
+        admin_user = uow.users.get_user_by_email("admin@admin.com")
+        if not admin_user:
+            admin_pw = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin123")
+            services.register_user(uow, "admin@admin.com", admin_pw, role="admin")
+            print(f"Usuário ADMIN criado: admin@admin.com / {admin_pw}")
+
+# Initialize DB and Mappers globally for Vercel/Serverless
+init_db()
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
