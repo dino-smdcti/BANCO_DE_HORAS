@@ -10,7 +10,17 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">BANCO DE HORAS</a>
+            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.full_name %}
+                        {{ current_user.full_name.split()[0] }}
+                    {% else %}
+                        {{ current_user.email.split('@')[0] }}
+                    {% endif %}
+                {% else %}
+                    BANCO DE EMPREGOS
+                {% endif %}
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>

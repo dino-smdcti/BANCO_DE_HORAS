@@ -35,6 +35,7 @@ class AuthenticatedUser(UserMixin):
         self.id = user.user_id
         self.email = user.email
         self.role = user.role
+        self.full_name = user.profile.full_name
         self.is_profile_complete = user.is_profile_complete
         self.has_schedule = user.work_schedule is not None
 
@@ -54,8 +55,13 @@ def inject_notifications():
         with uow:
             user = uow.users.get_user_by_id(current_user.id)
             if user:
+                # Pre-convert to dictionaries to avoid DetachedInstanceError in template
+                notifs = [
+                    {"message": n.message, "is_read": n.is_read, "created_at": n.created_at} 
+                    for n in user.notifications[:20]
+                ]
                 return {
-                    "user_notifs": user.notifications[:20],
+                    "user_notifs": notifs,
                     "user_notifs_count": user.unread_notifications_count
                 }
     return {"user_notifs": [], "user_notifs_count": 0}
@@ -382,8 +388,23 @@ def dashboard():
         else:
             recent_entries = sorted(user.time_entries, key=lambda x: x.entry_date, reverse=True)[:10]
         
-        total_worked_mins = sum(p.worked_minutes for p in user.time_entries)
-        saldo_formatted = f"{total_worked_mins // 60}h {total_worked_mins % 60:02d}m"
+        # Calculate balances
+        if user.work_schedule:
+            def delta(t1, t2):
+                return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
+            
+            expected_daily = (delta(user.work_schedule.expected_arrival, user.work_schedule.expected_lunch_start) + 
+                              delta(user.work_schedule.expected_lunch_end, user.work_schedule.expected_departure))
+            
+            saldo_total = user.total_balance
+            
+            if ponto_hoje:
+                saldo_dia = ponto_hoje.worked_minutes - expected_daily
+            else:
+                saldo_dia = 0
+        else:
+            saldo_total = 0
+            saldo_dia = 0
 
         maps_url = None
         if ponto_hoje and ponto_hoje.location_data:
@@ -396,7 +417,8 @@ def dashboard():
                              current_stage=current_stage,
                              maps_url=maps_url,
                              filter_date=filter_date_str,
-                             saldo_atual=saldo_formatted)
+                             saldo_dia=saldo_dia,
+                             saldo_total=saldo_total)
 
 @app.route("/management")
 @login_required
@@ -748,6 +770,31 @@ def justify_ponto(employee_id, entry_date):
         flash(str(e), "danger")
         
     return redirect(url_for("dashboard"))
+
+@app.route("/admin/audit-logs")
+@login_required
+def audit_logs():
+    if current_user.role != "admin":
+        flash("Acesso restrito ao Administrador.", "danger")
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    with uow:
+        logs = uow.session.query(AuditLog).order_by(AuditLog.timestamp.desc()).all()
+        return render_template("audit_logs.html", audit_logs=logs)
+
+@app.route("/manager/delete-ponto/<int:employee_id>/<string:entry_date>", methods=["POST"])
+@login_required
+def delete_ponto(employee_id, entry_date):
+    if current_user.role not in ["manager", "admin"]:
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("dashboard"))
+    
+    e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+    uow = SqlAlchemyUnitOfWork()
+    services.delete_ponto_entry(uow, current_user.id, employee_id, e_date)
+    flash("Registro de ponto excluído.", "warning")
+    return redirect(url_for("view_employee_logs", employee_id=employee_id))
 
 @app.route("/logout")
 @login_required
