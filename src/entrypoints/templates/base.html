@@ -15,9 +15,23 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <div class="navbar-nav ms-auto">
+                <div class="navbar-nav ms-auto align-items-center">
                     {% if current_user.is_authenticated %}
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                        <!-- Notifications -->
+                        <div class="nav-item dropdown me-3">
+                            <a class="nav-link position-relative p-1" href="#" id="notifDropdown" role="button" data-bs-toggle="modal" data-bs-target="#notifModal" onclick="markRead()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-bell" viewBox="0 0 16 16">
+                                  <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
+                                </svg>
+                                <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ 'd-none' if not (user_notifs_count > 0) }}">
+                                    {{ user_notifs_count }}
+                                </span>
+                            </a>
+                        </div>
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">Meu Ponto</a>
+                        {% if current_user.role in ['manager', 'admin'] %}
+                            <a class="nav-link text-warning" href="{{ url_for('management_panel') }}">Gestão</a>
+                        {% endif %}
                         <a class="nav-link" href="{{ url_for('profile') }}">Meus Dados</a>
                         <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
                     {% else %}
@@ -27,6 +41,32 @@
             </div>
         </div>
     </nav>
+
+    <!-- Notification Modal -->
+    <div class="modal fade" id="notifModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Notificações</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for n in user_notifs %}
+                            <div class="list-group-item {{ 'bg-light font-weight-bold' if not n.is_read }}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <small class="text-muted">{{ n.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                                </div>
+                                <p class="mb-1">{{ n.message }}</p>
+                            </div>
+                        {% else %}
+                            <div class="p-4 text-center text-muted">Nenhuma notificação.</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -42,6 +82,16 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        function markRead() {
+            fetch("{{ url_for('mark_notifications_read') }}", { method: 'POST' })
+            .then(r => {
+                if(r.ok) {
+                    const badge = document.getElementById('notifBadge');
+                    if(badge) badge.classList.add('d-none');
+                }
+            });
+        }
+
         function showConfirmModal() {
             const modal = new bootstrap.Modal(document.getElementById('confirmPontoModal'));
             const timeSpan = document.getElementById('confirmTime');

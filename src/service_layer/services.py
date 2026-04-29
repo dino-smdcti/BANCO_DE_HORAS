@@ -1,6 +1,6 @@
 from datetime import datetime, date, time, timedelta
 from typing import Optional, List, Dict
-from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType
+from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from werkzeug.security import generate_password_hash
 import pandas as pd
@@ -8,13 +8,35 @@ import io
 
 def ensure_manager(uow: AbstractUnitOfWork, manager_id: int):
     user = uow.users.get_user_by_id(manager_id)
-    if not user or user.role != UserRole.MANAGER:
-        raise PermissionError("Action restricted to managers.")
+    if not user or user.role not in [UserRole.MANAGER, UserRole.ADMIN]:
+        raise PermissionError("Action restricted to managers or admins.")
+    return user
+
+def ensure_not_self(manager_id: int, employee_id: int):
+    if manager_id == employee_id:
+        raise PermissionError("Reviewers cannot review or correct their own time logs. This must be done by an Admin.")
+
+def add_notification(uow: AbstractUnitOfWork, user_id: int, message: str, email_sender=None):
+    notification = Notification(user_id=user_id, message=message, created_at=datetime.now())
+    uow.session.add(notification)
+    
+    # Send email if enabled
+    user = uow.users.get_user_by_id(user_id)
+    if user and user.email_notifications_enabled and email_sender:
+        email_sender(user.email, "Nova Notificação - Banco de Horas", f"<p>{message}</p>")
+
+def mark_notifications_as_read(uow: AbstractUnitOfWork, user_id: int):
+    with uow:
+        user = uow.users.get_user_by_id(user_id)
+        if user:
+            for n in user.notifications:
+                n.is_read = True
+            uow.commit()
 
 def register_user(
     uow: AbstractUnitOfWork, 
     email: str, 
-    password: str, 
+    password: Optional[str] = None, 
     role: str = "employee"
 ) -> None:
     with uow:
@@ -22,12 +44,18 @@ def register_user(
         if existing_user:
             raise ValueError(f"User with email {email} already exists.")
         
+        # If no password provided, use a placeholder
+        pw_hash = generate_password_hash(password) if password else "!"
+        
         user = User(
             email=email,
-            password_hash=generate_password_hash(password),
+            password_hash=pw_hash,
             role=UserRole(role)
         )
         uow.users.add_user(user)
+        uow.commit()
+        # Note: manager_id is not passed here, would need to update signature if we want to log who registered
+        uow.record_action(user.user_id, "USER_REGISTERED", target_id=user.user_id, details=f"Role: {role}")
         uow.commit()
 
 def update_user_profile(
@@ -55,8 +83,10 @@ def update_user_profile(
         )
         user.profile = new_profile
         uow.commit()
+        uow.record_action(user_id, "UPDATE_PROFILE", target_id=user_id, details=f"Registration: {registration_number}, Dept: {department}")
+        uow.commit()
 
-def update_credentials(uow: AbstractUnitOfWork, user_id: int, email: str, password: Optional[str] = None):
+def update_credentials(uow: AbstractUnitOfWork, user_id: int, email: str, password: Optional[str] = None, email_notifications_enabled: bool = False):
     with uow:
         user = uow.users.get_user_by_id(user_id)
         if not user:
@@ -67,8 +97,11 @@ def update_credentials(uow: AbstractUnitOfWork, user_id: int, email: str, passwo
             raise ValueError("Email already in use.")
             
         user.email = email
+        user.email_notifications_enabled = email_notifications_enabled
         if password:
             user.password_hash = generate_password_hash(password)
+        uow.commit()
+        uow.record_action(user_id, "UPDATE_CREDENTIALS", target_id=user_id)
         uow.commit()
 
 def promote_to_manager(uow: AbstractUnitOfWork, manager_id: int, employee_id: int):
@@ -77,6 +110,8 @@ def promote_to_manager(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
         employee = uow.users.get_user_by_id(employee_id)
         if employee:
             employee.role = UserRole.MANAGER
+            uow.commit()
+            uow.record_action(manager_id, "PROMOTE_USER", target_id=employee_id, details="Promoted to Manager")
             uow.commit()
 
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None) -> str:
@@ -100,6 +135,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time > limit:
                     ponto.status = PontoStatus.LATE
+                    ponto.arrival_late = True
         elif not ponto.lunch_start:
             ponto.lunch_start = now_time
             ponto.location_data += f" | Almoço (Sai): {location or 'Desconhecido'}"
@@ -114,6 +150,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time > limit:
                     ponto.status = PontoStatus.LATE
+                    ponto.lunch_end_late = True
         elif not ponto.departure:
             ponto.departure = now_time
             ponto.location_data += f" | Fim: {location or 'Desconhecido'}"
@@ -121,6 +158,8 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         else:
             raise ValueError("Jornada de hoje já está completa.")
         
+        uow.commit()
+        uow.record_action(user_id, "CLOCK_EVENT", target_id=user_id, details=msg)
         uow.commit()
         return msg
 
@@ -135,10 +174,16 @@ def set_work_schedule(
     tolerance: int = 15
 ):
     with uow:
-        ensure_manager(uow, manager_id)
         user = uow.users.get_user_by_id(employee_id)
         if not user:
             raise ValueError("Employee not found.")
+
+        # Allow self-assignment ONLY if no schedule exists
+        if manager_id == employee_id:
+            if user.work_schedule:
+                raise PermissionError("Self-reassignment not allowed. Contact a manager.")
+        else:
+            ensure_manager(uow, manager_id)
         
         if user.work_schedule:
             user.work_schedule.expected_arrival = arrival
@@ -156,14 +201,13 @@ def set_work_schedule(
                 tolerance_minutes=tolerance
             )
         uow.commit()
+        uow.record_action(manager_id, "SET_WORK_SCHEDULE", target_id=employee_id, details=f"Arrival: {arrival}, Departure: {departure}")
+        uow.commit()
 
 def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date: date):
     with uow:
         ensure_manager(uow, manager_id)
         employees = uow.users.list_employees()
-        
-        # Check if it's a holiday or weekend (optional, but good for production)
-        # For now, let's just generate for everyone who doesn't have a log.
         
         for emp in employees:
             ponto = next((p for p in emp.time_entries if p.entry_date == target_date), None)
@@ -183,9 +227,10 @@ def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date:
                 emp.time_entries.append(ponto)
         uow.commit()
 
-def justify_missing_log(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date, justified: bool):
+def justify_missing_log(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date, justified: bool, email_sender=None):
     with uow:
-        ensure_manager(uow, manager_id)
+        manager = ensure_manager(uow, manager_id)
+        ensure_not_self(manager_id, employee_id)
         user = uow.users.get_user_by_id(employee_id)
         if not user:
             raise ValueError("Employee not found.")
@@ -194,13 +239,19 @@ def justify_missing_log(uow: AbstractUnitOfWork, manager_id: int, employee_id: i
         if not ponto or ponto.status != PontoStatus.MISSING:
             raise ValueError("Missing log not found for this date.")
         
+        manager_name = manager.profile.full_name or manager.email
         if justified:
             ponto.status = PontoStatus.JUSTIFIED
-            ponto.location_data += f" | Justificado por Gestor ID {manager_id}"
+            ponto.location_data += f" | Justificado por Gestor: {manager_name}"
+            msg = f"Sua falta em {entry_date} foi JUSTIFICADA pelo gestor {manager_name}."
         else:
             # If not justified, it stays MISSING but we can add a note.
-            ponto.location_data += f" | Falta confirmada por Gestor ID {manager_id}"
+            ponto.location_data += f" | Falta confirmada por Gestor: {manager_name}"
+            msg = f"Sua falta em {entry_date} foi CONFIRMADA pelo gestor {manager_name}."
         
+        add_notification(uow, employee_id, msg, email_sender=email_sender)
+        uow.commit()
+        uow.record_action(manager_id, "JUSTIFY_LOG", target_id=employee_id, details=f"Date: {entry_date}, Justified: {justified}")
         uow.commit()
 
 def manual_ponto_correction(
@@ -211,10 +262,12 @@ def manual_ponto_correction(
     arrival: Optional[time],
     lunch_start: Optional[time],
     lunch_end: Optional[time],
-    departure: Optional[time]
+    departure: Optional[time],
+    email_sender=None
 ):
     with uow:
-        ensure_manager(uow, manager_id)
+        manager = ensure_manager(uow, manager_id)
+        ensure_not_self(manager_id, employee_id)
         user = uow.users.get_user_by_id(employee_id)
         if not user:
             raise ValueError("Employee not found.")
@@ -228,7 +281,12 @@ def manual_ponto_correction(
         ponto.lunch_start = lunch_start
         ponto.lunch_end = lunch_end
         ponto.departure = departure
-        ponto.location_data += f" | Corrigido manualmente por Gestor ID {manager_id}"
+        manager_name = manager.profile.full_name or manager.email
+        ponto.location_data += f" | Corrigido manualmente por Gestor: {manager_name}"
+        
+        add_notification(uow, employee_id, f"Seu ponto de {entry_date} foi corrigido manualmente pelo gestor {manager_name}.", email_sender=email_sender)
+        uow.commit()
+        uow.record_action(manager_id, "MANUAL_CORRECTION", target_id=employee_id, details=f"Date: {entry_date}")
         uow.commit()
 
 def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
@@ -244,6 +302,8 @@ def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
                 "Almoço (Sai)": p.lunch_start.strftime("%H:%M:%S") if p.lunch_start else "-",
                 "Almoço (Vol)": p.lunch_end.strftime("%H:%M:%S") if p.lunch_end else "-",
                 "Fim": p.departure.strftime("%H:%M:%S") if p.departure else "-",
+                "Status": p.status.value,
+                "Justificativa": p.justification or "-",
                 "Minutos Trabalhados": p.worked_minutes,
                 "Localização": p.location_data
             })
@@ -264,12 +324,16 @@ def add_vacation(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, sta
             raise ValueError("Employee not found.")
         employee.vacations.append(vacation)
         uow.commit()
+        uow.record_action(manager_id, "ADD_VACATION", target_id=employee_id, details=f"Start: {start_date}, End: {end_date}")
+        uow.commit()
 
 def add_holiday(uow: AbstractUnitOfWork, manager_id: int, holiday_date: date, description: str, is_mandatory: bool):
     with uow:
         ensure_manager(uow, manager_id)
         holiday = Holiday(holiday_date=holiday_date, description=description, is_mandatory=is_mandatory)
         uow.session.add(holiday)
+        uow.commit()
+        uow.record_action(manager_id, "ADD_HOLIDAY", target_id=None, details=f"Date: {holiday_date}, Desc: {description}")
         uow.commit()
 
 def get_all_employees(uow: AbstractUnitOfWork) -> List[User]:
@@ -281,7 +345,10 @@ def delete_user(uow: AbstractUnitOfWork, manager_id: int, user_id: int):
         ensure_manager(uow, manager_id)
         user = uow.users.get_user_by_id(user_id)
         if user:
+            email = user.email
             uow.session.delete(user)
+            uow.commit()
+            uow.record_action(manager_id, "DELETE_USER", target_id=user_id, details=f"Deleted user: {email}")
             uow.commit()
 
 def create_journey_type(
@@ -305,6 +372,8 @@ def create_journey_type(
             tolerance_minutes=tolerance
         )
         uow.session.add(jt)
+        uow.commit()
+        uow.record_action(manager_id, "CREATE_JOURNEY_TYPE", target_id=None, details=f"Name: {name}")
         uow.commit()
 
 def list_journey_types(uow: AbstractUnitOfWork) -> List[JourneyType]:
@@ -339,11 +408,32 @@ def update_journey_type(
         jt.expected_departure = departure
         jt.tolerance_minutes = tolerance
         uow.commit()
+        uow.record_action(manager_id, "UPDATE_JOURNEY_TYPE", target_id=journey_id, details=f"Name: {name}")
+        uow.commit()
 
 def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: int):
     with uow:
         ensure_manager(uow, manager_id)
         jt = uow.session.query(JourneyType).filter_by(journey_id=journey_id).first()
         if jt:
+            name = jt.name
             uow.session.delete(jt)
             uow.commit()
+            uow.record_action(manager_id, "DELETE_JOURNEY_TYPE", target_id=journey_id, details=f"Deleted: {name}")
+            uow.commit()
+
+def submit_justification(uow: AbstractUnitOfWork, user_id: int, entry_date: date, justification: str):
+    with uow:
+        user = uow.users.get_user_by_id(user_id)
+        if not user:
+            raise ValueError("User not found.")
+        
+        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
+        if not ponto:
+             ponto = DailyPonto(user_id=user_id, entry_date=entry_date, status=PontoStatus.MISSING)
+             user.time_entries.append(ponto)
+        
+        ponto.justification = justification
+        uow.commit()
+        uow.record_action(user_id, "SUBMIT_JUSTIFICATION", target_id=user_id, details=f"Date: {entry_date}")
+        uow.commit()

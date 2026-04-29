@@ -5,12 +5,26 @@ from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
 from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm, WorkScheduleForm, JourneyTypeForm
 from src.domain.model import User, PontoStatus, JourneyType
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import create_engine
 from datetime import datetime, date
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from itsdangerous import URLSafeTimedSerializer
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "dev-secret-key"
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
+app.config["MAIL_SERVER"] = "smtp.gmail.com"
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_USERNAME"] = "inovacao.smdcti@gmail.com"
+app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
+
+serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -22,6 +36,7 @@ class AuthenticatedUser(UserMixin):
         self.email = user.email
         self.role = user.role
         self.is_profile_complete = user.is_profile_complete
+        self.has_schedule = user.work_schedule is not None
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -31,6 +46,124 @@ def load_user(user_id):
         if user:
             return AuthenticatedUser(user)
     return None
+
+@app.context_processor
+def inject_notifications():
+    if current_user.is_authenticated:
+        uow = SqlAlchemyUnitOfWork()
+        with uow:
+            user = uow.users.get_user_by_id(current_user.id)
+            if user:
+                return {
+                    "user_notifs": user.notifications[:20],
+                    "user_notifs_count": user.unread_notifications_count
+                }
+    return {"user_notifs": [], "user_notifs_count": 0}
+
+def send_email(to_email, subject, body_html):
+    msg = MIMEMultipart()
+    msg["From"] = f"Banco de Horas <{app.config['MAIL_USERNAME']}>"
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    
+    msg.attach(MIMEText(body_html, "html"))
+    
+    try:
+        server = smtplib.SMTP(app.config["MAIL_SERVER"], app.config["MAIL_PORT"])
+        server.starttls()
+        server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email")
+        uow = SqlAlchemyUnitOfWork()
+        with uow:
+            user = uow.users.get_user_by_email(email)
+            if user:
+                token = serializer.dumps(email, salt="password-reset-salt")
+                reset_url = url_for("reset_password", token=token, _external=True)
+                html = render_template("emails/reset_password.html", reset_url=reset_url)
+                if send_email(email, "Recuperação de Senha - Banco de Horas", html):
+                    flash("Se o e-mail estiver cadastrado, você receberá um link de recuperação em instantes.", "info")
+                else:
+                    flash("Erro ao enviar o e-mail de recuperação. Por favor, tente novamente mais tarde.", "danger")
+            else:
+                flash("Se o e-mail estiver cadastrado, você receberá um link de recuperação em instantes.", "info")
+            return redirect(url_for("login"))
+    return render_template("forgot_password.html")
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    try:
+        email = serializer.loads(token, salt="password-reset-salt", max_age=3600) # 1 hora
+    except:
+        flash("O link de recuperação é inválido ou expirou.", "danger")
+        return redirect(url_for("forgot_password"))
+    
+    if request.method == "POST":
+        password = request.form.get("password")
+        uow = SqlAlchemyUnitOfWork()
+        with uow:
+            user = uow.users.get_user_by_email(email)
+            if user:
+                user.password_hash = generate_password_hash(password)
+                uow.commit()
+                flash("Sua senha foi atualizada com sucesso.", "success")
+                return redirect(url_for("login"))
+    
+    return render_template("reset_password.html", token=token)
+
+@app.route("/magic-login", methods=["POST"])
+def magic_login():
+    email = request.form.get("email")
+    if not email:
+        flash("E-mail é obrigatório.", "warning")
+        return redirect(url_for("login"))
+        
+    uow = SqlAlchemyUnitOfWork()
+    with uow:
+        user = uow.users.get_user_by_email(email)
+        if user:
+            token = serializer.dumps(email, salt="magic-login-salt")
+            login_url = url_for("magic_link_login", token=token, _external=True)
+            html = render_template("emails/magic_link.html", login_url=login_url)
+            if send_email(email, "Link de Acesso Rápido - Banco de Horas", html):
+                flash("Se o e-mail estiver cadastrado, você receberá um link de acesso em instantes.", "info")
+            else:
+                flash("Erro ao enviar o e-mail de acesso. Por favor, tente novamente mais tarde.", "danger")
+        else:
+            flash("Se o e-mail estiver cadastrado, você receberá um link de acesso em instantes.", "info")
+        
+        return redirect(url_for("login"))
+
+@app.route("/login-link/<token>")
+def magic_link_login(token):
+    try:
+        email = serializer.loads(token, salt="magic-login-salt", max_age=600) # 10 minutos
+    except:
+        flash("O link de acesso é inválido ou expirou.", "danger")
+        return redirect(url_for("login"))
+        
+    uow = SqlAlchemyUnitOfWork()
+    with uow:
+        user = uow.users.get_user_by_email(email)
+        if user:
+            login_user(AuthenticatedUser(user))
+            if not user.is_profile_complete:
+                return redirect(url_for("complete_profile"))
+            if user.role == "employee" and not user.work_schedule:
+                return redirect(url_for("choose_journey"))
+            return redirect(url_for("dashboard"))
+            
+    flash("Usuário não encontrado.", "danger")
+    return redirect(url_for("login"))
 
 @app.route("/")
 def index():
@@ -47,6 +180,8 @@ def login():
                 login_user(AuthenticatedUser(user))
                 if not user.is_profile_complete:
                     return redirect(url_for("complete_profile"))
+                if user.role == "employee" and not user.work_schedule:
+                    return redirect(url_for("choose_journey"))
                 return redirect(url_for("dashboard"))
             flash("Invalid email or password", "danger")
     return render_template("login.html", form=form)
@@ -54,7 +189,7 @@ def login():
 @app.route("/register", methods=["GET", "POST"])
 @login_required
 def register():
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Acesso restrito a gestores.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -62,12 +197,54 @@ def register():
     if form.validate_on_submit():
         uow = SqlAlchemyUnitOfWork()
         try:
-            services.register_user(uow, form.email.data, form.password.data, form.role.data)
-            flash("Registered successfully!", "success")
+            services.register_user(uow, form.email.data, role=form.role.data)
+            
+            # Send invitation email
+            token = serializer.dumps(form.email.data, salt="password-reset-salt")
+            setup_url = url_for("reset_password", token=token, _external=True)
+            html = render_template("emails/welcome_invite.html", setup_url=setup_url)
+            if send_email(form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html):
+                flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
+            else:
+                flash("Usuário cadastrado, mas houve um erro ao enviar o e-mail de convite. Verifique as configurações de SMTP.", "warning")
+            
             return redirect(url_for("dashboard"))
         except ValueError as e:
             flash(str(e), "danger")
     return render_template("register.html", form=form)
+
+@app.route("/choose-journey", methods=["GET", "POST"])
+@login_required
+def choose_journey():
+    if current_user.role != "employee":
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    with uow:
+        user = uow.users.get_user_by_id(current_user.id)
+        if user.work_schedule:
+            return redirect(url_for("dashboard"))
+        
+        journeys = services.list_journey_types(uow)
+        
+        if request.method == "POST":
+            journey_id = request.form.get("journey_id")
+            if journey_id:
+                j = services.get_journey_type(uow, int(journey_id))
+                if j:
+                    services.set_work_schedule(
+                        uow, current_user.id, current_user.id,
+                        j.expected_arrival,
+                        j.expected_lunch_start,
+                        j.expected_lunch_end,
+                        j.expected_departure,
+                        j.tolerance_minutes
+                    )
+                    flash("Jornada de trabalho selecionada com sucesso!", "success")
+                    return redirect(url_for("dashboard"))
+            flash("Por favor, selecione uma jornada.", "warning")
+            
+        return render_template("set_schedule.html", employee=user, journeys=journeys, self_select=True)
 
 @app.route("/complete-profile", methods=["GET", "POST"])
 @login_required
@@ -101,18 +278,59 @@ def profile():
         if request.method == "POST":
             email = request.form.get("email")
             password = request.form.get("password") or None
+            email_notifications = True if request.form.get("email_notifications") else False
             try:
-                services.update_credentials(uow, current_user.id, email, password)
+                services.update_credentials(uow, current_user.id, email, password, email_notifications)
                 flash("Perfil atualizado!", "success")
                 return redirect(url_for("dashboard"))
             except ValueError as e:
                 flash(str(e), "danger")
         return render_template("profile.html", user=user)
 
+@app.route("/manager/edit-employee/<int:employee_id>", methods=["GET", "POST"])
+@login_required
+def edit_employee(employee_id):
+    if current_user.role not in ["manager", "admin"]:
+        flash("Unauthorized", "danger")
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    form = ProfileForm()
+    
+    with uow:
+        employee = uow.users.get_user_by_id(employee_id)
+        if not employee:
+            flash("Funcionário não encontrado.", "danger")
+            return redirect(url_for("management_panel"))
+        
+        if form.validate_on_submit():
+            services.update_user_profile(
+                uow,
+                employee_id,
+                form.registration_number.data,
+                form.cpf.data,
+                form.department.data,
+                form.position.data,
+                form.secretariat.data,
+                form.full_name.data
+            )
+            flash(f"Perfil de {employee.profile.full_name or employee.email} atualizado!", "success")
+            return redirect(url_for("management_panel"))
+        
+        if not request.method == "POST":
+            form.registration_number.data = employee.profile.registration_number
+            form.cpf.data = employee.profile.cpf
+            form.department.data = employee.profile.department
+            form.position.data = employee.profile.position
+            form.secretariat.data = employee.profile.secretariat
+            form.full_name.data = employee.profile.full_name
+            
+        return render_template("complete_profile.html", form=form, title=f"Editar Perfil: {employee.email}")
+
 @app.route("/manager/promote/<int:user_id>", methods=["POST"])
 @login_required
 def promote_user(user_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Não autorizado", "danger")
         return redirect(url_for("dashboard"))
     uow = SqlAlchemyUnitOfWork()
@@ -131,12 +349,19 @@ def dashboard():
     if not current_user.is_profile_complete:
         return redirect(url_for("complete_profile"))
     
+    if current_user.role == "employee" and not current_user.has_schedule:
+        return redirect(url_for("choose_journey"))
+    
     uow = SqlAlchemyUnitOfWork()
+    filter_date_str = request.args.get("date")
+    filter_date = None
+    if filter_date_str:
+        try:
+            filter_date = datetime.strptime(filter_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+
     with uow:
-        if current_user.role == "manager":
-            employees = services.get_all_employees(uow)
-            return render_template("manager_dashboard.html", employees=employees, today=date.today())
-        
         user = uow.users.get_user_by_id(current_user.id)
         if not user:
              flash("User not found", "danger")
@@ -146,7 +371,10 @@ def dashboard():
         ponto_hoje = next((p for p in user.time_entries if p.entry_date == today_date), None)
         current_stage = ponto_hoje.current_stage if ponto_hoje else "Chegada"
         
-        recent_entries = sorted(user.time_entries, key=lambda x: x.entry_date, reverse=True)[:10]
+        if filter_date:
+            recent_entries = [p for p in user.time_entries if p.entry_date == filter_date]
+        else:
+            recent_entries = sorted(user.time_entries, key=lambda x: x.entry_date, reverse=True)[:10]
         
         maps_url = None
         if ponto_hoje and ponto_hoje.location_data:
@@ -157,7 +385,48 @@ def dashboard():
         return render_template("employee_dashboard.html", 
                              recent_entries=recent_entries, 
                              current_stage=current_stage,
-                             maps_url=maps_url)
+                             maps_url=maps_url,
+                             filter_date=filter_date_str)
+
+@app.route("/management")
+@login_required
+def management_panel():
+    if current_user.role not in ["manager", "admin"]:
+        flash("Acesso restrito.", "danger")
+        return redirect(url_for("dashboard"))
+        
+    uow = SqlAlchemyUnitOfWork()
+    with uow:
+        employees = services.get_all_employees(uow)
+        return render_template("manager_dashboard.html", employees=employees, today=date.today())
+
+
+@app.route("/submit-justification", methods=["POST"])
+@login_required
+def submit_justification():
+    entry_date_str = request.form.get("entry_date")
+    justification = request.form.get("justification")
+    
+    if not entry_date_str or not justification:
+        flash("Data e justificativa são obrigatórias.", "warning")
+        return redirect(url_for("dashboard"))
+    
+    try:
+        entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
+        uow = SqlAlchemyUnitOfWork()
+        services.submit_justification(uow, current_user.id, entry_date, justification)
+        flash("Justificativa enviada com sucesso.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    
+    return redirect(url_for("dashboard"))
+
+@app.route("/notifications/read", methods=["POST"])
+@login_required
+def mark_notifications_read():
+    uow = SqlAlchemyUnitOfWork()
+    services.mark_notifications_as_read(uow, current_user.id)
+    return {"status": "ok"}
 
 @app.route("/clock", methods=["POST"])
 @login_required
@@ -192,7 +461,7 @@ def download_report(user_id):
 @app.route("/manager/view-logs/<int:employee_id>")
 @login_required
 def view_employee_logs(employee_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -209,7 +478,7 @@ def view_employee_logs(employee_id):
 @app.route("/manager/fix-ponto/<int:employee_id>", methods=["GET", "POST"])
 @login_required
 def fix_ponto(employee_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
 
@@ -228,7 +497,8 @@ def fix_ponto(employee_id):
             parse_time(request.form.get("arrival")),
             parse_time(request.form.get("lunch_start")),
             parse_time(request.form.get("lunch_end")),
-            parse_time(request.form.get("departure"))
+            parse_time(request.form.get("departure")),
+            email_sender=send_email
         )
         flash("Registro corrigido manualmente.", "success")
         return redirect(url_for("dashboard"))
@@ -240,7 +510,7 @@ def fix_ponto(employee_id):
 @app.route("/manager/add-vacation/<int:employee_id>", methods=["POST"])
 @login_required
 def add_vacation(employee_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -255,7 +525,7 @@ def add_vacation(employee_id):
 @app.route("/manager/add-holiday", methods=["POST"])
 @login_required
 def add_holiday():
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -271,7 +541,7 @@ def add_holiday():
 @app.route("/manager/delete-user/<int:user_id>", methods=["POST"])
 @login_required
 def delete_user(user_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -283,7 +553,7 @@ def delete_user(user_id):
 @app.route("/manager/set-schedule/<int:employee_id>", methods=["GET", "POST"])
 @login_required
 def set_schedule(employee_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
 
@@ -331,7 +601,7 @@ def set_schedule(employee_id):
 @app.route("/manager/journey-types", methods=["GET", "POST"])
 @login_required
 def manage_journeys():
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -360,7 +630,7 @@ def manage_journeys():
 @app.route("/manager/get-journey/<int:journey_id>")
 @login_required
 def get_journey_json(journey_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         return {"error": "Unauthorized"}, 403
     
     uow = SqlAlchemyUnitOfWork()
@@ -379,7 +649,7 @@ def get_journey_json(journey_id):
 @app.route("/manager/edit-journey/<int:journey_id>", methods=["GET", "POST"])
 @login_required
 def edit_journey(journey_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -423,7 +693,7 @@ def edit_journey(journey_id):
 @app.route("/manager/delete-journey/<int:journey_id>", methods=["POST"])
 @login_required
 def delete_journey(journey_id):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -435,7 +705,7 @@ def delete_journey(journey_id):
 @app.route("/manager/generate-missing", methods=["POST"])
 @login_required
 def generate_missing():
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -453,7 +723,7 @@ def generate_missing():
 @app.route("/manager/justify-ponto/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
 def justify_ponto(employee_id, entry_date):
-    if current_user.role != "manager":
+    if current_user.role not in ["manager", "admin"]:
         flash("Unauthorized", "danger")
         return redirect(url_for("dashboard"))
     
@@ -462,7 +732,7 @@ def justify_ponto(employee_id, entry_date):
     
     uow = SqlAlchemyUnitOfWork()
     try:
-        services.justify_missing_log(uow, current_user.id, employee_id, e_date, justified)
+        services.justify_missing_log(uow, current_user.id, employee_id, e_date, justified, email_sender=send_email)
         flash("Status atualizado.", "success")
     except ValueError as e:
         flash(str(e), "danger")
@@ -482,7 +752,15 @@ def init_db():
     
     uow = SqlAlchemyUnitOfWork()
     with uow:
-        any_user = uow.session.query(User).first()
-        if not any_user:
-            services.register_user(uow, "admin@admin.com", "admin123", role="manager")
-            print("Primeiro usuário (ADMIN) criado: admin@admin.com / admin123")
+        admin_user = uow.users.get_user_by_email("admin@admin.com")
+        if not admin_user:
+            admin_pw = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin123")
+            services.register_user(uow, "admin@admin.com", admin_pw, role="admin")
+            print(f"Usuário ADMIN criado: admin@admin.com / {admin_pw}")
+        
+        # Opcional: Criar um gerente de teste que também bate ponto
+        test_manager = uow.users.get_user_by_email("manager@test.com")
+        if not test_manager:
+            mgr_pw = os.environ.get("INITIAL_MANAGER_PASSWORD", "manager123")
+            services.register_user(uow, "manager@test.com", mgr_pw, role="manager")
+            print(f"Usuário MANAGER criado: manager@test.com / {mgr_pw}")

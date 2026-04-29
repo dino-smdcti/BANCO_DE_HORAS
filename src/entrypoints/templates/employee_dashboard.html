@@ -6,17 +6,26 @@
         <div class="card shadow mb-4">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Registrar Ponto - <span class="text-primary">{{ current_stage }}</span></h5>
-                {% if current_stage != "Jornada Completa" %}
-                <button type="button" class="btn btn-primary" onclick="showConfirmModal()">
-                    Registrar {{ current_stage }}
-                </button>
-                {% else %}
-                <button class="btn btn-secondary" disabled>Jornada Completa</button>
-                {% endif %}
+                <div class="d-flex gap-2">
+                    <form action="{{ url_for('dashboard') }}" method="GET" class="d-flex align-items-center gap-2">
+                        <input type="date" name="date" class="form-control form-control-sm" value="{{ filter_date or '' }}">
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+                        {% if filter_date %}
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">Limpar</a>
+                        {% endif %}
+                    </form>
+                    {% if current_stage != "Jornada Completa" %}
+                    <button type="button" class="btn btn-primary" onclick="showConfirmModal()">
+                        Registrar {{ current_stage }}
+                    </button>
+                    {% else %}
+                    <button class="btn btn-secondary" disabled>Jornada Completa</button>
+                    {% endif %}
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
+                    <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
                                 <th>Data</th>
@@ -24,35 +33,55 @@
                                 <th>Almoço (Saída)</th>
                                 <th>Almoço (Volta)</th>
                                 <th>Fim Jornada</th>
-                                <th>Status</th>
                                 <th>Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for p in recent_entries %}
-                                <tr>
+                                <tr {% if p.status.value == 'Faltante' %}class="table-danger-light"{% endif %}>
                                     <td>{{ p.entry_date }}</td>
-                                    <td>{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '-' }}</td>
-                                    <td>{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}</td>
-                                    <td>{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '-' }}</td>
-                                    <td>{{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}</td>
-                                    <td>
-                                        {% if p.status.value == 'No Horário' %}
-                                            <span class="badge bg-success">{{ p.status.value }}</span>
-                                        {% elif p.status.value == 'Atrasado' %}
-                                            <span class="badge bg-warning text-dark">{{ p.status.value }}</span>
-                                        {% elif p.status.value == 'Faltante' %}
-                                            <span class="badge bg-danger">{{ p.status.value }}</span>
-                                        {% elif p.status.value == 'Justificado' %}
-                                            <span class="badge bg-info text-dark">{{ p.status.value }}</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">{{ p.status.value }}</span>
+                                    
+                                    <!-- Chegada -->
+                                    <td class="{% if p.status.value == 'Faltante' and not p.arrival %}text-danger fw-bold{% elif p.arrival_late %}text-warning-dark fw-bold{% elif p.arrival %}text-success{% endif %}">
+                                        {{ p.arrival.strftime('%H:%M:%S') if p.arrival else ('FALTA' if p.status.value == 'Faltante' else '-') }}
+                                        {% if p.arrival_late %}
+                                            <div class="mt-1">
+                                                <button class="btn btn-xs btn-outline-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
+                                                    Justificar
+                                                </button>
+                                            </div>
                                         {% endif %}
                                     </td>
+
+                                    <!-- Saída Almoço -->
+                                    <td>{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}</td>
+
+                                    <!-- Volta Almoço -->
+                                    <td class="{% if p.lunch_end_late %}text-warning-dark fw-bold{% elif p.lunch_end %}text-success{% endif %}">
+                                        {{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '-' }}
+                                        {% if p.lunch_end_late %}
+                                            <div class="mt-1">
+                                                <button class="btn btn-xs btn-outline-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
+                                                    Justificar
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Fim Jornada -->
+                                    <td>{{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}</td>
+
                                     <td class="fw-bold text-primary">{{ p.worked_minutes // 60 }}h {{ p.worked_minutes % 60 }}m</td>
                                 </tr>
+                                {% if p.justification %}
+                                <tr class="table-light">
+                                    <td colspan="6" class="py-1 px-4">
+                                        <small class="text-muted"><strong>Justificativa:</strong> {{ p.justification }}</small>
+                                    </td>
+                                </tr>
+                                {% endif %}
                             {% else %}
-                                <tr><td colspan="6" class="text-center py-4">Nenhum registro.</td></tr>
+                                <tr><td colspan="6" class="text-center py-4">Nenhum registro encontrado.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -100,6 +129,34 @@
         </div>
     </div>
 
+    <!-- Modal de Justificativa -->
+    <div class="modal fade" id="justificationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Justificar Ponto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ url_for('submit_justification') }}" method="POST">
+                    <div class="modal-body">
+                        <input type="hidden" name="entry_date" id="just_entry_date">
+                        <div class="mb-3">
+                            <label class="form-label">Data: <span id="display_just_date" class="fw-bold"></span></label>
+                        </div>
+                        <div class="mb-3">
+                            <label for="justification" class="form-label">Sua Justificativa</label>
+                            <textarea class="form-control" name="justification" id="justification_text" rows="4" required placeholder="Explique o motivo do atraso ou falta..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Enviar Justificativa</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Confirmação -->
     <div class="modal fade" id="confirmPontoModal" tabindex="-1">
         <div class="modal-dialog">
@@ -126,4 +183,14 @@
         </div>
     </div>
 </div>
+
+<script>
+    function openJustificationModal(entryDate, currentJust) {
+        document.getElementById('just_entry_date').value = entryDate;
+        document.getElementById('display_just_date').innerText = entryDate;
+        document.getElementById('justification_text').value = currentJust;
+        var myModal = new bootstrap.Modal(document.getElementById('justificationModal'));
+        myModal.show();
+    }
+</script>
 {% endblock %}

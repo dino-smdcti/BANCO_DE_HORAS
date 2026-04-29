@@ -21,6 +21,7 @@
                         <th>Almoço (Vol)</th>
                         <th>Fim Jornada</th>
                         <th>Status</th>
+                        <th>Justificativa</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -43,6 +44,13 @@
                                     <span class="badge bg-info text-dark">{{ p.status.value }}</span>
                                 {% else %}
                                     <span class="badge bg-secondary">{{ p.status.value }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if p.justification %}
+                                    <small class="text-muted" title="{{ p.justification }}">{{ p.justification }}</small>
+                                {% else %}
+                                    -
                                 {% endif %}
                             </td>
                             <td>

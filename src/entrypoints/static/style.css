@@ -65,6 +65,20 @@ body {
     color: var(--dark-accent);
 }
 
+.text-warning-dark {
+    color: #a38100 !important;
+}
+
+.table-danger-light {
+    background-color: rgba(220, 53, 69, 0.05) !important;
+}
+
+.btn-xs {
+    padding: 0.1rem 0.3rem;
+    font-size: 0.75rem;
+    border-radius: 0.2rem;
+}
+
 /* Custom styles for desktop/mobile optimization */
 @media (max-width: 768px) {
     .container { padding: 10px; }

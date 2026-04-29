@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import Optional
+from datetime import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from src.adapters.repository import AbstractRepository, SqlAlchemyRepository
 from src.adapters.orm import metadata
+from src.domain.model import AuditLog
 
 DEFAULT_SESSION_FACTORY = sessionmaker(
     bind=create_engine("sqlite:///banco_de_horas.db"),
@@ -18,6 +21,10 @@ class AbstractUnitOfWork(ABC):
 
     def __exit__(self, *args):
         self.rollback()
+
+    @abstractmethod
+    def record_action(self, user_id: int, action: str, target_id: Optional[int] = None, details: Optional[str] = None):
+        pass
 
     @abstractmethod
     def commit(self):
@@ -54,3 +61,7 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def rollback(self):
         self.session.rollback()
+
+    def record_action(self, user_id: int, action: str, target_id: Optional[int] = None, details: Optional[str] = None):
+        log = AuditLog(user_id=user_id, action=action, target_id=target_id, timestamp=datetime.now(), details=details)
+        self.session.add(log)

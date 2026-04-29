@@ -1,9 +1,21 @@
-from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean
+from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime
 from sqlalchemy.orm import registry, relationship, composite
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog
+from datetime import datetime
 
 metadata = MetaData()
 mapper_registry = registry(metadata=metadata)
+
+audit_logs = Table(
+    "audit_logs",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id")),
+    Column("action", String(255), nullable=False),
+    Column("target_id", Integer, nullable=True),
+    Column("timestamp", DateTime, default=datetime.now),
+    Column("details", String, nullable=True),
+)
 
 journey_types = Table(
     "journey_types",
@@ -42,6 +54,7 @@ users = Table(
     Column("position", String(100), nullable=True),
     Column("secretariat", String(100), nullable=True),
     Column("full_name", String(255), nullable=True),
+    Column("email_notifications_enabled", Boolean, default=False),
 )
 
 daily_pontos = Table(
@@ -56,6 +69,9 @@ daily_pontos = Table(
     Column("departure", Time, nullable=True),
     Column("location_data", String(1000), nullable=True),
     Column("status", SQLEnum(PontoStatus), default=PontoStatus.ON_TIME),
+    Column("justification", String(500), nullable=True),
+    Column("arrival_late", Boolean, default=False),
+    Column("lunch_end_late", Boolean, default=False),
 )
 
 vacations = Table(
@@ -73,6 +89,16 @@ holidays = Table(
     Column("holiday_date", Date, primary_key=True),
     Column("description", String(255), nullable=False),
     Column("is_mandatory", Boolean, default=True),
+)
+
+notifications = Table(
+    "notifications",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("message", String(500), nullable=False),
+    Column("created_at", DateTime, nullable=False),
+    Column("is_read", Boolean, default=False),
 )
 
 def start_mappers():
@@ -95,7 +121,8 @@ def start_mappers():
             ),
             "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date, cascade="all, delete-orphan"),
             "vacations": relationship(Vacation, backref="user", cascade="all, delete-orphan"),
-            "work_schedule": relationship(WorkSchedule, backref="user", uselist=False, cascade="all, delete-orphan")
+            "work_schedule": relationship(WorkSchedule, backref="user", uselist=False, cascade="all, delete-orphan"),
+            "notifications": relationship(Notification, backref="user", order_by=notifications.c.created_at.desc(), cascade="all, delete-orphan")
         }
     )
 
@@ -123,6 +150,14 @@ def start_mappers():
         }
     )
 
+    mapper_registry.map_imperatively(
+        Notification,
+        notifications,
+        properties={
+            "notification_id": notifications.c.id,
+        }
+    )
+
     mapper_registry.map_imperatively(Holiday, holidays)
     
     mapper_registry.map_imperatively(
@@ -130,5 +165,13 @@ def start_mappers():
         journey_types,
         properties={
             "journey_id": journey_types.c.id,
+        }
+    )
+
+    mapper_registry.map_imperatively(
+        AuditLog,
+        audit_logs,
+        properties={
+            "log_id": audit_logs.c.id,
         }
     )

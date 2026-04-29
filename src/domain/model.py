@@ -4,6 +4,7 @@ from typing import List, Optional
 from enum import Enum
 
 class UserRole(str, Enum):
+    ADMIN = "admin"
     MANAGER = "manager"
     EMPLOYEE = "employee"
 
@@ -33,7 +34,7 @@ class JourneyType:
     tolerance_minutes: int = 15
     journey_id: Optional[int] = None
 
-@dataclass(frozen=True)
+@dataclass
 class Holiday:
     holiday_date: date
     description: str
@@ -47,6 +48,14 @@ class Vacation:
     vacation_id: Optional[int] = None
 
 @dataclass
+class Notification:
+    user_id: int
+    message: str
+    created_at: datetime
+    is_read: bool = False
+    notification_id: Optional[int] = None
+
+@dataclass
 class DailyPonto:
     user_id: int
     entry_date: date
@@ -56,7 +65,12 @@ class DailyPonto:
     departure: Optional[time] = None
     location_data: str = "" # Formato: "Chegada: ... | Almoço: ..."
     status: PontoStatus = PontoStatus.ON_TIME
+    justification: Optional[str] = None
     ponto_id: Optional[int] = None
+    
+    # Flags for lateness
+    arrival_late: bool = False
+    lunch_end_late: bool = False
 
     @property
     def current_stage(self) -> str:
@@ -76,7 +90,7 @@ class DailyPonto:
         afternoon = delta(self.lunch_end, self.departure)
         return morning + afternoon
 
-@dataclass(frozen=True)
+@dataclass
 class UserProfile:
     registration_number: Optional[str] = None
     cpf: Optional[str] = None
@@ -95,6 +109,15 @@ class UserProfile:
             self.full_name
         ])
 
+@dataclass
+class AuditLog:
+    user_id: int
+    action: str
+    target_id: Optional[int]
+    timestamp: datetime
+    details: Optional[str] = None
+    log_id: Optional[int] = None
+
 class User:
     def __init__(
         self, 
@@ -103,7 +126,8 @@ class User:
         role: UserRole,
         user_id: Optional[int] = None,
         profile: Optional[UserProfile] = None,
-        work_schedule: Optional[WorkSchedule] = None
+        work_schedule: Optional[WorkSchedule] = None,
+        email_notifications_enabled: bool = False
     ):
         self.user_id = user_id
         self.email = email
@@ -111,8 +135,10 @@ class User:
         self.role = role
         self.profile = profile or UserProfile()
         self.work_schedule = work_schedule
+        self.email_notifications_enabled = email_notifications_enabled
         self.time_entries: List[DailyPonto] = []
         self.vacations: List[Vacation] = []
+        self.notifications: List[Notification] = []
 
     @property
     def is_profile_complete(self) -> bool:
@@ -121,3 +147,7 @@ class User:
     @property
     def is_manager(self) -> bool:
         return self.role == UserRole.MANAGER
+
+    @property
+    def unread_notifications_count(self) -> int:
+        return sum(1 for n in self.notifications if not n.is_read)
