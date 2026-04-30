@@ -102,6 +102,9 @@ def inject_notifications():
                 pass
     return {"user_notifs": [], "user_notifs_count": 0}
 
+import socket
+# ... (rest of imports)
+
 def send_email(to_email, subject, body_html):
     if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
         print("SMTP Error: MAIL_USERNAME or MAIL_PASSWORD not configured.")
@@ -115,12 +118,17 @@ def send_email(to_email, subject, body_html):
     msg.attach(MIMEText(body_html, "html"))
     
     try:
-        # Determine if we should use SSL or STARTTLS based on port
+        host = app.config["MAIL_SERVER"]
         port = app.config["MAIL_PORT"]
+        
+        # Force IPv4 resolution to avoid 'Network is unreachable' (IPv6 issues)
+        addr_info = socket.getaddrinfo(host, port, socket.AF_INET, socket.SOCK_STREAM)
+        target_ip = addr_info[0][4][0]
+        
         if port == 465:
-            server = smtplib.SMTP_SSL(app.config["MAIL_SERVER"], port, timeout=10)
+            server = smtplib.SMTP_SSL(target_ip, port, timeout=10)
         else:
-            server = smtplib.SMTP(app.config["MAIL_SERVER"], port, timeout=10)
+            server = smtplib.SMTP(target_ip, port, timeout=10)
             server.starttls()
             
         server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
