@@ -320,6 +320,20 @@ def profile():
             email_notifications = True if request.form.get("email_notifications") else False
             try:
                 services.update_credentials(uow, current_user.id, email, password, email_notifications)
+                
+                # If Admin, update professional profile as well
+                if current_user.role == "admin":
+                    services.update_user_profile(
+                        uow,
+                        current_user.id,
+                        request.form.get("registration_number"),
+                        request.form.get("cpf"),
+                        request.form.get("department"),
+                        request.form.get("position"),
+                        request.form.get("secretariat"),
+                        request.form.get("full_name")
+                    )
+                
                 flash("Perfil atualizado!", "success")
                 return redirect(url_for("dashboard"))
             except ValueError as e:
