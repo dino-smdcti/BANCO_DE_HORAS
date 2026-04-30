@@ -262,7 +262,12 @@ def register():
                 else:
                     flash("O usuário já estava cadastrado. O convite foi reenviado com sucesso.", "info")
             else:
-                flash("Houve um erro ao enviar o e-mail. Verifique as configurações de SMTP ou tente novamente.", "danger")
+                # Fallback: Exibir o link na tela se o e-mail falhar
+                status_msg = "Usuário cadastrado, mas o e-mail falhou. "
+                if not is_new:
+                    status_msg = "O usuário já existe, mas o e-mail falhou. "
+                
+                flash(f"{status_msg} Copie o link de ativação: {setup_url}", "warning")
             
             return redirect(url_for("dashboard"))
         except Exception as e:
