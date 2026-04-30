@@ -4,7 +4,7 @@ from src.adapters.orm import start_mappers, metadata
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
 from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm, WorkScheduleForm, JourneyTypeForm
-from src.domain.model import User, PontoStatus, JourneyType
+from src.domain.model import User, PontoStatus, JourneyType, AuditLog
 from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import create_engine
 from datetime import datetime, date
@@ -19,38 +19,42 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["MAIL_SERVER"] = "smtp.gmail.com"
-app.config["MAIL_PORT"] = 587
-app.config["MAIL_USERNAME"] = "inovacao.smdcti@gmail.com"
+
+database_url = os.environ.get("DATABASE_URL")
+if not database_url:
+    if os.environ.get("VERCEL"):
+        # Vercel filesystem is read-only except for /tmp
+        database_url = "sqlite:////tmp/banco_de_horas.db"
+    else:
+        database_url = "sqlite:///banco_de_horas.db"
+
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+
+app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 
+# Initialize DB and Mappers
+engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
+metadata.create_all(engine)
+try:
+    start_mappers()
+except Exception:
+    # Mappers might already be started in some environments/tests
+    pass
+
+uow = SqlAlchemyUnitOfWork()
+with uow:
+    admin_user = uow.users.get_user_by_email("admin@admin.com")
+    if not admin_user:
+        admin_pw = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin123")
+        services.register_user(uow, "admin@admin.com", admin_pw, role="admin")
+        print(f"Usuário ADMIN criado: admin@admin.com / {admin_pw}")
+
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
-
-def init_db():
-    db_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    
-    engine = create_engine(db_url)
-    metadata.create_all(engine)
-    try:
-        start_mappers()
-    except Exception:
-        # Mappers might already be initialized in some environments
-        pass
-    
-    # Initialize basic data
-    uow = SqlAlchemyUnitOfWork()
-    with uow:
-        admin_user = uow.users.get_user_by_email("admin@admin.com")
-        if not admin_user:
-            admin_pw = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin123")
-            services.register_user(uow, "admin@admin.com", admin_pw, role="admin")
-            print(f"Usuário ADMIN criado: admin@admin.com / {admin_pw}")
-
-# Initialize DB and Mappers globally for Vercel/Serverless
-init_db()
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -69,9 +73,12 @@ class AuthenticatedUser(UserMixin):
 def load_user(user_id):
     uow = SqlAlchemyUnitOfWork()
     with uow:
-        user = uow.users.get_user_by_id(int(user_id))
-        if user:
-            return AuthenticatedUser(user)
+        try:
+            user = uow.users.get_user_by_id(int(user_id))
+            if user:
+                return AuthenticatedUser(user)
+        except (ValueError, TypeError):
+            return None
     return None
 
 @app.context_processor
@@ -79,20 +86,27 @@ def inject_notifications():
     if current_user.is_authenticated:
         uow = SqlAlchemyUnitOfWork()
         with uow:
-            user = uow.users.get_user_by_id(current_user.id)
-            if user:
-                # Pre-convert to dictionaries to avoid DetachedInstanceError in template
-                notifs = [
-                    {"message": n.message, "is_read": n.is_read, "created_at": n.created_at} 
-                    for n in user.notifications[:20]
-                ]
-                return {
-                    "user_notifs": notifs,
-                    "user_notifs_count": user.unread_notifications_count
-                }
+            try:
+                user = uow.users.get_user_by_id(int(current_user.id))
+                if user:
+                    # Pre-convert to dictionaries to avoid DetachedInstanceError in template
+                    notifs = [
+                        {"message": n.message, "is_read": n.is_read, "created_at": n.created_at} 
+                        for n in user.notifications[:20]
+                    ]
+                    return {
+                        "user_notifs": notifs,
+                        "user_notifs_count": user.unread_notifications_count
+                    }
+            except (ValueError, TypeError):
+                pass
     return {"user_notifs": [], "user_notifs_count": 0}
 
 def send_email(to_email, subject, body_html):
+    if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
+        print("SMTP Error: MAIL_USERNAME or MAIL_PASSWORD not configured.")
+        return False
+
     msg = MIMEMultipart()
     msg["From"] = f"Banco de Horas <{app.config['MAIL_USERNAME']}>"
     msg["To"] = to_email
@@ -101,14 +115,20 @@ def send_email(to_email, subject, body_html):
     msg.attach(MIMEText(body_html, "html"))
     
     try:
-        server = smtplib.SMTP(app.config["MAIL_SERVER"], app.config["MAIL_PORT"])
-        server.starttls()
+        # Determine if we should use SSL or STARTTLS based on port
+        port = app.config["MAIL_PORT"]
+        if port == 465:
+            server = smtplib.SMTP_SSL(app.config["MAIL_SERVER"], port, timeout=10)
+        else:
+            server = smtplib.SMTP(app.config["MAIL_SERVER"], port, timeout=10)
+            server.starttls()
+            
         server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
         server.send_message(msg)
         server.quit()
         return True
     except Exception as e:
-        print(f"Error sending email: {e}")
+        print(f"Detailed SMTP Error for {to_email}: {str(e)}")
         return False
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -229,23 +249,24 @@ def register():
     if form.validate_on_submit():
         uow = SqlAlchemyUnitOfWork()
         try:
-            services.register_user(uow, form.email.data, role=form.role.data)
+            is_new = services.register_user(uow, form.email.data, role=form.role.data, registered_by_id=current_user.id)
             
-            # Send invitation email
+            # Send invitation email (regardless of is_new, as per request)
             token = serializer.dumps(form.email.data, salt="password-reset-salt")
             setup_url = url_for("reset_password", token=token, _external=True)
             html = render_template("emails/welcome_invite.html", setup_url=setup_url)
+            
             if send_email(form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html):
-                flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
+                if is_new:
+                    flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
+                else:
+                    flash("O usuário já estava cadastrado. O convite foi reenviado com sucesso.", "info")
             else:
-                flash("Usuário cadastrado, mas houve um erro ao enviar o e-mail de convite. Verifique as configurações de SMTP.", "warning")
+                flash("Houve um erro ao enviar o e-mail. Verifique as configurações de SMTP ou tente novamente.", "danger")
             
             return redirect(url_for("dashboard"))
-        except ValueError as e:
-            msg = str(e)
-            if "already exists" in msg:
-                msg = f"O usuário com e-mail {form.email.data} já está cadastrado."
-            flash(msg, "danger")
+        except Exception as e:
+            flash(f"Ocorreu um erro inesperado: {str(e)}", "danger")
     return render_template("register.html", form=form)
 
 @app.route("/choose-journey", methods=["GET", "POST"])
@@ -316,6 +337,20 @@ def profile():
             email_notifications = True if request.form.get("email_notifications") else False
             try:
                 services.update_credentials(uow, current_user.id, email, password, email_notifications)
+                
+                # If Admin, update professional profile as well
+                if current_user.role == "admin":
+                    services.update_user_profile(
+                        uow,
+                        current_user.id,
+                        request.form.get("registration_number"),
+                        request.form.get("cpf"),
+                        request.form.get("department"),
+                        request.form.get("position"),
+                        request.form.get("secretariat"),
+                        request.form.get("full_name")
+                    )
+                
                 flash("Perfil atualizado!", "success")
                 return redirect(url_for("dashboard"))
             except ValueError as e:
@@ -827,27 +862,3 @@ def delete_ponto(employee_id, entry_date):
 def logout():
     logout_user()
     return redirect(url_for("index"))
-
-def init_db():
-    db_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    
-    engine = create_engine(db_url)
-    metadata.create_all(engine)
-    start_mappers()
-    
-    uow = SqlAlchemyUnitOfWork()
-    with uow:
-        admin_user = uow.users.get_user_by_email("admin@admin.com")
-        if not admin_user:
-            admin_pw = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin123")
-            services.register_user(uow, "admin@admin.com", admin_pw, role="admin")
-            print(f"Usuário ADMIN criado: admin@admin.com / {admin_pw}")
-        
-        # Opcional: Criar um gerente de teste que também bate ponto
-        test_manager = uow.users.get_user_by_email("manager@test.com")
-        if not test_manager:
-            mgr_pw = os.environ.get("INITIAL_MANAGER_PASSWORD", "manager123")
-            services.register_user(uow, "manager@test.com", mgr_pw, role="manager")
-            print(f"Usuário MANAGER criado: manager@test.com / {mgr_pw}")

@@ -9,15 +9,12 @@ from src.domain.model import AuditLog
 
 import os
 
-def get_engine():
-    db_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
-    # Fix for SQLAlchemy 1.4+ which requires 'postgresql://' instead of 'postgres://'
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    return create_engine(db_url)
+database_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 DEFAULT_SESSION_FACTORY = sessionmaker(
-    bind=get_engine(),
+    bind=create_engine(database_url),
     expire_on_commit=False
 )
 

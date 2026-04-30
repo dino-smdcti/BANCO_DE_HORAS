@@ -37,12 +37,13 @@ def register_user(
     uow: AbstractUnitOfWork, 
     email: str, 
     password: Optional[str] = None, 
-    role: str = "employee"
-) -> None:
+    role: str = "employee",
+    registered_by_id: Optional[int] = None
+) -> bool:
     with uow:
         existing_user = uow.users.get_user_by_email(email)
         if existing_user:
-            raise ValueError(f"User with email {email} already exists.")
+            return False
         
         # If no password provided, use a placeholder
         pw_hash = generate_password_hash(password) if password else "!"
@@ -54,9 +55,11 @@ def register_user(
         )
         uow.users.add_user(user)
         uow.commit()
-        # Note: manager_id is not passed here, would need to update signature if we want to log who registered
-        uow.record_action(user.user_id, "USER_REGISTERED", target_id=user.user_id, details=f"Role: {role}")
+        
+        actor_id = int(registered_by_id) if registered_by_id else user.user_id
+        uow.record_action(actor_id, "USER_REGISTERED", target_id=user.user_id, details=f"Role: {role}")
         uow.commit()
+        return True
 
 def update_user_profile(
     uow: AbstractUnitOfWork,
