@@ -97,6 +97,10 @@ def inject_notifications():
     return {"user_notifs": [], "user_notifs_count": 0}
 
 def send_email(to_email, subject, body_html):
+    if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
+        print("SMTP Error: MAIL_USERNAME or MAIL_PASSWORD not configured.")
+        return False
+
     msg = MIMEMultipart()
     msg["From"] = f"Banco de Horas <{app.config['MAIL_USERNAME']}>"
     msg["To"] = to_email
@@ -105,14 +109,20 @@ def send_email(to_email, subject, body_html):
     msg.attach(MIMEText(body_html, "html"))
     
     try:
-        server = smtplib.SMTP(app.config["MAIL_SERVER"], app.config["MAIL_PORT"])
-        server.starttls()
+        # Determine if we should use SSL or STARTTLS based on port
+        port = app.config["MAIL_PORT"]
+        if port == 465:
+            server = smtplib.SMTP_SSL(app.config["MAIL_SERVER"], port, timeout=10)
+        else:
+            server = smtplib.SMTP(app.config["MAIL_SERVER"], port, timeout=10)
+            server.starttls()
+            
         server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
         server.send_message(msg)
         server.quit()
         return True
     except Exception as e:
-        print(f"Error sending email: {e}")
+        print(f"Detailed SMTP Error for {to_email}: {str(e)}")
         return False
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -233,23 +243,24 @@ def register():
     if form.validate_on_submit():
         uow = SqlAlchemyUnitOfWork()
         try:
-            services.register_user(uow, form.email.data, role=form.role.data, registered_by_id=current_user.id)
+            is_new = services.register_user(uow, form.email.data, role=form.role.data, registered_by_id=current_user.id)
             
-            # Send invitation email
+            # Send invitation email (regardless of is_new, as per request)
             token = serializer.dumps(form.email.data, salt="password-reset-salt")
             setup_url = url_for("reset_password", token=token, _external=True)
             html = render_template("emails/welcome_invite.html", setup_url=setup_url)
+            
             if send_email(form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html):
-                flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
+                if is_new:
+                    flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
+                else:
+                    flash("O usuário já estava cadastrado. O convite foi reenviado com sucesso.", "info")
             else:
-                flash("Usuário cadastrado, mas houve um erro ao enviar o e-mail de convite. Verifique as configurações de SMTP.", "warning")
+                flash("Houve um erro ao enviar o e-mail. Verifique as configurações de SMTP ou tente novamente.", "danger")
             
             return redirect(url_for("dashboard"))
-        except ValueError as e:
-            msg = str(e)
-            if "already exists" in msg:
-                msg = f"O usuário com e-mail {form.email.data} já está cadastrado."
-            flash(msg, "danger")
+        except Exception as e:
+            flash(f"Ocorreu um erro inesperado: {str(e)}", "danger")
     return render_template("register.html", form=form)
 
 @app.route("/choose-journey", methods=["GET", "POST"])

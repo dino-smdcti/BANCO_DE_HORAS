@@ -39,11 +39,11 @@ def register_user(
     password: Optional[str] = None, 
     role: str = "employee",
     registered_by_id: Optional[int] = None
-) -> None:
+) -> bool:
     with uow:
         existing_user = uow.users.get_user_by_email(email)
         if existing_user:
-            raise ValueError(f"User with email {email} already exists.")
+            return False
         
         # If no password provided, use a placeholder
         pw_hash = generate_password_hash(password) if password else "!"
@@ -59,6 +59,7 @@ def register_user(
         actor_id = registered_by_id or user.user_id
         uow.record_action(actor_id, "USER_REGISTERED", target_id=user.user_id, details=f"Role: {role}")
         uow.commit()
+        return True
 
 def update_user_profile(
     uow: AbstractUnitOfWork,
