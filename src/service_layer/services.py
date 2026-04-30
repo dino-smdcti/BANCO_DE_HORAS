@@ -37,7 +37,8 @@ def register_user(
     uow: AbstractUnitOfWork, 
     email: str, 
     password: Optional[str] = None, 
-    role: str = "employee"
+    role: str = "employee",
+    registered_by_id: Optional[int] = None
 ) -> None:
     with uow:
         existing_user = uow.users.get_user_by_email(email)
@@ -54,8 +55,9 @@ def register_user(
         )
         uow.users.add_user(user)
         uow.commit()
-        # Note: manager_id is not passed here, would need to update signature if we want to log who registered
-        uow.record_action(user.user_id, "USER_REGISTERED", target_id=user.user_id, details=f"Role: {role}")
+        
+        actor_id = registered_by_id or user.user_id
+        uow.record_action(actor_id, "USER_REGISTERED", target_id=user.user_id, details=f"Role: {role}")
         uow.commit()
 
 def update_user_profile(

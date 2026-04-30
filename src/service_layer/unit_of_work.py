@@ -7,8 +7,14 @@ from src.adapters.repository import AbstractRepository, SqlAlchemyRepository
 from src.adapters.orm import metadata
 from src.domain.model import AuditLog
 
+import os
+
+database_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
 DEFAULT_SESSION_FACTORY = sessionmaker(
-    bind=create_engine("sqlite:///banco_de_horas.db"),
+    bind=create_engine(database_url),
     expire_on_commit=False
 )
 

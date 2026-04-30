@@ -233,7 +233,7 @@ def register():
     if form.validate_on_submit():
         uow = SqlAlchemyUnitOfWork()
         try:
-            services.register_user(uow, form.email.data, role=form.role.data)
+            services.register_user(uow, form.email.data, role=form.role.data, registered_by_id=current_user.id)
             
             # Send invitation email
             token = serializer.dumps(form.email.data, salt="password-reset-salt")
