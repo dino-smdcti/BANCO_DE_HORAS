@@ -4,7 +4,7 @@ from src.adapters.orm import start_mappers, metadata
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
 from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm, WorkScheduleForm, JourneyTypeForm
-from src.domain.model import User, PontoStatus, JourneyType
+from src.domain.model import User, PontoStatus, JourneyType, AuditLog
 from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import create_engine
 from datetime import datetime, date
@@ -19,11 +19,33 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["MAIL_SERVER"] = "smtp.gmail.com"
-app.config["MAIL_PORT"] = 587
-app.config["MAIL_USERNAME"] = "inovacao.smdcti@gmail.com"
+
+database_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+
+app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
+
+# Initialize DB and Mappers
+engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
+metadata.create_all(engine)
+try:
+    start_mappers()
+except Exception:
+    # Mappers might already be started in some environments/tests
+    pass
+
+uow = SqlAlchemyUnitOfWork()
+with uow:
+    admin_user = uow.users.get_user_by_email("admin@admin.com")
+    if not admin_user:
+        admin_pw = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin123")
+        services.register_user(uow, "admin@admin.com", admin_pw, role="admin")
+        print(f"Usuário ADMIN criado: admin@admin.com / {admin_pw}")
 
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
@@ -802,23 +824,3 @@ def delete_ponto(employee_id, entry_date):
 def logout():
     logout_user()
     return redirect(url_for("index"))
-
-def init_db():
-    engine = create_engine("sqlite:///banco_de_horas.db")
-    metadata.create_all(engine)
-    start_mappers()
-    
-    uow = SqlAlchemyUnitOfWork()
-    with uow:
-        admin_user = uow.users.get_user_by_email("admin@admin.com")
-        if not admin_user:
-            admin_pw = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin123")
-            services.register_user(uow, "admin@admin.com", admin_pw, role="admin")
-            print(f"Usuário ADMIN criado: admin@admin.com / {admin_pw}")
-        
-        # Opcional: Criar um gerente de teste que também bate ponto
-        test_manager = uow.users.get_user_by_email("manager@test.com")
-        if not test_manager:
-            mgr_pw = os.environ.get("INITIAL_MANAGER_PASSWORD", "manager123")
-            services.register_user(uow, "manager@test.com", mgr_pw, role="manager")
-            print(f"Usuário MANAGER criado: manager@test.com / {mgr_pw}")
