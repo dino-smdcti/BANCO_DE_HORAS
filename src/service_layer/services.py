@@ -56,7 +56,7 @@ def register_user(
         uow.users.add_user(user)
         uow.commit()
         
-        actor_id = registered_by_id or user.user_id
+        actor_id = int(registered_by_id) if registered_by_id else user.user_id
         uow.record_action(actor_id, "USER_REGISTERED", target_id=user.user_id, details=f"Role: {role}")
         uow.commit()
         return True

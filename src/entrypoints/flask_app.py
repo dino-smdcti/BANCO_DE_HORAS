@@ -73,9 +73,12 @@ class AuthenticatedUser(UserMixin):
 def load_user(user_id):
     uow = SqlAlchemyUnitOfWork()
     with uow:
-        user = uow.users.get_user_by_id(int(user_id))
-        if user:
-            return AuthenticatedUser(user)
+        try:
+            user = uow.users.get_user_by_id(int(user_id))
+            if user:
+                return AuthenticatedUser(user)
+        except (ValueError, TypeError):
+            return None
     return None
 
 @app.context_processor
@@ -83,17 +86,20 @@ def inject_notifications():
     if current_user.is_authenticated:
         uow = SqlAlchemyUnitOfWork()
         with uow:
-            user = uow.users.get_user_by_id(current_user.id)
-            if user:
-                # Pre-convert to dictionaries to avoid DetachedInstanceError in template
-                notifs = [
-                    {"message": n.message, "is_read": n.is_read, "created_at": n.created_at} 
-                    for n in user.notifications[:20]
-                ]
-                return {
-                    "user_notifs": notifs,
-                    "user_notifs_count": user.unread_notifications_count
-                }
+            try:
+                user = uow.users.get_user_by_id(int(current_user.id))
+                if user:
+                    # Pre-convert to dictionaries to avoid DetachedInstanceError in template
+                    notifs = [
+                        {"message": n.message, "is_read": n.is_read, "created_at": n.created_at} 
+                        for n in user.notifications[:20]
+                    ]
+                    return {
+                        "user_notifs": notifs,
+                        "user_notifs_count": user.unread_notifications_count
+                    }
+            except (ValueError, TypeError):
+                pass
     return {"user_notifs": [], "user_notifs_count": 0}
 
 def send_email(to_email, subject, body_html):
