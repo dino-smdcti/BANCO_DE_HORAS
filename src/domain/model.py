@@ -17,6 +17,11 @@ class PontoStatus(str, Enum):
     CORRECTED = "Corrigido"
 
 @dataclass
+class CompanySettings:
+    lat: float
+    lon: float
+
+@dataclass
 class WorkSchedule:
     user_id: int
     expected_arrival: time

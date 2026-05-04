@@ -117,7 +117,33 @@ def promote_to_manager(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
             uow.record_action(manager_id, "PROMOTE_USER", target_id=employee_id, details="Promoted to Manager")
             uow.commit()
 
+import math
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    # Haversine formula
+    R = 6371  # Earth radius in km
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None) -> str:
+    # Company coordinates (Example: Replace with your actual address)
+    COMPANY_LAT = -23.5505  # São Paulo
+    COMPANY_LON = -46.6333
+    
+    if not location:
+        raise ValueError("Localização é obrigatória para registrar ponto.")
+        
+    try:
+        user_lat, user_lon = map(float, location.split(','))
+        distance = calculate_distance(COMPANY_LAT, COMPANY_LON, user_lat, user_lon)
+        if distance > 1.0: # 1km limit
+            raise ValueError(f"Fora da área permitida (Distância: {distance:.2f}km).")
+    except (ValueError, AttributeError):
+        raise ValueError("Localização inválida.")
+
     with uow:
         user = uow.users.get_user_by_id(user_id)
         if not user:
@@ -132,7 +158,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         
         if not ponto:
             ponto = DailyPonto(user_id=user_id, entry_date=today, arrival=now_time)
-            ponto.location_data = f"Chegada: {location or 'Desconhecido'}"
+            ponto.location_data = f"Chegada: {location}"
             user.time_entries.append(ponto)
             msg = "Chegada registrada"
             # Check for lateness on arrival
@@ -144,18 +170,18 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                     ponto.arrival_late = True
         elif not ponto.lunch_start:
             ponto.lunch_start = now_time
-            ponto.location_data += f" | Almoço (Sai): {location or 'Desconhecido'}"
+            ponto.location_data += f" | Almoço (Sai): {location}"
             msg = "Saída para almoço registrada"
-            # Check for early lunch (optional, but good for completeness)
+            # Check for early lunch
             if user.work_schedule:
                 limit = (datetime.combine(today, user.work_schedule.expected_lunch_start) - 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time < limit:
                     ponto.status = PontoStatus.LATE
-                    ponto.lunch_start_late = True # Using 'late' flag for any anomaly
+                    ponto.lunch_start_late = True
         elif not ponto.lunch_end:
             ponto.lunch_end = now_time
-            ponto.location_data += f" | Almoço (Vol): {location or 'Desconhecido'}"
+            ponto.location_data += f" | Almoço (Vol): {location}"
             msg = "Retorno do almoço registrado"
             # Check for lateness on return from lunch
             if user.work_schedule:
@@ -166,7 +192,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                     ponto.lunch_end_late = True
         elif not ponto.departure:
             ponto.departure = now_time
-            ponto.location_data += f" | Fim: {location or 'Desconhecido'}"
+            ponto.location_data += f" | Fim: {location}"
             msg = "Fim de jornada registrado"
             # Check for early departure
             if user.work_schedule:
