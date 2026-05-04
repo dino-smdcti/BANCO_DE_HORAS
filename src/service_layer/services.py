@@ -362,8 +362,12 @@ def delete_ponto_entry(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
             uow.record_action(manager_id, "DELETE_PONTO", target_id=employee_id, details=f"Deleted entry for {entry_date} by {manager_name}")
             uow.commit()
 
-def get_all_employees(uow: AbstractUnitOfWork) -> List[User]:
+def get_all_employees(uow: AbstractUnitOfWork, requester_id: Optional[int] = None) -> List[User]:
     with uow:
+        if requester_id:
+            user = uow.users.get_user_by_id(requester_id)
+            if user and user.role == UserRole.ADMIN:
+                return uow.users.list_all()
         return uow.users.list_employees()
 
 def delete_user(uow: AbstractUnitOfWork, manager_id: int, user_id: int):

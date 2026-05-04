@@ -21,6 +21,10 @@ class AbstractRepository(ABC):
         pass
 
     @abstractmethod
+    def list_all(self) -> List[User]:
+        pass
+
+    @abstractmethod
     def add_time_entry(self, entry: DailyPonto):
         pass
 
@@ -39,6 +43,9 @@ class SqlAlchemyRepository(AbstractRepository):
 
     def list_employees(self) -> List[User]:
         return self.session.query(User).filter_by(role=UserRole.EMPLOYEE).all()
+
+    def list_all(self) -> List[User]:
+        return self.session.query(User).all()
 
     def add_time_entry(self, entry: DailyPonto):
         self.session.add(entry)

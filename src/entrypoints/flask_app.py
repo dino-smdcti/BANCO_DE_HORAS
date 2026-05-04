@@ -550,7 +550,7 @@ def management_panel():
         
     uow = SqlAlchemyUnitOfWork()
     with uow:
-        employees = services.get_all_employees(uow)
+        employees = services.get_all_employees(uow, requester_id=int(current_user.id))
         return render_template("manager_dashboard.html", employees=employees, today=date.today())
 
 
@@ -596,7 +596,7 @@ def clock():
 @app.route("/download-report/<int:user_id>")
 @login_required
 def download_report(user_id):
-    if current_user.id != user_id and current_user.role != "manager":
+    if current_user.id != user_id and current_user.role not in ["manager", "admin"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
