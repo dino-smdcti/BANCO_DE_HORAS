@@ -128,21 +128,34 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
+from src.domain.model import CompanySettings
+
+def get_company_settings(uow: AbstractUnitOfWork) -> Optional[CompanySettings]:
+    with uow:
+        setting = uow.session.query(CompanySettings).first()
+        return setting
+
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None) -> str:
-    # Company coordinates (Example: Replace with your actual address)
-    COMPANY_LAT = -23.5505  # São Paulo
-    COMPANY_LON = -46.6333
+    # Fetch dynamic company settings
+    with uow:
+        settings = uow.session.query(CompanySettings).first()
+        if not settings:
+            # Fallback for safety: allow all if no settings
+            COMPANY_LAT, COMPANY_LON = None, None
+        else:
+            COMPANY_LAT, COMPANY_LON = settings.lat, settings.lon
     
-    if not location:
-        raise ValueError("Localização é obrigatória para registrar ponto.")
-        
-    try:
-        user_lat, user_lon = map(float, location.split(','))
-        distance = calculate_distance(COMPANY_LAT, COMPANY_LON, user_lat, user_lon)
-        if distance > 1.0: # 1km limit
-            raise ValueError(f"Fora da área permitida (Distância: {distance:.2f}km).")
-    except (ValueError, AttributeError):
-        raise ValueError("Localização inválida.")
+    if COMPANY_LAT is not None and COMPANY_LON is not None:
+        if not location:
+            raise ValueError("Localização é obrigatória para registrar ponto.")
+            
+        try:
+            user_lat, user_lon = map(float, location.split(','))
+            distance = calculate_distance(COMPANY_LAT, COMPANY_LON, user_lat, user_lon)
+            if distance > 1.0: # 1km limit
+                raise ValueError(f"Fora da área permitida (Distância: {distance:.2f}km).")
+        except (ValueError, AttributeError):
+            raise ValueError("Localização inválida.")
 
     with uow:
         user = uow.users.get_user_by_id(user_id)

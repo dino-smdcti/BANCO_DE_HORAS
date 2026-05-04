@@ -93,6 +93,14 @@ holidays = Table(
     Column("is_mandatory", Boolean, default=True),
 )
 
+company_settings = Table(
+    "company_settings",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("lat", Float, nullable=False),
+    Column("lon", Float, nullable=False),
+)
+
 notifications = Table(
     "notifications",
     metadata,
