@@ -9,6 +9,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import create_engine
 from datetime import datetime, date
 import smtplib
+import json
+import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from itsdangerous import URLSafeTimedSerializer
@@ -105,33 +107,64 @@ def inject_notifications():
     return {"user_notifs": [], "user_notifs_count": 0}
 
 def send_email(to_email, subject, body_html):
-    if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
-        print("SMTP Error: MAIL_USERNAME or MAIL_PASSWORD not configured.")
+    # API-based email sending via Resend
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        print("Email API Error: RESEND_API_KEY not configured.")
         return False
 
-    msg = MIMEMultipart()
-    msg["From"] = f"Banco de Horas <{app.config['MAIL_USERNAME']}>"
-    msg["To"] = to_email
-    msg["Subject"] = subject
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
     
-    msg.attach(MIMEText(body_html, "html"))
-    
+    # Note: Using onboarding@resend.dev as 'from' for free tier testing.
+    # Replace with your verified domain for production.
+    data = {
+        "from": "Banco de Horas <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": subject,
+        "html": body_html,
+    }
+
     try:
-        # Determine if we should use SSL or STARTTLS based on port
-        port = app.config["MAIL_PORT"]
-        if port == 465:
-            server = smtplib.SMTP_SSL(app.config["MAIL_SERVER"], port, timeout=10)
-        else:
-            server = smtplib.SMTP(app.config["MAIL_SERVER"], port, timeout=10)
-            server.starttls()
-            
-        server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
-        server.send_message(msg)
-        server.quit()
-        return True
+        req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
+        with urllib.request.urlopen(req) as response:
+            return response.status in [200, 201]
     except Exception as e:
-        print(f"Detailed SMTP Error for {to_email}: {str(e)}")
+        print(f"Email API Error for {to_email}: {str(e)}")
         return False
+
+# Original SMTP implementation (Commented out)
+# def send_email(to_email, subject, body_html):
+#     if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
+#         print("SMTP Error: MAIL_USERNAME or MAIL_PASSWORD not configured.")
+#         return False
+#
+#     msg = MIMEMultipart()
+#     msg["From"] = f"Banco de Horas <{app.config['MAIL_USERNAME']}>"
+#     msg["To"] = to_email
+#     msg["Subject"] = subject
+#     
+#     msg.attach(MIMEText(body_html, "html"))
+#     
+#     try:
+#         # Determine if we should use SSL or STARTTLS based on port
+#         port = app.config["MAIL_PORT"]
+#         if port == 465:
+#             server = smtplib.SMTP_SSL(app.config["MAIL_SERVER"], port, timeout=10)
+#         else:
+#             server = smtplib.SMTP(app.config["MAIL_SERVER"], port, timeout=10)
+#             server.starttls()
+#             
+#         server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
+#         server.send_message(msg)
+#         server.quit()
+#         return True
+#     except Exception as e:
+#         print(f"Detailed SMTP Error for {to_email}: {str(e)}")
+#         return False
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
