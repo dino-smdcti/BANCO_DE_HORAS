@@ -132,8 +132,12 @@ def send_email(to_email, subject, body_html):
         req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
         with urllib.request.urlopen(req) as response:
             return response.status in [200, 201]
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        print(f"Resend API HTTP Error: {e.code} - {error_body}")
+        return False
     except Exception as e:
-        print(f"Email API Error for {to_email}: {str(e)}")
+        print(f"Resend API Unexpected Error: {str(e)}")
         return False
 
 # Original SMTP implementation (Commented out)
