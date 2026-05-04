@@ -50,13 +50,6 @@ except Exception:
     pass
 
 metadata.create_all(engine)
-uow = SqlAlchemyUnitOfWork()
-with uow:
-    admin_user = uow.users.get_user_by_email("admin@admin.com")
-    if not admin_user:
-        admin_pw = os.environ.get("INITIAL_ADMIN_PASSWORD", "admin123")
-        services.register_user(uow, "admin@admin.com", admin_pw, role="admin")
-        print(f"Usuário ADMIN criado: admin@admin.com / {admin_pw}")
 
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
