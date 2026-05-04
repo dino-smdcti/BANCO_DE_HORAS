@@ -11,7 +11,11 @@
         <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary">Definir Horário</a>
         <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" class="btn btn-sm btn-warning">Corrigir Ponto</a>
         <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
+        <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-success">Exportar Excel</a>
         <a href="{{ url_for('management_panel') }}" class="btn btn-sm btn-outline-dark">Voltar ao Painel</a>
+        <form action="{{ url_for('delete_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionário e todos os seus registros de ponto? Esta ação é irreversível.');">
+            <button type="submit" class="btn btn-sm btn-danger">Remover Funcionário</button>
+        </form>
     </div>
 </div>
 
