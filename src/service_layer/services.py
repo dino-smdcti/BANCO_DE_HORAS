@@ -146,26 +146,8 @@ def get_company_settings(uow: AbstractUnitOfWork) -> Optional[CompanySettings]:
         return setting
 
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None) -> str:
-    # Fetch dynamic company settings
-    with uow:
-        settings = uow.session.query(CompanySettings).first()
-        if not settings:
-            # Fallback for safety: allow all if no settings
-            COMPANY_LAT, COMPANY_LON = None, None
-        else:
-            COMPANY_LAT, COMPANY_LON = settings.lat, settings.lon
-    
-    if COMPANY_LAT is not None and COMPANY_LON is not None:
-        if not location:
-            raise ValueError("Localização é obrigatória para registrar ponto.")
-            
-        try:
-            user_lat, user_lon = map(float, location.split(','))
-            distance = calculate_distance(COMPANY_LAT, COMPANY_LON, user_lat, user_lon)
-            if distance > 1.0: # 1km limit
-                raise ValueError(f"Fora da área permitida (Distância: {distance:.2f}km).")
-        except (ValueError, AttributeError):
-            raise ValueError("Localização inválida.")
+    if not location:
+        raise ValueError("Localização é obrigatória para registrar ponto.")
 
     with uow:
         user = uow.users.get_user_by_id(user_id)
