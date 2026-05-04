@@ -463,13 +463,24 @@ def edit_employee(employee_id):
 @app.route("/manager/promote/<int:user_id>", methods=["POST"])
 @login_required
 def promote_user(user_id):
-    if current_user.role not in ["manager", "admin"]:
-        flash("Não autorizado", "danger")
+    if current_user.role != "admin":
+        flash("Acesso não autorizado", "danger")
         return redirect(url_for("dashboard"))
     uow = SqlAlchemyUnitOfWork()
     services.promote_to_manager(uow, current_user.id, user_id)
     flash("Usuário promovido a Gestor!", "success")
-    return redirect(url_for("dashboard"))
+    return redirect(url_for("management_panel"))
+
+@app.route("/manager/demote/<int:user_id>", methods=["POST"])
+@login_required
+def demote_user(user_id):
+    if current_user.role != "admin":
+        flash("Acesso não autorizado", "danger")
+        return redirect(url_for("dashboard"))
+    uow = SqlAlchemyUnitOfWork()
+    services.demote_to_employee(uow, current_user.id, user_id)
+    flash("Usuário rebaixado para Funcionário!", "warning")
+    return redirect(url_for("management_panel"))
 
 def get_maps_url(location_str):
     if not location_str or "," not in location_str:

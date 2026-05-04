@@ -117,6 +117,16 @@ def promote_to_manager(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
             uow.record_action(manager_id, "PROMOTE_USER", target_id=employee_id, details="Promoted to Manager")
             uow.commit()
 
+def demote_to_employee(uow: AbstractUnitOfWork, manager_id: int, employee_id: int):
+    with uow:
+        ensure_manager(uow, manager_id)
+        employee = uow.users.get_user_by_id(employee_id)
+        if employee:
+            employee.role = UserRole.EMPLOYEE
+            uow.commit()
+            uow.record_action(manager_id, "DEMOTE_USER", target_id=employee_id, details="Demoted to Employee")
+            uow.commit()
+
 import math
 
 def calculate_distance(lat1, lon1, lat2, lon2):
