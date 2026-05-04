@@ -122,8 +122,11 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         user = uow.users.get_user_by_id(user_id)
         if not user:
             raise ValueError("User not found.")
-        today = date.today()
-        now_time = datetime.now().time()
+        
+        # Calculate Brasília Time (UTC-3)
+        brazil_time = datetime.utcnow() - timedelta(hours=3)
+        today = brazil_time.date()
+        now_time = brazil_time.time()
 
         ponto = next((p for p in user.time_entries if p.entry_date == today), None)
         
