@@ -13,9 +13,20 @@
         <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
         <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-success">Exportar Excel</a>
         <a href="{{ url_for('management_panel') }}" class="btn btn-sm btn-outline-dark">Voltar ao Painel</a>
-        <form action="{{ url_for('delete_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionário e todos os seus registros de ponto? Esta ação é irreversível.');">
+        <form action="{{ url_for('delete_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionário?');">
             <button type="submit" class="btn btn-sm btn-danger">Remover Funcionário</button>
         </form>
+        {% if current_user.role == 'admin' %}
+            {% if employee.role.value == 'employee' %}
+                <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Promover este usuário a Gestor?');">
+                    <button type="submit" class="btn btn-sm btn-warning">Promover</button>
+                </form>
+            {% elif employee.role.value == 'manager' %}
+                <form action="{{ url_for('demote_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Rebaixar este gestor a Funcionário?');">
+                    <button type="submit" class="btn btn-sm btn-secondary">Demover</button>
+                </form>
+            {% endif %}
+        {% endif %}
     </div>
 </div>
 
