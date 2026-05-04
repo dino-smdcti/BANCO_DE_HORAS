@@ -22,6 +22,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>Nome Completo</th>
+                        <th>Nível</th>
                         <th>Saldo Total</th>
                         <th>Ações</th>
                     </tr>
@@ -31,6 +32,11 @@
                         <tr>
                             <td>{{ employee.profile.full_name or employee.email }}</td>
                             <td>
+                                <span class="badge {{ 'bg-primary' if employee.role.value == 'admin' else 'bg-secondary' }}">
+                                    {{ employee.role.value|capitalize }}
+                                </span>
+                            </td>
+                            <td>
                                 <span class="badge {{ 'bg-success' if employee.total_balance >= 0 else 'bg-danger' }}">
                                     {{ (employee.total_balance // 60) }}h {{ (employee.total_balance % 60)|abs }}m
                                 </span>
@@ -38,6 +44,11 @@
                             <td>
                                 <a href="{{ url_for('view_employee_logs', employee_id=employee.user_id) }}" class="btn btn-sm btn-info text-white">Ver</a>
                                 <a href="{{ url_for('edit_employee', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary">Editar Perfil</a>
+                                {% if employee.role.value == 'employee' and current_user.role == 'admin' %}
+                                    <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Promover este usuário a Gestor?');">
+                                        <button type="submit" class="btn btn-sm btn-warning">Promover</button>
+                                    </form>
+                                {% endif %}
                             </td>
                         </tr>
                     {% else %}
