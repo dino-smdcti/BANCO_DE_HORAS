@@ -904,6 +904,34 @@ def audit_logs():
         logs = uow.session.query(AuditLog).order_by(AuditLog.timestamp.desc()).all()
         return render_template("audit_logs.html", audit_logs=logs)
 
+@app.route("/admin/settings", methods=["GET", "POST"])
+@login_required
+def admin_settings():
+    if current_user.role != "admin":
+        flash("Acesso restrito ao Administrador.", "danger")
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    if request.method == "POST":
+        lat = float(request.form.get("lat"))
+        lon = float(request.form.get("lon"))
+        
+        with uow:
+            settings = uow.session.query(CompanySettings).first()
+            if settings:
+                settings.lat = lat
+                settings.lon = lon
+            else:
+                settings = CompanySettings(id=1, lat=lat, lon=lon)
+                uow.session.add(settings)
+            uow.commit()
+            flash("Configurações de localização atualizadas.", "success")
+            return redirect(url_for("admin_settings"))
+            
+    with uow:
+        settings = uow.session.query(CompanySettings).first()
+        return render_template("admin_settings.html", settings=settings)
+
 @app.route("/manager/delete-ponto/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
 def delete_ponto(employee_id, entry_date):

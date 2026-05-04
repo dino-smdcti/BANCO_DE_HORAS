@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Configurações de Geolocalização</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted">Defina as coordenadas da sede da empresa. Estas coordenadas são usadas para validar o registro de ponto (tolerância de 1km).</p>
+        <p class="small text-info">Dica: Você pode encontrar essas coordenadas clicando com o botão direito em qualquer local no Google Maps.</p>
+        <form action="{{ url_for('admin_settings') }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label">Latitude</label>
+                <input type="number" step="any" name="lat" class="form-control" value="{{ settings.lat if settings else '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Longitude</label>
+                <input type="number" step="any" name="lon" class="form-control" value="{{ settings.lon if settings else '' }}" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar Coordenadas</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
