@@ -20,7 +20,7 @@ load_dotenv()
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
-database_url = os.environ.get("DATABASE_URL")
+database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
 if not database_url:
     if os.environ.get("VERCEL"):
         # Vercel filesystem is read-only except for /tmp
@@ -39,13 +39,15 @@ app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 
 # Initialize DB and Mappers
 engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
-metadata.create_all(engine)
+
+# Start mappers early
 try:
     start_mappers()
 except Exception:
     # Mappers might already be started in some environments/tests
     pass
 
+metadata.create_all(engine)
 uow = SqlAlchemyUnitOfWork()
 with uow:
     admin_user = uow.users.get_user_by_email("admin@admin.com")

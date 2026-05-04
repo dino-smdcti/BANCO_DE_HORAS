@@ -9,7 +9,7 @@ from src.domain.model import AuditLog
 
 import os
 
-database_url = os.environ.get("DATABASE_URL", "sqlite:///banco_de_horas.db")
+database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL") or "sqlite:///banco_de_horas.db"
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
