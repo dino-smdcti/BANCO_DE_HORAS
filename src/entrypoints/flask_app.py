@@ -107,25 +107,26 @@ def inject_notifications():
     return {"user_notifs": [], "user_notifs_count": 0}
 
 def send_email(to_email, subject, body_html):
-    # API-based email sending via Resend
-    api_key = os.environ.get("RESEND_API_KEY")
-    if not api_key:
-        print("Email API Error: RESEND_API_KEY not configured.")
+    # API-based email sending via Brevo (Sendinblue)
+    api_key = os.environ.get("BREVO_API_KEY")
+    sender_email = os.environ.get("MAIL_USERNAME") # O e-mail que você verificou na Brevo
+    
+    if not api_key or not sender_email:
+        print("Email API Error: BREVO_API_KEY or MAIL_USERNAME not configured.")
         return False
 
-    url = "https://api.resend.com/emails"
+    url = "https://api.brevo.com/v3/smtp/email"
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "api-key": api_key,
         "Content-Type": "application/json",
+        "Accept": "application/json"
     }
     
-    # Note: Using onboarding@resend.dev as 'from' for free tier testing.
-    # Replace with your verified domain for production.
     data = {
-        "from": "Banco de Horas <onboarding@resend.dev>",
-        "to": [to_email],
+        "sender": {"name": "Banco de Horas", "email": sender_email},
+        "to": [{"email": to_email}],
         "subject": subject,
-        "html": body_html,
+        "htmlContent": body_html
     }
 
     try:
@@ -134,10 +135,10 @@ def send_email(to_email, subject, body_html):
             return response.status in [200, 201]
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8")
-        print(f"Resend API HTTP Error: {e.code} - {error_body}")
+        print(f"Brevo API HTTP Error: {e.code} - {error_body}")
         return False
     except Exception as e:
-        print(f"Resend API Unexpected Error: {str(e)}")
+        print(f"Brevo API Unexpected Error: {str(e)}")
         return False
 
 # Original SMTP implementation (Commented out)
