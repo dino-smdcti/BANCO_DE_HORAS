@@ -9,14 +9,17 @@ from src.domain.model import AuditLog
 
 import os
 
-database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL") or "sqlite:///banco_de_horas.db"
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+def get_session_factory():
+    database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL") or "sqlite:///banco_de_horas.db"
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    return sessionmaker(
+        bind=create_engine(database_url),
+        expire_on_commit=False
+    )
 
-DEFAULT_SESSION_FACTORY = sessionmaker(
-    bind=create_engine(database_url),
-    expire_on_commit=False
-)
+DEFAULT_SESSION_FACTORY = None 
+
 
 class AbstractUnitOfWork(ABC):
     users: AbstractRepository
@@ -41,8 +44,8 @@ class AbstractUnitOfWork(ABC):
         pass
 
 class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
-    def __init__(self, session_factory=DEFAULT_SESSION_FACTORY):
-        self.session_factory = session_factory
+    def __init__(self, session_factory=None):
+        self.session_factory = session_factory or get_session_factory()
         self._nested_count = 0
 
     def __enter__(self):

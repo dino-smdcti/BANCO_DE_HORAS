@@ -105,9 +105,21 @@ class DailyPonto:
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
         
+        # Lunch time (between lunch_start and lunch_end) is excluded.
+        # Only time between arrival and lunch_start, and lunch_end and departure counts.
         morning = delta(self.arrival, self.lunch_start)
         afternoon = delta(self.lunch_end, self.departure)
         return morning + afternoon
+
+    @property
+    def is_complete(self) -> bool:
+        return all([self.arrival, self.lunch_start, self.lunch_end, self.departure])
+
+    @property
+    def status_label(self) -> str:
+        if not self.is_complete and self.entry_date < date.today():
+            return "Desconhecido"
+        return self.status.value
 
 @dataclass
 class UserProfile:
@@ -173,23 +185,13 @@ class User:
 
     @property
     def total_balance(self) -> int:
-        if not self.work_schedule:
-            return 0
+        # Managers are now included in the 8-hour target tracking
+        DAILY_TARGET_MINUTES = 480
         
-        def delta(t1, t2):
-            return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
-        
-        expected_daily = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
-                          delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
-        
-        # Calculate balance for worked entries vs expected
         balance = 0
         for p in self.time_entries:
-            # Skip entries not fully worked (unless missing/justified)
-            if p.status == PontoStatus.MISSING:
-                balance -= expected_daily
-            elif p.status == PontoStatus.JUSTIFIED:
-                continue # Assuming full credit
-            else:
-                balance += (p.worked_minutes - expected_daily)
+            if p.is_complete:
+                balance += (p.worked_minutes - DAILY_TARGET_MINUTES)
+            elif p.entry_date < date.today():
+                balance -= DAILY_TARGET_MINUTES
         return balance
