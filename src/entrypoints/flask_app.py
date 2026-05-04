@@ -106,13 +106,19 @@ def inject_notifications():
                 pass
     return {"user_notifs": [], "user_notifs_count": 0}
 
+import sys
+
 def send_email(to_email, subject, body_html):
-    # API-based email sending via Brevo (Sendinblue)
+    # API-based email sending via Brevo (Transactional API v3)
     api_key = os.environ.get("BREVO_API_KEY")
-    sender_email = os.environ.get("MAIL_USERNAME") # O e-mail que você verificou na Brevo
+    # Tenta BREVO_SENDER primeiro, depois MAIL_USERNAME
+    sender_email = os.environ.get("BREVO_SENDER") or os.environ.get("MAIL_USERNAME")
     
-    if not api_key or not sender_email:
-        print("Email API Error: BREVO_API_KEY or MAIL_USERNAME not configured.")
+    if not api_key:
+        print("DEBUG: BREVO_API_KEY is missing", file=sys.stderr)
+        return False
+    if not sender_email:
+        print("DEBUG: BREVO_SENDER/MAIL_USERNAME is missing", file=sys.stderr)
         return False
 
     url = "https://api.brevo.com/v3/smtp/email"
@@ -129,16 +135,20 @@ def send_email(to_email, subject, body_html):
         "htmlContent": body_html
     }
 
+    print(f"DEBUG: Attempting to send email to {to_email} via Brevo...", file=sys.stderr)
+
     try:
         req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
         with urllib.request.urlopen(req) as response:
-            return response.status in [200, 201]
+            status = response.status
+            print(f"DEBUG: Brevo Response Status: {status}", file=sys.stderr)
+            return status in [200, 201]
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8")
-        print(f"Brevo API HTTP Error: {e.code} - {error_body}")
+        print(f"DEBUG: Brevo API HTTP Error: {e.code} - {error_body}", file=sys.stderr)
         return False
     except Exception as e:
-        print(f"Brevo API Unexpected Error: {str(e)}")
+        print(f"DEBUG: Brevo API Unexpected Error: {str(e)}", file=sys.stderr)
         return False
 
 # Original SMTP implementation (Commented out)
