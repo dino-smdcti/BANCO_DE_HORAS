@@ -18,27 +18,49 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Matrícula</label>
-                            {{ form.registration_number(class="form-control") }}
+                            {{ form.registration_number(class="form-control", id="regNum", placeholder="00000000-00", maxlength="12") }}
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">CPF</label>
-                            {{ form.cpf(class="form-control") }}
+                            {{ form.cpf(class="form-control", id="cpf") }}
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Secretaria</label>
-                        {{ form.secretariat(class="form-control") }}
+                        {{ form.secretariat(class="form-control", id="secretariat", value="Secretaria Municipal de Desenvolvimento Ciência Tecnologia e Inovação") }}
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Departamento</label>
-                            {{ form.department(class="form-control") }}
+                            {{ form.department(class="form-control capitalize") }}
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Posição /Cargo</label>
-                            {{ form.position(class="form-control") }}
+                            {{ form.position(class="form-control capitalize") }}
                         </div>
                     </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Matrícula Mask (last 2 digits after dash)
+        const regInput = document.getElementById('regNum');
+        regInput.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length > 8) {
+                e.target.value = val.slice(0, 8) + '-' + val.slice(8, 10);
+            } else {
+                e.target.value = val;
+            }
+        });
+
+        // Capitalize fields
+        document.querySelectorAll('.capitalize').forEach(el => {
+            el.addEventListener('input', (e) => {
+                e.target.value = e.target.value.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            });
+        });
+    });
+</script>
                     <div class="d-grid">
                         {{ form.submit(class="btn btn-success") }}
                     </div>
