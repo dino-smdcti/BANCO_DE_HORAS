@@ -1,10 +1,29 @@
 :root {
+    /* Colors */
     --bg-color: #EEEEEE;
     --primary-mint: #6FCF97;
     --secondary-teal: #2FA084;
     --dark-accent: #1F6F5F;
     --text-dark: #333333;
     --white: #ffffff;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --success: #28a745;
+    --muted: #777777;
+    --light-grey: #eeeeee;
+
+    /* Spacing & Sizes */
+    --base-spacing: 8px;
+    --container-padding: 20px;
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --font-size-xs: 0.7rem;
+    --font-size-sm: 0.8rem;
+
+    /* Theme derived */
+    --navbar-bg: var(--dark-accent);
+    --navbar-border: var(--primary-mint);
 }
 
 body {
@@ -14,13 +33,13 @@ body {
 }
 
 .navbar {
-    background-color: var(--dark-accent) !important;
-    border-bottom: 4px solid var(--primary-mint);
+    background-color: var(--navbar-bg) !important;
+    border-bottom: 4px solid var(--navbar-border);
 }
 
 .card {
     border: none;
-    border-radius: 12px;
+    border-radius: var(--border-radius-lg);
     background-color: var(--white);
     transition: transform 0.2s;
 }
@@ -56,7 +75,7 @@ body {
 
 .table {
     background-color: var(--white);
-    border-radius: 8px;
+    border-radius: var(--border-radius-md);
     overflow: hidden;
 }
 
@@ -69,35 +88,14 @@ body {
     color: #a38100 !important;
 }
 
-.table-danger-light {
-    background-color: rgba(220, 53, 69, 0.05) !important;
-}
-
-.table-warning-light {
-    background-color: rgba(255, 193, 7, 0.05) !important;
-}
-
-.table-success-light {
-    background-color: rgba(40, 167, 69, 0.05) !important;
-}
+.table-danger-light { background-color: rgba(220, 53, 69, 0.05) !important; }
+.table-warning-light { background-color: rgba(255, 193, 7, 0.05) !important; }
+.table-success-light { background-color: rgba(40, 167, 69, 0.05) !important; }
 
 .btn-xs {
     padding: 0.1rem 0.3rem;
-    font-size: 0.75rem;
-    border-radius: 0.2rem;
-}
-
-/* Custom styles for desktop/mobile optimization */
-@media (max-width: 768px) {
-    .container { padding: 10px; }
-    .display-5 { font-size: 1.8rem; }
-}
-
-
-/* Clock Card */
-.custom-card {
-    background-color: var(--bg-color);
-    border: 2px solid var(--secondary-teal);
+    font-size: var(--font-size-xs);
+    border-radius: var(--border-radius-sm);
 }
 
 .btn-grab-attention {
@@ -129,3 +127,13 @@ body {
     70% { box-shadow: 0 0 0 15px rgba(111, 207, 151, 0); }
     100% { box-shadow: 0 0 0 0 rgba(111, 207, 151, 0); }
 }
+
+@media (max-width: 768px) {
+    .container { padding: var(--base-spacing); }
+    .display-5 { font-size: 1.8rem; }
+}
+
+/* New Modular Classes */
+.input-max-width { max-width: 150px; }
+.iframe-border { border: 0; border-radius: var(--border-radius-lg); }
+.card-shadow-custom { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
