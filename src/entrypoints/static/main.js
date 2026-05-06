@@ -4,12 +4,27 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', function(e) {
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn && !submitBtn.classList.contains('no-loading')) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processando...`;
+                setLoadingState(submitBtn);
             }
         });
     });
+
+    // Universal link/button navigation handler
+    document.querySelectorAll('a.btn, button.btn').forEach(el => {
+        el.addEventListener('click', function(e) {
+            // Exclude modal triggers, dropdowns, and buttons that aren't navigation/actions
+            if (this.hasAttribute('data-bs-toggle') || this.getAttribute('type') === 'button' || this.classList.contains('no-loading')) {
+                return;
+            }
+            setLoadingState(this);
+        });
+    });
 });
+
+function setLoadingState(element) {
+    element.disabled = true;
+    element.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processando...`;
+}
 
 function markRead(url) {
     fetch(url, { method: 'POST' })
