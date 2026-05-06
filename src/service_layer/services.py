@@ -420,10 +420,11 @@ def create_journey_type(
     manager_id: int,
     name: str,
     arrival: time,
-    lunch_start: time,
-    lunch_end: time,
+    lunch_start: Optional[time],
+    lunch_end: Optional[time],
     departure: time,
-    tolerance: int = 15
+    tolerance: int = 15,
+    has_lunch_break: bool = True
 ):
     with uow:
         ensure_manager(uow, manager_id)
@@ -433,11 +434,12 @@ def create_journey_type(
             expected_lunch_start=lunch_start,
             expected_lunch_end=lunch_end,
             expected_departure=departure,
-            tolerance_minutes=tolerance
+            tolerance_minutes=tolerance,
+            has_lunch_break=has_lunch_break
         )
         uow.session.add(jt)
         uow.commit()
-        uow.record_action(manager_id, "CREATE_JOURNEY_TYPE", target_id=None, details=f"Name: {name}")
+        uow.record_action(manager_id, "CREATE_JOURNEY_TYPE", target_id=None, details=f"Name: {name}, Lunch: {has_lunch_break}")
         uow.commit()
 
 def list_journey_types(uow: AbstractUnitOfWork) -> List[JourneyType]:
@@ -454,10 +456,11 @@ def update_journey_type(
     journey_id: int,
     name: str,
     arrival: time,
-    lunch_start: time,
-    lunch_end: time,
+    lunch_start: Optional[time],
+    lunch_end: Optional[time],
     departure: time,
-    tolerance: int = 15
+    tolerance: int = 15,
+    has_lunch_break: bool = True
 ):
     with uow:
         ensure_manager(uow, manager_id)
@@ -471,8 +474,9 @@ def update_journey_type(
         jt.expected_lunch_end = lunch_end
         jt.expected_departure = departure
         jt.tolerance_minutes = tolerance
+        jt.has_lunch_break = has_lunch_break
         uow.commit()
-        uow.record_action(manager_id, "UPDATE_JOURNEY_TYPE", target_id=journey_id, details=f"Name: {name}")
+        uow.record_action(manager_id, "UPDATE_JOURNEY_TYPE", target_id=journey_id, details=f"Name: {name}, Lunch: {has_lunch_break}")
         uow.commit()
 
 def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: int):
