@@ -22,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setLoadingState(element) {
-    element.disabled = true;
     const loadingHtml = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processando...`;
     
     if (element.tagName.toLowerCase() === 'input') {
@@ -30,6 +29,11 @@ function setLoadingState(element) {
     } else {
         element.innerHTML = loadingHtml;
     }
+
+    // Delay disabling slightly to ensure name/value is sent in POST request
+    setTimeout(() => {
+        element.disabled = true;
+    }, 10);
 }
 
 function markRead(url) {
