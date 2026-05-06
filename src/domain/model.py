@@ -35,10 +35,11 @@ class WorkSchedule:
 class JourneyType:
     name: str
     expected_arrival: time
-    expected_lunch_start: time
-    expected_lunch_end: time
+    expected_lunch_start: Optional[time]
+    expected_lunch_end: Optional[time]
     expected_departure: time
     tolerance_minutes: int = 15
+    has_lunch_break: bool = True
     journey_id: Optional[int] = None
 
 @dataclass
