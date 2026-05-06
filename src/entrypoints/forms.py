@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, SelectField
+from wtforms import StringField, PasswordField, SubmitField, SelectField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
 
 class LoginForm(FlaskForm):
@@ -33,9 +33,10 @@ class WorkScheduleForm(FlaskForm):
 
 class JourneyTypeForm(FlaskForm):
     name = StringField("Nome da Jornada", validators=[DataRequired()])
+    has_lunch_break = BooleanField("Possui intervalo de almoço?")
     arrival = StringField("Chegada Esperada (HH:MM)", validators=[DataRequired()])
-    lunch_start = StringField("Início Almoço (HH:MM)", validators=[DataRequired()])
-    lunch_end = StringField("Fim Almoço (HH:MM)", validators=[DataRequired()])
+    lunch_start = StringField("Início Almoço (HH:MM)")
+    lunch_end = StringField("Fim Almoço (HH:MM)")
     departure = StringField("Saída Esperada (HH:MM)", validators=[DataRequired()])
     tolerance = StringField("Tolerância (minutos)", default="15", validators=[DataRequired()])
     submit = SubmitField("Criar Tipo de Jornada")
