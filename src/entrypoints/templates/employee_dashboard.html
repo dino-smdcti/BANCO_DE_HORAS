@@ -162,10 +162,12 @@
             <div class="card-body text-center p-4">
                 {% if current_stage != "Jornada Completa" %}
                     {% set next_time = '' %}
-                    {% if current_stage == 'Chegada' %}{% set next_time = current_user.work_schedule.expected_arrival.strftime('%H:%M') %}{% endif %}
-                    {% if current_stage == 'Saída Almoço' %}{% set next_time = current_user.work_schedule.expected_lunch_start.strftime('%H:%M') %}{% endif %}
-                    {% if current_stage == 'Retorno Almoço' %}{% set next_time = current_user.work_schedule.expected_lunch_end.strftime('%H:%M') %}{% endif %}
-                    {% if current_stage == 'Fim Jornada' %}{% set next_time = current_user.work_schedule.expected_departure.strftime('%H:%M') %}{% endif %}
+                    {% if sched_data %}
+                        {% if current_stage == 'Chegada' %}{% set next_time = sched_data.expected_arrival %}{% endif %}
+                        {% if current_stage == 'Saída Almoço' %}{% set next_time = sched_data.expected_lunch_start %}{% endif %}
+                        {% if current_stage == 'Retorno Almoço' %}{% set next_time = sched_data.expected_lunch_end %}{% endif %}
+                        {% if current_stage == 'Fim Jornada' %}{% set next_time = sched_data.expected_departure %}{% endif %}
+                    {% endif %}
                     <button type="button" 
                             class="btn btn-lg w-100 py-4 fs-2 text-uppercase btn-grab-attention" 
                             onclick="showConfirmModalTrigger('{{ current_stage }}', '{{ next_time }}')">
