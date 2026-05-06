@@ -105,10 +105,29 @@ class DailyPonto:
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
         
-        # Lunch time (between lunch_start and lunch_end) is excluded.
-        # Only time between arrival and lunch_start, and lunch_end and departure counts.
+        # If incomplete, calculate based on what is available, or assume full schedule completion if needed
+        # For prediction, we need the schedule. Since DailyPonto doesn't have it directly, 
+        # we can calculate partial work and assume rest will follow schedule.
+        
+        # For current implementation, let's just count actual worked time.
+        # The predictive logic will be in User.total_balance
         morning = delta(self.arrival, self.lunch_start)
         afternoon = delta(self.lunch_end, self.departure)
+        return morning + afternoon
+
+    def get_predicted_worked_minutes(self, schedule: WorkSchedule) -> int:
+        def delta(t1, t2):
+            if not t1 or not t2: return 0
+            return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
+
+        # Use actuals if available, otherwise use scheduled times
+        arr = self.arrival or schedule.expected_arrival
+        ls = self.lunch_start or schedule.expected_lunch_start
+        le = self.lunch_end or schedule.expected_lunch_end
+        dep = self.departure or schedule.expected_departure
+
+        morning = delta(arr, ls)
+        afternoon = delta(le, dep)
         return morning + afternoon
 
     @property
@@ -185,13 +204,18 @@ class User:
 
     @property
     def total_balance(self) -> int:
-        # Managers are now included in the 8-hour target tracking
         DAILY_TARGET_MINUTES = 480
         
         balance = 0
+        if not self.work_schedule: return 0
+        
         for p in self.time_entries:
             if p.is_complete:
                 balance += (p.worked_minutes - DAILY_TARGET_MINUTES)
+            elif p.entry_date == date.today():
+                # Predictive: count what's done plus what's remaining based on schedule
+                predicted = p.get_predicted_worked_minutes(self.work_schedule)
+                balance += (predicted - DAILY_TARGET_MINUTES)
             elif p.entry_date < date.today():
                 balance -= DAILY_TARGET_MINUTES
         return balance
