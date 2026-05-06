@@ -146,8 +146,7 @@ def get_company_settings(uow: AbstractUnitOfWork) -> Optional[CompanySettings]:
         return setting
 
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None) -> str:
-    if not location:
-        raise ValueError("Localização é obrigatória para registrar ponto.")
+    loc = location or "Não obtida"
 
     with uow:
         user = uow.users.get_user_by_id(user_id)
@@ -164,7 +163,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         if not ponto:
             has_lunch = user.work_schedule.has_lunch_break if user.work_schedule else True
             ponto = DailyPonto(user_id=user_id, entry_date=today, arrival=now_time, has_lunch_break=has_lunch)
-            ponto.location_data = f"Chegada: {location}"
+            ponto.location_data = f"Chegada: {loc}"
             user.time_entries.append(ponto)
             msg = "Chegada registrada"
             # Check for lateness on arrival
@@ -176,7 +175,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                     ponto.arrival_late = True
         elif ponto.has_lunch_break and not ponto.lunch_start:
             ponto.lunch_start = now_time
-            ponto.location_data += f" | Almoço (Sai): {location}"
+            ponto.location_data += f" | Almoço (Sai): {loc}"
             msg = "Saída para almoço registrada"
             # Check for early lunch
             if user.work_schedule and user.work_schedule.expected_lunch_start:
@@ -187,7 +186,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                     ponto.lunch_start_late = True
         elif ponto.has_lunch_break and not ponto.lunch_end:
             ponto.lunch_end = now_time
-            ponto.location_data += f" | Almoço (Vol): {location}"
+            ponto.location_data += f" | Almoço (Vol): {loc}"
             msg = "Retorno do almoço registrado"
             # Check for lateness on return from lunch
             if user.work_schedule and user.work_schedule.expected_lunch_end:
@@ -198,7 +197,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                     ponto.lunch_end_late = True
         elif not ponto.departure:
             ponto.departure = now_time
-            ponto.location_data += f" | Fim: {location}"
+            ponto.location_data += f" | Fim: {loc}"
             msg = "Fim de jornada registrado"
             # Check for early departure
             if user.work_schedule:

@@ -66,6 +66,7 @@
                         <th>Almoço (Sai)</th>
                         <th>Almoço (Vol)</th>
                         <th>Fim Jornada</th>
+                        <th>Localização</th>
                         <th>Status</th>
                         <th>Justificativa</th>
                         <th>Ações</th>
@@ -97,6 +98,13 @@
                                 {{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}
                                 {% if p.status.value != 'Corrigido' and p.departure_early %}
                                     <div class="mt-1"><span class="badge bg-danger">Saída Cedo</span></div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if "Não obtida" in p.location_data or not p.location_data %}
+                                    <span class="badge bg-danger">Sem Localização</span>
+                                {% else %}
+                                    <small class="text-muted" title="{{ p.location_data }}">Obtida</small>
                                 {% endif %}
                             </td>
                             <td>

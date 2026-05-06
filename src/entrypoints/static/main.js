@@ -86,8 +86,9 @@ function showConfirmModal(modalId) {
             (error) => {
                 console.error("Geolocation error:", error);
                 locStatus.querySelector('.spinner-border').classList.add('d-none');
-                locSpan.innerText = "Erro ao obter localização. Por favor, permita o acesso à sua localização para registrar o ponto.";
-                locSpan.classList.add("text-danger", "small", "d-block", "mt-2");
+                locSpan.innerText = "Localização não obtida. Você ainda pode registrar seu ponto.";
+                locSpan.classList.add("text-muted", "small", "d-block", "mt-2");
+                btnConfirm.disabled = false;
             },
             { enableHighAccuracy: true, timeout: 10000 }
         );
