@@ -129,7 +129,10 @@ body {
 }
 
 .navbar-nav {
-    flex-direction: row;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     gap: var(--base-spacing);
 }
 
@@ -138,11 +141,40 @@ body {
     padding: 0.5rem 1rem !important;
 }
 
+.nav-logout {
+    font-weight: 800 !important;
+    text-shadow: 
+        -1px -1px 0 #000,  
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000;
+}
+
+@media (max-width: 991px) {
+    .navbar-collapse {
+        flex-basis: 100%;
+        flex-grow: 1;
+        align-items: center;
+    }
+    
+    .navbar-nav {
+        justify-content: center;
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+
+    .ms-auto {
+        margin-left: 0 !important;
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding-top: 0.5rem;
+    }
+}
+
 @media (max-width: 768px) {
     .container { padding: var(--base-spacing); }
     .display-5 { font-size: 1.8rem; }
     .navbar-nav { gap: 4px; }
-    .nav-link { padding: 0.2rem 0.5rem !important; font-size: 0.9rem; }
+    .nav-link { padding: 0.2rem 0.4rem !important; font-size: 0.85rem; }
 }
 
 /* New Modular Classes */
