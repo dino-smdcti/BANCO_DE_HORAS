@@ -27,6 +27,7 @@ journey_types = Table(
     Column("expected_lunch_end", Time, nullable=False),
     Column("expected_departure", Time, nullable=False),
     Column("tolerance_minutes", Integer, default=15),
+    Column("has_lunch_break", Boolean, default=True),
 )
 
 work_schedules = Table(
@@ -39,6 +40,7 @@ work_schedules = Table(
     Column("expected_lunch_end", Time, nullable=False),
     Column("expected_departure", Time, nullable=False),
     Column("tolerance_minutes", Integer, default=15),
+    Column("has_lunch_break", Boolean, default=True),
 )
 
 users = Table(
