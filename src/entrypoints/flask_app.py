@@ -767,6 +767,7 @@ def manage_journeys():
     
     if form.validate_on_submit():
         def parse_time(val):
+            if not val: return None
             return datetime.strptime(val, "%H:%M").time()
         
         services.create_journey_type(
@@ -775,7 +776,8 @@ def manage_journeys():
             parse_time(form.lunch_start.data),
             parse_time(form.lunch_end.data),
             parse_time(form.departure.data),
-            int(form.tolerance.data)
+            int(form.tolerance.data),
+            has_lunch_break=form.has_lunch_break.data
         )
         flash("Tipo de Jornada criado.", "success")
         return redirect(url_for("management_panel"))
@@ -815,6 +817,7 @@ def edit_journey(journey_id):
     
     if form.validate_on_submit():
         def parse_time(val):
+            if not val: return None
             return datetime.strptime(val, "%H:%M").time()
         
         try:
@@ -824,7 +827,8 @@ def edit_journey(journey_id):
                 parse_time(form.lunch_start.data),
                 parse_time(form.lunch_end.data),
                 parse_time(form.departure.data),
-                int(form.tolerance.data)
+                int(form.tolerance.data),
+                has_lunch_break=form.has_lunch_break.data
             )
             flash("Tipo de Jornada atualizado.", "success")
             return redirect(url_for("manage_journeys"))
@@ -839,9 +843,10 @@ def edit_journey(journey_id):
         
         if not request.method == "POST":
             form.name.data = j.name
+            form.has_lunch_break.data = j.has_lunch_break
             form.arrival.data = j.expected_arrival.strftime("%H:%M")
-            form.lunch_start.data = j.expected_lunch_start.strftime("%H:%M")
-            form.lunch_end.data = j.expected_lunch_end.strftime("%H:%M")
+            form.lunch_start.data = j.expected_lunch_start.strftime("%H:%M") if j.expected_lunch_start else ""
+            form.lunch_end.data = j.expected_lunch_end.strftime("%H:%M") if j.expected_lunch_end else ""
             form.departure.data = j.expected_departure.strftime("%H:%M")
             form.tolerance.data = str(j.tolerance_minutes)
         
