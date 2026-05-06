@@ -39,11 +39,11 @@
                                 </span>
                             </a>
                         </div>
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">Meu Ponto</a>
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">Ponto</a>
                         {% if current_user.role in ['manager', 'admin'] %}
                             <a class="nav-link text-warning" href="{{ url_for('management_panel') }}">Gestão</a>
                         {% endif %}
-                        <a class="nav-link" href="{{ url_for('profile') }}">Meus Dados</a>
+                        <a class="nav-link" href="{{ url_for('profile') }}">Dados</a>
                         <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
                     {% else %}
                         <a class="nav-link" href="{{ url_for('login') }}">Login</a>
