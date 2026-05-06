@@ -543,9 +543,20 @@ def dashboard():
         else:
             worked_hoje = 0
 
+        # Prepare schedule for template
+        sched_data = None
+        if user.work_schedule:
+            sched_data = {
+                "expected_arrival": user.work_schedule.expected_arrival.strftime("%H:%M"),
+                "expected_lunch_start": user.work_schedule.expected_lunch_start.strftime("%H:%M") if user.work_schedule.expected_lunch_start else None,
+                "expected_lunch_end": user.work_schedule.expected_lunch_end.strftime("%H:%M") if user.work_schedule.expected_lunch_end else None,
+                "expected_departure": user.work_schedule.expected_departure.strftime("%H:%M"),
+            }
+
         return render_template("employee_dashboard.html", 
                              recent_entries=recent_entries, 
                              current_stage=current_stage,
+                             sched_data=sched_data,
                              maps_url=maps_url,
                              filter_date=filter_date_str,
                              saldo_dia=saldo_dia,
