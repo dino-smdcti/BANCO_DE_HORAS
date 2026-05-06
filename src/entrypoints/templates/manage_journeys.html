@@ -14,11 +14,15 @@
                         <label class="form-label">Nome da Jornada</label>
                         {{ form.name(class="form-control", placeholder="Ex: Administrativo 08-18") }}
                     </div>
+                    <div class="mb-3 form-check form-switch">
+                        {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
+                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Entrada</label>
                         {{ form.arrival(class="form-control", placeholder="08:00") }}
                     </div>
-                    <div class="mb-2 row">
+                    <div id="lunchFields" class="mb-2 row">
                         <div class="col">
                             <label class="form-label">Saída Almoço</label>
                             {{ form.lunch_start(class="form-control", placeholder="12:00") }}
@@ -40,11 +44,25 @@
                         {{ form.submit(class="btn btn-dark") }}
                         <a href="{{ url_for('management_panel') }}" class="btn btn-outline-secondary">Voltar ao Painel</a>
                     </div>
-                </form>
-            </div>
-        </div>
-    </div>
+                    </form>
+                    </div>
+                    </div>
+                    </div>
+                    </div>
 
+                    <script>
+                    function toggleLunchFields() {
+                    const toggle = document.getElementById('lunchToggle');
+                    const fields = document.getElementById('lunchFields');
+                    if (toggle.checked) {
+                    fields.classList.remove('d-none');
+                    } else {
+                    fields.classList.add('d-none');
+                    }
+                    }
+                    // Initialize state
+                    document.addEventListener('DOMContentLoaded', toggleLunchFields);
+                    </script>
     <div class="col-md-8">
         <div class="card shadow">
             <div class="card-header bg-white">
