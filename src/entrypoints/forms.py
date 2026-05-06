@@ -23,9 +23,10 @@ class ProfileForm(FlaskForm):
 
 class WorkScheduleForm(FlaskForm):
     journey_type = SelectField("Template de Jornada", choices=[], coerce=int)
+    has_lunch_break = BooleanField("Possui intervalo de almoço?")
     arrival = StringField("Chegada Esperada (HH:MM)", validators=[DataRequired()])
-    lunch_start = StringField("Início Almoço (HH:MM)", validators=[DataRequired()])
-    lunch_end = StringField("Fim Almoço (HH:MM)", validators=[DataRequired()])
+    lunch_start = StringField("Início Almoço (HH:MM)")
+    lunch_end = StringField("Fim Almoço (HH:MM)")
     departure = StringField("Saída Esperada (HH:MM)", validators=[DataRequired()])
     tolerance = StringField("Tolerância (minutos)", default="15", validators=[DataRequired()])
     save_as_new = StringField("Salvar como Novo Tipo (Nome)", validators=[])

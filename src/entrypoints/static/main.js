@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Universal form submit handler
     document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', function(e) {
-            const submitBtn = this.querySelector('button[type="submit"]');
+            const submitBtn = this.querySelector('button[type="submit"], input[type="submit"]');
             if (submitBtn && !submitBtn.classList.contains('no-loading')) {
                 setLoadingState(submitBtn);
             }
@@ -23,7 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function setLoadingState(element) {
     element.disabled = true;
-    element.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processando...`;
+    const loadingHtml = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processando...`;
+    
+    if (element.tagName.toLowerCase() === 'input') {
+        element.value = "Processando...";
+    } else {
+        element.innerHTML = loadingHtml;
+    }
 }
 
 function markRead(url) {
@@ -72,12 +78,10 @@ function showConfirmModal(modalId) {
                 
                 modalMap.src = `https://www.google.com/maps?q=${locStr}&output=embed`;
                 
-                // Show map when iframe is loaded
-                modalMap.onload = function() {
-                    mapContainer.classList.remove('d-none');
-                    locStatus.classList.add('d-none');
-                    btnConfirm.disabled = false;
-                };
+                // Show map but enable button immediately
+                mapContainer.classList.remove('d-none');
+                locStatus.classList.add('d-none');
+                btnConfirm.disabled = false;
             },
             (error) => {
                 console.error("Geolocation error:", error);

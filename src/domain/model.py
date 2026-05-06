@@ -25,10 +25,11 @@ class CompanySettings:
 class WorkSchedule:
     user_id: int
     expected_arrival: time
-    expected_lunch_start: time
-    expected_lunch_end: time
+    expected_lunch_start: Optional[time]
+    expected_lunch_end: Optional[time]
     expected_departure: time
     tolerance_minutes: int = 15
+    has_lunch_break: bool = True
     schedule_id: Optional[int] = None
 
 @dataclass
@@ -74,6 +75,7 @@ class DailyPonto:
     location_data: str = "" # Formato: "Chegada: ... | Almoço: ..."
     status: PontoStatus = PontoStatus.ON_TIME
     justification: Optional[str] = None
+    has_lunch_break: bool = True
     ponto_id: Optional[int] = None
     
     # Flags for lateness/deviations
@@ -95,8 +97,9 @@ class DailyPonto:
     @property
     def current_stage(self) -> str:
         if not self.arrival: return "Chegada"
-        if not self.lunch_start: return "Saída Almoço"
-        if not self.lunch_end: return "Retorno Almoço"
+        if self.has_lunch_break:
+            if not self.lunch_start: return "Saída Almoço"
+            if not self.lunch_end: return "Retorno Almoço"
         if not self.departure: return "Fim Jornada"
         return "Jornada Completa"
 
@@ -106,12 +109,9 @@ class DailyPonto:
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
         
-        # If incomplete, calculate based on what is available, or assume full schedule completion if needed
-        # For prediction, we need the schedule. Since DailyPonto doesn't have it directly, 
-        # we can calculate partial work and assume rest will follow schedule.
-        
-        # For current implementation, let's just count actual worked time.
-        # The predictive logic will be in User.total_balance
+        if not self.has_lunch_break:
+            return delta(self.arrival, self.departure)
+
         morning = delta(self.arrival, self.lunch_start)
         afternoon = delta(self.lunch_end, self.departure)
         return morning + afternoon
@@ -127,13 +127,18 @@ class DailyPonto:
         le = self.lunch_end or schedule.expected_lunch_end
         dep = self.departure or schedule.expected_departure
 
+        if not self.has_lunch_break:
+            return delta(arr, dep)
+
         morning = delta(arr, ls)
         afternoon = delta(le, dep)
         return morning + afternoon
 
     @property
     def is_complete(self) -> bool:
-        return all([self.arrival, self.lunch_start, self.lunch_end, self.departure])
+        if self.has_lunch_break:
+            return all([self.arrival, self.lunch_start, self.lunch_end, self.departure])
+        return all([self.arrival, self.departure])
 
     @property
     def status_label(self) -> str:

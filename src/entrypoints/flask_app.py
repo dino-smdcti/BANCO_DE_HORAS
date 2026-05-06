@@ -537,13 +537,19 @@ def dashboard():
             last_loc = locs[-1].split(":")[-1].strip()
             maps_url = get_maps_url(last_loc)
 
+        if ponto_hoje:
+            worked_hoje = ponto_hoje.worked_minutes
+        else:
+            worked_hoje = 0
+
         return render_template("employee_dashboard.html", 
                              recent_entries=recent_entries, 
                              current_stage=current_stage,
                              maps_url=maps_url,
                              filter_date=filter_date_str,
                              saldo_dia=saldo_dia,
-                             saldo_total=saldo_total)
+                             saldo_total=saldo_total,
+                             worked_hoje=worked_hoje)
 
 @app.route("/management")
 @login_required
@@ -723,6 +729,7 @@ def set_schedule(employee_id):
 
     if form.validate_on_submit():
         def parse_time(val):
+            if not val: return None
             return datetime.strptime(val, "%H:%M").time()
 
         try:
@@ -731,11 +738,12 @@ def set_schedule(employee_id):
             l_e = parse_time(form.lunch_end.data)
             dep = parse_time(form.departure.data)
             tol = int(form.tolerance.data)
+            has_lunch = form.has_lunch_break.data
 
-            services.set_work_schedule(uow, current_user.id, employee_id, arr, l_s, l_e, dep, tol)
+            services.set_work_schedule(uow, current_user.id, employee_id, arr, l_s, l_e, dep, tol, has_lunch_break=has_lunch)
             
             if form.save_as_new.data:
-                services.create_journey_type(uow, current_user.id, form.save_as_new.data, arr, l_s, l_e, dep, tol)
+                services.create_journey_type(uow, current_user.id, form.save_as_new.data, arr, l_s, l_e, dep, tol, has_lunch_break=has_lunch)
                 flash(f"Template '{form.save_as_new.data}' salvo!", "info")
 
             flash("Horário de trabalho configurado.", "success")
@@ -747,8 +755,9 @@ def set_schedule(employee_id):
         employee = uow.users.get_user_by_id(employee_id)
         if not request.method == "POST" and employee.work_schedule:
             form.arrival.data = employee.work_schedule.expected_arrival.strftime("%H:%M")
-            form.lunch_start.data = employee.work_schedule.expected_lunch_start.strftime("%H:%M")
-            form.lunch_end.data = employee.work_schedule.expected_lunch_end.strftime("%H:%M")
+            form.has_lunch_break.data = employee.work_schedule.has_lunch_break
+            form.lunch_start.data = employee.work_schedule.expected_lunch_start.strftime("%H:%M") if employee.work_schedule.expected_lunch_start else ""
+            form.lunch_end.data = employee.work_schedule.expected_lunch_end.strftime("%H:%M") if employee.work_schedule.expected_lunch_end else ""
             form.departure.data = employee.work_schedule.expected_departure.strftime("%H:%M")
             form.tolerance.data = str(employee.work_schedule.tolerance_minutes)
         
@@ -799,8 +808,9 @@ def get_journey_json(journey_id):
     
     return {
         "arrival": j.expected_arrival.strftime("%H:%M"),
-        "lunch_start": j.expected_lunch_start.strftime("%H:%M"),
-        "lunch_end": j.expected_lunch_end.strftime("%H:%M"),
+        "has_lunch_break": j.has_lunch_break,
+        "lunch_start": j.expected_lunch_start.strftime("%H:%M") if j.expected_lunch_start else "",
+        "lunch_end": j.expected_lunch_end.strftime("%H:%M") if j.expected_lunch_end else "",
         "departure": j.expected_departure.strftime("%H:%M"),
         "tolerance": j.tolerance_minutes
     }

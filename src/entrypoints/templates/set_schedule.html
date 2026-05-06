@@ -45,11 +45,15 @@
 
                     <form method="POST">
                         {{ form.hidden_tag() }}
+                        <div class="mb-3 form-check form-switch">
+                            {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
+                            <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Entrada (Chegada)</label>
                             {{ form.arrival(class="form-control", id="arrival", placeholder="HH:MM") }}
                         </div>
-                        <div class="row mb-3">
+                        <div id="lunchFields" class="row mb-3">
                             <div class="col">
                                 <label class="form-label">Saída Almoço</label>
                                 {{ form.lunch_start(class="form-control", id="lunch_start", placeholder="HH:MM") }}
@@ -83,6 +87,16 @@
             
             {% if not self_select %}
             <script>
+                function toggleLunchFields() {
+                    const toggle = document.getElementById('lunchToggle');
+                    const fields = document.getElementById('lunchFields');
+                    if (toggle.checked) {
+                        fields.classList.remove('d-none');
+                    } else {
+                        fields.classList.add('d-none');
+                    }
+                }
+
                 document.getElementById('journey_select').addEventListener('change', function() {
                     const journeyId = this.value;
                     if (journeyId == "0") return;
@@ -92,12 +106,16 @@
                         .then(data => {
                             if (data.error) return;
                             document.getElementById('arrival').value = data.arrival;
+                            document.getElementById('lunchToggle').checked = data.has_lunch_break;
                             document.getElementById('lunch_start').value = data.lunch_start;
                             document.getElementById('lunch_end').value = data.lunch_end;
                             document.getElementById('departure').value = data.departure;
                             document.getElementById('tolerance').value = data.tolerance;
+                            toggleLunchFields();
                         });
                 });
+
+                document.addEventListener('DOMContentLoaded', toggleLunchFields);
             </script>
             {% endif %}
 

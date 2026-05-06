@@ -14,11 +14,15 @@
                         <label class="form-label">Nome da Jornada</label>
                         {{ form.name(class="form-control") }}
                     </div>
+                    <div class="mb-3 form-check form-switch">
+                        {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
+                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Entrada</label>
                         {{ form.arrival(class="form-control") }}
                     </div>
-                    <div class="row mb-3">
+                    <div id="lunchFields" class="row mb-3">
                         <div class="col">
                             <label class="form-label">Saída Almoço</label>
                             {{ form.lunch_start(class="form-control") }}
@@ -47,4 +51,17 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleLunchFields() {
+    const toggle = document.getElementById('lunchToggle');
+    const fields = document.getElementById('lunchFields');
+    if (toggle.checked) {
+        fields.classList.remove('d-none');
+    } else {
+        fields.classList.add('d-none');
+    }
+}
+document.addEventListener('DOMContentLoaded', toggleLunchFields);
+</script>
 {% endblock %}

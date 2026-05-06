@@ -162,7 +162,8 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         ponto = next((p for p in user.time_entries if p.entry_date == today), None)
         
         if not ponto:
-            ponto = DailyPonto(user_id=user_id, entry_date=today, arrival=now_time)
+            has_lunch = user.work_schedule.has_lunch_break if user.work_schedule else True
+            ponto = DailyPonto(user_id=user_id, entry_date=today, arrival=now_time, has_lunch_break=has_lunch)
             ponto.location_data = f"Chegada: {location}"
             user.time_entries.append(ponto)
             msg = "Chegada registrada"
@@ -173,23 +174,23 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                 if now_time > limit:
                     ponto.status = PontoStatus.LATE
                     ponto.arrival_late = True
-        elif not ponto.lunch_start:
+        elif ponto.has_lunch_break and not ponto.lunch_start:
             ponto.lunch_start = now_time
             ponto.location_data += f" | Almoço (Sai): {location}"
             msg = "Saída para almoço registrada"
             # Check for early lunch
-            if user.work_schedule:
+            if user.work_schedule and user.work_schedule.expected_lunch_start:
                 limit = (datetime.combine(today, user.work_schedule.expected_lunch_start) - 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time < limit:
                     ponto.status = PontoStatus.LATE
                     ponto.lunch_start_late = True
-        elif not ponto.lunch_end:
+        elif ponto.has_lunch_break and not ponto.lunch_end:
             ponto.lunch_end = now_time
             ponto.location_data += f" | Almoço (Vol): {location}"
             msg = "Retorno do almoço registrado"
             # Check for lateness on return from lunch
-            if user.work_schedule:
+            if user.work_schedule and user.work_schedule.expected_lunch_end:
                 limit = (datetime.combine(today, user.work_schedule.expected_lunch_end) + 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time > limit:
@@ -219,10 +220,11 @@ def set_work_schedule(
     manager_id: int,
     employee_id: int,
     arrival: time,
-    lunch_start: time,
-    lunch_end: time,
+    lunch_start: Optional[time],
+    lunch_end: Optional[time],
     departure: time,
-    tolerance: int = 15
+    tolerance: int = 15,
+    has_lunch_break: bool = True
 ):
     with uow:
         user = uow.users.get_user_by_id(employee_id)
@@ -242,6 +244,7 @@ def set_work_schedule(
             user.work_schedule.expected_lunch_end = lunch_end
             user.work_schedule.expected_departure = departure
             user.work_schedule.tolerance_minutes = tolerance
+            user.work_schedule.has_lunch_break = has_lunch_break
         else:
             user.work_schedule = WorkSchedule(
                 user_id=employee_id,
@@ -249,10 +252,11 @@ def set_work_schedule(
                 expected_lunch_start=lunch_start,
                 expected_lunch_end=lunch_end,
                 expected_departure=departure,
-                tolerance_minutes=tolerance
+                tolerance_minutes=tolerance,
+                has_lunch_break=has_lunch_break
             )
         uow.commit()
-        uow.record_action(manager_id, "SET_WORK_SCHEDULE", target_id=employee_id, details=f"Arrival: {arrival}, Departure: {departure}")
+        uow.record_action(manager_id, "SET_WORK_SCHEDULE", target_id=employee_id, details=f"Arrival: {arrival}, Departure: {departure}, Lunch: {has_lunch_break}")
         uow.commit()
 
 def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date: date):
@@ -395,6 +399,15 @@ def delete_ponto_entry(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
             manager_name = manager.profile.full_name or manager.email
             uow.record_action(manager_id, "DELETE_PONTO", target_id=employee_id, details=f"Deleted entry for {entry_date} by {manager_name}")
             uow.commit()
+
+def add_holiday(uow: AbstractUnitOfWork, manager_id: int, holiday_date: date, description: str, is_mandatory: bool = True):
+    with uow:
+        ensure_manager(uow, manager_id)
+        holiday = Holiday(holiday_date=holiday_date, description=description, is_mandatory=is_mandatory)
+        uow.session.merge(holiday)
+        uow.commit()
+        uow.record_action(manager_id, "ADD_HOLIDAY", target_id=None, details=f"Date: {holiday_date}, Desc: {description}")
+        uow.commit()
 
 def get_all_employees(uow: AbstractUnitOfWork, requester_id: Optional[int] = None) -> List[User]:
     with uow:
