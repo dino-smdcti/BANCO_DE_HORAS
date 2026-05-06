@@ -46,7 +46,7 @@ function markRead(url) {
     });
 }
 
-function showConfirmModal(modalId) {
+function showConfirmModal(modalId, nextStage, scheduledTime) {
     const modalElement = document.getElementById(modalId);
     const modal = new bootstrap.Modal(modalElement);
     const timeSpan = document.getElementById('confirmTime');
@@ -58,8 +58,16 @@ function showConfirmModal(modalId) {
     const btnConfirm = document.getElementById('btnConfirmPonto');
     const clockForm = document.getElementById('clockForm');
     
+    // Add dynamic input for time if we want to allow editing, 
+    // for now just display current time as default/placeholder
     const now = new Date();
-    timeSpan.innerText = now.toLocaleTimeString();
+    const formattedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    timeSpan.innerHTML = `
+        <div class="input-group">
+            <span class="input-group-text bg-light text-muted">Sugestão: ${scheduledTime || '--:--'}</span>
+            <input type="text" class="form-control" value="${formattedTime}" disabled>
+        </div>
+    `;
     
     // Reset state
     btnConfirm.disabled = true;
@@ -71,7 +79,7 @@ function showConfirmModal(modalId) {
     modalMap.src = "";
 
     modal.show();
-
+    // ... rest of geolocation code ...
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -82,7 +90,6 @@ function showConfirmModal(modalId) {
                 
                 modalMap.src = `https://www.google.com/maps?q=${locStr}&output=embed`;
                 
-                // Show map but enable button immediately
                 mapContainer.classList.remove('d-none');
                 locStatus.classList.add('d-none');
                 btnConfirm.disabled = false;
@@ -102,7 +109,6 @@ function showConfirmModal(modalId) {
         locSpan.classList.add("text-danger");
     }
 
-    // Handle form submission to prevent multiple clicks
     if (clockForm) {
         clockForm.onsubmit = function() {
             btnConfirm.disabled = true;
