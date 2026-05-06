@@ -624,20 +624,25 @@ def clock():
         flash(str(e), "warning")
     return redirect(url_for("dashboard"))
 
-@app.route("/submit-correction", methods=["POST"])
+@app.route("/update-note", methods=["POST"])
 @login_required
-def submit_correction():
+def update_note():
     try:
-        ponto_date = datetime.strptime(request.form.get("ponto_date"), "%Y-%m-%d").date()
-        stage = request.form.get("stage")
-        proposed_time = datetime.strptime(request.form.get("proposed_time"), "%H:%M").time()
-        justification = request.form.get("justification")
+        entry_date = datetime.strptime(request.form.get("entry_date"), "%Y-%m-%d").date()
+        notes = request.form.get("notes")
         
         uow = SqlAlchemyUnitOfWork()
-        services.submit_correction_request(uow, current_user.id, ponto_date, stage, proposed_time, justification)
-        flash("Pedido de correção enviado para análise.", "success")
+        with uow:
+            user = uow.users.get_user_by_id(current_user.id)
+            ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
+            if ponto:
+                ponto.notes = notes
+                uow.commit()
+                flash("Nota atualizada com sucesso.", "success")
+            else:
+                flash("Registro não encontrado.", "warning")
     except Exception as e:
-        flash(f"Erro ao enviar correção: {str(e)}", "danger")
+        flash(f"Erro ao salvar nota: {str(e)}", "danger")
     return redirect(url_for("dashboard"))
 
 @app.route("/manager/review-correction/<int:request_id>/<string:action>", methods=["POST"])

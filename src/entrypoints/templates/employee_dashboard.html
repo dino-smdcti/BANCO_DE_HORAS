@@ -25,6 +25,7 @@
                     <table class="table table-hover mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
+                                <th>Nota</th>
                                 <th>Data</th>
                                 <th>Chegada</th>
                                 <th>Almoço (Saída)</th>
@@ -37,8 +38,12 @@
                             {% for p in recent_entries %}
                                 <tr class="{% if p.status.value == 'Faltante' %}table-danger-light{% elif p.status.value == 'Justificado' %}table-success-light{% elif p.has_anomaly %}table-warning-light{% endif %}">
                                     <td>
-                                        {{ p.entry_date.strftime('%d/%m/%Y') }}
+                                        <button type="button" class="btn btn-sm btn-link p-0 {{ 'text-primary' if p.notes else 'text-secondary' }}" 
+                                                onclick="openNoteModal('{{ p.entry_date }}', '{{ p.notes|replace("'", "\\'") if p.notes else '' }}')">
+                                            <i class="bi bi-sticky-fill fs-5"></i>
+                                        </button>
                                     </td>
+                                    <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
                                     
                             <!-- Chegada -->
                             <td>
@@ -313,6 +318,14 @@
 </div>
 
 <script>
+    function openNoteModal(entryDate, currentNote) {
+        document.getElementById('note_entry_date').value = entryDate;
+        document.getElementById('display_note_date').innerText = entryDate;
+        document.getElementById('note_text').value = currentNote;
+        var myModal = new bootstrap.Modal(document.getElementById('noteModal'));
+        myModal.show();
+    }
+    
     function openJustificationModal(entryDate, currentJust) {
         document.getElementById('just_entry_date').value = entryDate;
         document.getElementById('display_just_date').innerText = entryDate;
@@ -334,4 +347,29 @@
         };
     }
 </script>
+
+<!-- Note Modal -->
+<div class="modal fade" id="noteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ url_for('update_note') }}" method="POST" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nota do Ponto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="entry_date" id="note_entry_date">
+                <div class="mb-3">
+                    <label class="form-label">Data: <span id="display_note_date" class="fw-bold"></span></label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sua Nota</label>
+                    <textarea name="notes" id="note_text" class="form-control" rows="3" placeholder="Adicione uma nota pessoal sobre este dia..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Salvar Nota</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
