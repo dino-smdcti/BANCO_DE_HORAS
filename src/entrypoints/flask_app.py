@@ -561,7 +561,26 @@ def management_panel():
     uow = SqlAlchemyUnitOfWork()
     with uow:
         employees = services.get_all_employees(uow, requester_id=int(current_user.id))
-        return render_template("manager_dashboard.html", employees=employees, today=date.today())
+        pending_justs = [p for e in employees for p in e.time_entries if p.has_anomaly and not p.justification]
+        pending_corrections = services.list_pending_corrections(uow, int(current_user.id))
+        
+        corrections_display = []
+        for c in pending_corrections:
+            user = uow.users.get_user_by_id(c.user_id)
+            corrections_display.append({
+                "id": c.request_id,
+                "user_name": user.profile.full_name or user.email,
+                "date": c.ponto_date,
+                "stage": c.stage,
+                "time": c.proposed_time,
+                "justification": c.justification
+            })
+
+        return render_template("manager_dashboard.html", 
+                             employees=employees, 
+                             today=date.today(),
+                             pending_justs={"found": len(pending_justs) > 0, "entries": pending_justs},
+                             pending_corrections=corrections_display)
 
 
 @app.route("/submit-justification", methods=["POST"])
@@ -595,13 +614,48 @@ def mark_notifications_read():
 @login_required
 def clock():
     location = request.form.get("location")
+    stage = request.form.get("stage")
+    notes = request.form.get("notes")
     uow = SqlAlchemyUnitOfWork()
     try:
-        msg = services.clock_in_out(uow, current_user.id, location)
+        msg = services.clock_in_out(uow, current_user.id, location, stage=stage, notes=notes)
         flash(msg, "info")
     except ValueError as e:
         flash(str(e), "warning")
     return redirect(url_for("dashboard"))
+
+@app.route("/submit-correction", methods=["POST"])
+@login_required
+def submit_correction():
+    try:
+        ponto_date = datetime.strptime(request.form.get("ponto_date"), "%Y-%m-%d").date()
+        stage = request.form.get("stage")
+        proposed_time = datetime.strptime(request.form.get("proposed_time"), "%H:%M").time()
+        justification = request.form.get("justification")
+        
+        uow = SqlAlchemyUnitOfWork()
+        services.submit_correction_request(uow, current_user.id, ponto_date, stage, proposed_time, justification)
+        flash("Pedido de correção enviado para análise.", "success")
+    except Exception as e:
+        flash(f"Erro ao enviar correção: {str(e)}", "danger")
+    return redirect(url_for("dashboard"))
+
+@app.route("/manager/review-correction/<int:request_id>/<string:action>", methods=["POST"])
+@login_required
+def review_correction(request_id, action):
+    if current_user.role not in ["manager", "admin"]:
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("dashboard"))
+    
+    approved = (action == "approve")
+    uow = SqlAlchemyUnitOfWork()
+    try:
+        services.review_correction_request(uow, current_user.id, request_id, approved)
+        flash("Correção processada com sucesso.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    
+    return redirect(url_for("management_panel"))
 
 @app.route("/download-report/<int:user_id>")
 @login_required

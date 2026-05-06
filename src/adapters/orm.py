@@ -1,6 +1,6 @@
 from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float
 from sqlalchemy.orm import registry, relationship, composite
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest
 from datetime import datetime
 
 metadata = MetaData()
@@ -72,11 +72,25 @@ daily_pontos = Table(
     Column("location_data", String(1000), nullable=True),
     Column("status", SQLEnum(PontoStatus), default=PontoStatus.ON_TIME),
     Column("justification", String(500), nullable=True),
+    Column("notes", String(1000), nullable=True),
     Column("has_lunch_break", Boolean, default=True),
     Column("arrival_late", Boolean, default=False),
     Column("lunch_start_late", Boolean, default=False),
     Column("lunch_end_late", Boolean, default=False),
     Column("departure_early", Boolean, default=False),
+)
+
+correction_requests = Table(
+    "correction_requests",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("ponto_date", Date, nullable=False),
+    Column("stage", String(50), nullable=False),
+    Column("proposed_time", Time, nullable=False),
+    Column("justification", String(500), nullable=False),
+    Column("status", String(20), default="pending"),
+    Column("created_at", DateTime, default=datetime.now),
 )
 
 vacations = Table(
@@ -152,6 +166,14 @@ def start_mappers():
         daily_pontos,
         properties={
             "ponto_id": daily_pontos.c.id,
+        }
+    )
+
+    mapper_registry.map_imperatively(
+        CorrectionRequest,
+        correction_requests,
+        properties={
+            "request_id": correction_requests.c.id,
         }
     )
 

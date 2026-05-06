@@ -1,6 +1,6 @@
 from datetime import datetime, date, time, timedelta
 from typing import Optional, List, Dict
-from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification
+from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from werkzeug.security import generate_password_hash
 import pandas as pd
@@ -145,7 +145,7 @@ def get_company_settings(uow: AbstractUnitOfWork) -> Optional[CompanySettings]:
         setting = uow.session.query(CompanySettings).first()
         return setting
 
-def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None) -> str:
+def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None, stage: Optional[str] = None, notes: Optional[str] = None) -> str:
     loc = location or "Não obtida"
 
     with uow:
@@ -160,59 +160,121 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
 
         ponto = next((p for p in user.time_entries if p.entry_date == today), None)
         
-        if not ponto:
-            has_lunch = user.work_schedule.has_lunch_break if user.work_schedule else True
-            ponto = DailyPonto(user_id=user_id, entry_date=today, arrival=now_time, has_lunch_break=has_lunch)
-            ponto.location_data = f"Chegada: {loc}"
-            user.time_entries.append(ponto)
+        if not stage:
+            if not ponto: stage = "arrival"
+            elif ponto.has_lunch_break and not ponto.lunch_start: stage = "lunch_start"
+            elif ponto.has_lunch_break and not ponto.lunch_end: stage = "lunch_end"
+            elif not ponto.departure: stage = "departure"
+            else: raise ValueError("Jornada de hoje já está completa.")
+
+        if stage == "arrival":
+            if not ponto:
+                has_lunch = user.work_schedule.has_lunch_break if user.work_schedule else True
+                ponto = DailyPonto(user_id=user_id, entry_date=today, arrival=now_time, has_lunch_break=has_lunch)
+                user.time_entries.append(ponto)
+            else:
+                ponto.arrival = now_time
+            ponto.location_data += f" | Chegada: {loc}"
             msg = "Chegada registrada"
-            # Check for lateness on arrival
             if user.work_schedule:
                 limit = (datetime.combine(today, user.work_schedule.expected_arrival) + 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time > limit:
                     ponto.status = PontoStatus.LATE
                     ponto.arrival_late = True
-        elif ponto.has_lunch_break and not ponto.lunch_start:
+        elif stage == "lunch_start":
+            if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.lunch_start = now_time
             ponto.location_data += f" | Almoço (Sai): {loc}"
             msg = "Saída para almoço registrada"
-            # Check for early lunch
             if user.work_schedule and user.work_schedule.expected_lunch_start:
                 limit = (datetime.combine(today, user.work_schedule.expected_lunch_start) - 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time < limit:
                     ponto.status = PontoStatus.LATE
                     ponto.lunch_start_late = True
-        elif ponto.has_lunch_break and not ponto.lunch_end:
+        elif stage == "lunch_end":
+            if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.lunch_end = now_time
             ponto.location_data += f" | Almoço (Vol): {loc}"
             msg = "Retorno do almoço registrado"
-            # Check for lateness on return from lunch
             if user.work_schedule and user.work_schedule.expected_lunch_end:
                 limit = (datetime.combine(today, user.work_schedule.expected_lunch_end) + 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time > limit:
                     ponto.status = PontoStatus.LATE
                     ponto.lunch_end_late = True
-        elif not ponto.departure:
+        elif stage == "departure":
+            if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.departure = now_time
             ponto.location_data += f" | Fim: {loc}"
             msg = "Fim de jornada registrado"
-            # Check for early departure
             if user.work_schedule:
                 limit = (datetime.combine(today, user.work_schedule.expected_departure) - 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
                 if now_time < limit:
                     ponto.status = PontoStatus.LATE
                     ponto.departure_early = True
+            if notes:
+                ponto.notes = notes
         else:
-            raise ValueError("Jornada de hoje já está completa.")
+            raise ValueError("Estágio inválido.")
         
         uow.commit()
-        uow.record_action(user_id, "CLOCK_EVENT", target_id=user_id, details=msg)
+        uow.record_action(user_id, "CLOCK_EVENT", target_id=user_id, details=f"{msg} ({stage})")
         uow.commit()
         return msg
+
+def submit_correction_request(uow: AbstractUnitOfWork, user_id: int, ponto_date: date, stage: str, proposed_time: time, justification: str):
+    with uow:
+        req = CorrectionRequest(
+            user_id=user_id,
+            ponto_date=ponto_date,
+            stage=stage,
+            proposed_time=proposed_time,
+            justification=justification
+        )
+        uow.session.add(req)
+        uow.commit()
+        uow.record_action(user_id, "SUBMIT_CORRECTION_REQUEST", target_id=None, details=f"Date: {ponto_date}, Stage: {stage}")
+        uow.commit()
+
+def list_pending_corrections(uow: AbstractUnitOfWork, manager_id: int) -> List[CorrectionRequest]:
+    with uow:
+        ensure_manager(uow, manager_id)
+        return uow.session.query(CorrectionRequest).filter_by(status="pending").all()
+
+def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_id: int, approved: bool):
+    with uow:
+        ensure_manager(uow, manager_id)
+        req = uow.session.query(CorrectionRequest).filter_by(id=request_id).first()
+        if not req:
+            raise ValueError("Solicitação não encontrada.")
+        
+        if approved:
+            req.status = "approved"
+            user = uow.users.get_user_by_id(req.user_id)
+            ponto = next((p for p in user.time_entries if p.entry_date == req.ponto_date), None)
+            if not ponto:
+                ponto = DailyPonto(user_id=req.user_id, entry_date=req.ponto_date)
+                user.time_entries.append(ponto)
+            
+            if req.stage == "arrival": ponto.arrival = req.proposed_time
+            elif req.stage == "lunch_start": ponto.lunch_start = req.proposed_time
+            elif req.stage == "lunch_end": ponto.lunch_end = req.proposed_time
+            elif req.stage == "departure": ponto.departure = req.proposed_time
+            
+            ponto.status = PontoStatus.CORRECTED
+            ponto.location_data += f" | Corrigido via solicitação aprovada por gestor {manager_id}"
+            
+            add_notification(uow, req.user_id, f"Sua solicitação de correção para {req.ponto_date} foi APROVADA.")
+        else:
+            req.status = "rejected"
+            add_notification(uow, req.user_id, f"Sua solicitação de correção para {req.ponto_date} foi REJEITADA.")
+        
+        uow.commit()
+        uow.record_action(manager_id, "REVIEW_CORRECTION_REQUEST", target_id=req.user_id, details=f"ReqID: {request_id}, Approved: {approved}")
+        uow.commit()
 
 def set_work_schedule(
     uow: AbstractUnitOfWork,

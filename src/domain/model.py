@@ -75,6 +75,7 @@ class DailyPonto:
     location_data: str = "" # Formato: "Chegada: ... | Almoço: ..."
     status: PontoStatus = PontoStatus.ON_TIME
     justification: Optional[str] = None
+    notes: Optional[str] = None
     has_lunch_break: bool = True
     ponto_id: Optional[int] = None
     
@@ -145,6 +146,17 @@ class DailyPonto:
         if not self.is_complete and self.entry_date < date.today():
             return "Desconhecido"
         return self.status.value
+
+@dataclass
+class CorrectionRequest:
+    user_id: int
+    ponto_date: date
+    stage: str  # 'arrival', 'lunch_start', 'lunch_end', 'departure'
+    proposed_time: time
+    justification: str
+    status: str = "pending"  # "pending", "approved", "rejected"
+    created_at: datetime = datetime.now()
+    request_id: Optional[int] = None
 
 @dataclass
 class UserProfile:
@@ -218,10 +230,4 @@ class User:
         for p in self.time_entries:
             if p.is_complete:
                 balance += (p.worked_minutes - DAILY_TARGET_MINUTES)
-            elif p.entry_date == date.today():
-                # Predictive: count what's done plus what's remaining based on schedule
-                predicted = p.get_predicted_worked_minutes(self.work_schedule)
-                balance += (predicted - DAILY_TARGET_MINUTES)
-            elif p.entry_date < date.today():
-                balance -= DAILY_TARGET_MINUTES
         return balance

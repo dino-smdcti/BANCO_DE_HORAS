@@ -73,21 +73,28 @@
                             </td>
                                     <td class="fw-bold text-primary">{{ p.worked_minutes // 60 }}h {{ p.worked_minutes % 60 }}m</td>
                                 </tr>
-                                {% if p.justification or (p.has_anomaly and not p.justification) %}
+                                {% if p.justification or (p.has_anomaly and not p.justification) or p.notes %}
                                 <tr class="table-light">
                                     <td colspan="6" class="py-1 px-4">
-                                        <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex flex-column gap-1">
                                             {% if p.justification %}
-                                                <small class="text-muted"><strong>Justificativa:</strong> {{ p.justification }}</small>
-                                                {% if p.status.value != 'Justificado' %}
-                                                    <span class="badge bg-warning text-dark">Em análise</span>
-                                                {% else %}
-                                                    <span class="badge bg-success">Aprovada</span>
-                                                {% endif %}
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted"><strong>Justificativa:</strong> {{ p.justification }}</small>
+                                                    {% if p.status.value != 'Justificado' %}
+                                                        <span class="badge bg-warning text-dark">Em análise</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">Aprovada</span>
+                                                    {% endif %}
+                                                </div>
                                             {% elif p.has_anomaly %}
-                                                <button class="btn btn-xs btn-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
-                                                    Justificar
-                                                </button>
+                                                <div>
+                                                    <button class="btn btn-xs btn-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
+                                                        Justificar
+                                                    </button>
+                                                </div>
+                                            {% endif %}
+                                            {% if p.notes %}
+                                                <div><small class="text-muted italic"><strong>Nota:</strong> {{ p.notes }}</small></div>
                                             {% endif %}
                                         </div>
                                     </td>
@@ -102,6 +109,28 @@
             </div>
             <div class="card-footer bg-white text-end">
                 <a href="{{ url_for('download_report', user_id=current_user.id) }}" class="btn btn-sm btn-outline-success">Baixar Excel Completo</a>
+            </div>
+        </div>
+
+        <!-- Recursos Avançados (Inconvenientes) -->
+        <div class="mt-5 pt-5 opacity-50" style="font-size: 0.75rem;">
+            <p class="text-muted text-center text-decoration-underline" style="cursor: pointer;" onclick="document.getElementById('hiddenActions').classList.toggle('d-none')">
+                Recursos Avançados de Ponto (Clique se realmente precisar)
+            </p>
+            <div id="hiddenActions" class="d-none card card-body border-dashed bg-light text-center">
+                <h6 class="small fw-bold">Seleção Manual de Estágio</h6>
+                <p class="small text-muted mb-2">Use isto apenas se a detecção automática falhar. O local não será validado com precisão.</p>
+                <form action="{{ url_for('clock') }}" method="POST" class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+                    <input type="hidden" name="location" value="Manual/Avançado">
+                    <button type="submit" name="stage" value="arrival" class="btn btn-xs btn-outline-secondary py-0">Forçar Entrada</button>
+                    <button type="submit" name="stage" value="lunch_start" class="btn btn-xs btn-outline-secondary py-0">Forçar Saída Almoço</button>
+                    <button type="submit" name="stage" value="lunch_end" class="btn btn-xs btn-outline-secondary py-0">Forçar Volta Almoço</button>
+                    <button type="submit" name="stage" value="departure" class="btn btn-xs btn-outline-secondary py-0">Forçar Fim Jornada</button>
+                </form>
+
+                <h6 class="small fw-bold">Pedido de Correção</h6>
+                <p class="small text-muted mb-2">Esqueceu de bater o ponto ontem? Solicite uma correção que será analisada pelo gestor.</p>
+                <button class="btn btn-xs btn-danger py-0" onclick="new bootstrap.Modal(document.getElementById('correctionModal')).show()">Solicitar Correção Retroativa</button>
             </div>
         </div>
     </div>
@@ -125,20 +154,20 @@
         </div>
         {% endif %}
         <div class="card shadow-lg custom-card mb-4">
-    <div class="card-body text-center p-4">
-        {% if current_stage != "Jornada Completa" %}
-            <button type="button" 
-                    class="btn btn-lg w-100 py-4 fs-2 text-uppercase btn-grab-attention" 
-                    onclick="showConfirmModalTrigger()">
-                Registrar {{ current_stage }}
-            </button>
-        {% else %}
-            <button class="btn btn-lg w-100 py-4 fs-2 fw-bold btn-disabled-custom" disabled>
-                Jornada Completa
-            </button>
-        {% endif %}
-    </div>
-</div>
+            <div class="card-body text-center p-4">
+                {% if current_stage != "Jornada Completa" %}
+                    <button type="button" 
+                            class="btn btn-lg w-100 py-4 fs-2 text-uppercase btn-grab-attention" 
+                            onclick="showConfirmModalTrigger()">
+                        Registrar {{ current_stage }}
+                    </button>
+                {% else %}
+                    <button class="btn btn-lg w-100 py-4 fs-2 fw-bold btn-disabled-custom" disabled>
+                        Jornada Completa
+                    </button>
+                {% endif %}
+            </div>
+        </div>
         <div class="row">
             <div class="col-md-6 mb-4">
                 <div class="card shadow border-info">
@@ -156,12 +185,51 @@
                 <div class="card shadow border-primary">
                     <div class="card-body text-center">
                         <h6 class="text-muted text-uppercase small">Saldo total</h6>
+                        <p class="small text-muted mb-1" style="font-size: 0.6rem;">(Apenas dias completos)</p>
                         <h3 class="fw-bold {{ 'text-success' if saldo_total >= 0 else 'text-danger' }}">
                             {{ '+' if saldo_total >= 0 else '-' }}{{ (saldo_total|abs // 60) }}h {{ (saldo_total|abs % 60) }}m
                         </h3>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal de Correção Retroativa -->
+    <div class="modal fade" id="correctionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form action="{{ url_for('submit_correction') }}" method="POST" class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Solicitar Correção de Ponto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Data do Ponto</label>
+                        <input type="date" name="ponto_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Estágio a Corrigir</label>
+                        <select name="stage" class="form-select" required>
+                            <option value="arrival">Chegada</option>
+                            <option value="lunch_start">Saída Almoço</option>
+                            <option value="lunch_end">Volta Almoço</option>
+                            <option value="departure">Fim Jornada</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Horário que deveria constar (HH:MM)</label>
+                        <input type="time" name="proposed_time" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Justificativa detalhada</label>
+                        <textarea name="justification" class="form-control" rows="3" required placeholder="Por que este ponto está incorreto ou ausente?"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-danger w-100">Enviar para Análise do Gestor</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -201,36 +269,44 @@
                     <h5 class="modal-title">Confirmar Registro</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <p>Você está prestes a registrar o seguinte ponto:</p>
-                    <ul class="list-group list-group-flush mb-3">
-                        <li class="list-group-item"><strong>Tipo:</strong> {{ current_stage }}</li>
-                        <li class="list-group-item"><strong>Hora Atual:</strong> <span id="confirmTime"></span></li>
-                    </ul>
-                    <div id="mapContainer" class="d-none mb-3">
-                        <iframe 
-                            id="modalMap"
-                            width="100%" 
-                            height="200" 
-                            frameborder="0" 
-                            style="border:0; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" 
-                            src="" 
-                            allowfullscreen>
-                        </iframe>
-                    </div>
-                    <div id="locStatus" class="text-center py-3">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                <form id="clockForm" action="{{ url_for('clock') }}" method="POST">
+                    <div class="modal-body">
+                        <p>Você está prestes a registrar o seguinte ponto:</p>
+                        <ul class="list-group list-group-flush mb-3">
+                            <li class="list-group-item"><strong>Tipo:</strong> {{ current_stage }}</li>
+                            <li class="list-group-item"><strong>Hora Atual:</strong> <span id="confirmTime"></span></li>
+                        </ul>
+
+                        {% if current_stage == "Fim Jornada" %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Deseja adicionar alguma nota sobre o dia? (Opcional)</label>
+                            <textarea name="notes" id="notesInput" class="form-control" rows="2" placeholder="Ex: Saí mais tarde devido a reunião extra..."></textarea>
                         </div>
-                        <span id="confirmLoc">Obtendo localização...</span>
+                        {% endif %}
+
+                        <div id="mapContainer" class="d-none mb-3">
+                            <iframe 
+                                id="modalMap"
+                                width="100%" 
+                                height="150" 
+                                frameborder="0" 
+                                style="border:0; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);" 
+                                src="" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                        <div id="locStatus" class="text-center py-2">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span id="confirmLoc">Obtendo localização...</span>
+                        </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <form id="clockForm" action="{{ url_for('clock') }}" method="POST" class="w-100">
+                    <div class="modal-footer">
                         <input type="hidden" name="location" id="locationInput">
                         <button type="submit" id="btnConfirmPonto" class="btn btn-primary w-100 py-2 fw-bold" disabled>Confirmar e Registrar</button>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

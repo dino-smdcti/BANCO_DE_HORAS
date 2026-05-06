@@ -65,6 +65,20 @@ def test_daily_balance_calculation_no_lunch_break():
     # Worked 8-16 = 8h (480m). Expected 480m. Balance 0.
     assert user.total_balance == 0
 
+def test_total_balance_only_complete_days():
+    schedule = WorkSchedule(user_id=1, expected_arrival=time(8,0), expected_lunch_start=time(12,0), expected_lunch_end=time(13,0), expected_departure=time(17,0))
+    user = User(email="test@test.com", password_hash="hash", role=UserRole.EMPLOYEE, work_schedule=schedule)
+    
+    # Complete day (9h worked -> +60 balance)
+    ponto1 = DailyPonto(user_id=1, entry_date=date(2026, 5, 4), arrival=time(8, 0), lunch_start=time(12, 0), lunch_end=time(13, 0), departure=time(18, 0))
+    # Incomplete day (only arrival -> should be ignored)
+    ponto2 = DailyPonto(user_id=1, entry_date=date(2026, 5, 5), arrival=time(8, 0))
+    
+    user.time_entries.extend([ponto1, ponto2])
+    
+    # Only ponto1 counts. Balance 60.
+    assert user.total_balance == 60
+
 def test_incomplete_entry_status_unknown():
     # Incomplete entry in past = unknown
     ponto = DailyPonto(

@@ -23,3 +23,16 @@ ALTER TABLE journey_types ALTER COLUMN expected_lunch_start DROP NOT NULL;
 ALTER TABLE journey_types ALTER COLUMN expected_lunch_end DROP NOT NULL;
 
 ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS has_lunch_break BOOLEAN DEFAULT TRUE;
+ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- 5. Correction Requests Table
+CREATE TABLE IF NOT EXISTS correction_requests (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    ponto_date DATE NOT NULL,
+    stage VARCHAR(50) NOT NULL,
+    proposed_time TIME NOT NULL,
+    justification TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
