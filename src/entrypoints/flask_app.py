@@ -64,6 +64,7 @@ class AuthenticatedUser(UserMixin):
         self.role = user.role
         self.full_name = user.profile.full_name
         self.is_profile_complete = user.is_profile_complete
+        self.work_schedule = user.work_schedule
         self.has_schedule = user.work_schedule is not None
 
 @login_manager.user_loader
