@@ -595,6 +595,22 @@ def management_panel():
                              pending_corrections=corrections_display)
 
 
+@app.route("/submit-correction", methods=["POST"])
+@login_required
+def submit_correction():
+    try:
+        ponto_date = datetime.strptime(request.form.get("ponto_date"), "%Y-%m-%d").date()
+        stage = request.form.get("stage")
+        proposed_time = datetime.strptime(request.form.get("proposed_time"), "%H:%M").time()
+        justification = request.form.get("justification")
+        
+        uow = SqlAlchemyUnitOfWork()
+        services.submit_correction_request(uow, current_user.id, ponto_date, stage, proposed_time, justification)
+        flash("Pedido de correção enviado para análise.", "success")
+    except Exception as e:
+        flash(f"Erro ao enviar correção: {str(e)}", "danger")
+    return redirect(url_for("dashboard"))
+
 @app.route("/submit-justification", methods=["POST"])
 @login_required
 def submit_justification():
