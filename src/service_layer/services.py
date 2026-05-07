@@ -12,9 +12,11 @@ def ensure_manager(uow: AbstractUnitOfWork, manager_id: int):
         raise PermissionError("Action restricted to managers or admins.")
     return user
 
-def ensure_not_self(manager_id: int, employee_id: int):
+def ensure_not_self(uow: AbstractUnitOfWork, manager_id: int, employee_id: int):
     if manager_id == employee_id:
-        raise PermissionError("Reviewers cannot review or correct their own time logs. This must be done by an Admin.")
+        user = uow.users.get_user_by_id(manager_id)
+        if not user or user.role != UserRole.ADMIN:
+            raise PermissionError("Reviewers cannot review or correct their own time logs. This must be done by an Admin.")
 
 def add_notification(uow: AbstractUnitOfWork, user_id: int, message: str, email_sender=None):
     notification = Notification(user_id=user_id, message=message, created_at=datetime.now())
@@ -346,7 +348,7 @@ def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date:
 def review_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date, approved: bool, email_sender=None):
     with uow:
         manager = ensure_manager(uow, manager_id)
-        ensure_not_self(manager_id, employee_id)
+        ensure_not_self(uow, manager_id, employee_id)
         user = uow.users.get_user_by_id(employee_id)
         if not user:
             raise ValueError("Employee not found.")
@@ -383,7 +385,7 @@ def manual_ponto_correction(
 ):
     with uow:
         manager = ensure_manager(uow, manager_id)
-        ensure_not_self(manager_id, employee_id)
+        ensure_not_self(uow, manager_id, employee_id)
         user = uow.users.get_user_by_id(employee_id)
         if not user:
             raise ValueError("Employee not found.")
@@ -447,7 +449,7 @@ def add_vacation(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, sta
 def delete_ponto_entry(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date):
     with uow:
         manager = ensure_manager(uow, manager_id)
-        ensure_not_self(manager_id, employee_id)
+        ensure_not_self(uow, manager_id, employee_id)
         user = uow.users.get_user_by_id(employee_id)
         if not user:
             raise ValueError("Employee not found.")
