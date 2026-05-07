@@ -517,6 +517,7 @@ def dashboard():
         # Calculate balances
         if user.work_schedule:
             def delta(t1, t2):
+                if not t1 or not t2: return 0
                 return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
             
             expected_daily = (delta(user.work_schedule.expected_arrival, user.work_schedule.expected_lunch_start) + 
@@ -529,6 +530,7 @@ def dashboard():
             else:
                 saldo_dia = 0
         else:
+            expected_daily = 0
             saldo_total = 0
             saldo_dia = 0
 
@@ -560,6 +562,7 @@ def dashboard():
                              maps_url=maps_url,
                              filter_date=filter_date_str,
                              saldo_dia=saldo_dia,
+                             expected_daily=expected_daily,
                              saldo_total=saldo_total,
                              worked_hoje=worked_hoje)
 
