@@ -3,7 +3,7 @@ from src.domain.model import DailyPonto, User, UserRole, WorkSchedule
 from src.service_layer.services import clock_in_out
 from unittest.mock import MagicMock
 
-def test_placeholder_initialization_on_arrival():
+def test_placeholder_dynamic_calculation():
     # Setup user and schedule
     schedule = WorkSchedule(
         user_id=1, 
@@ -23,19 +23,16 @@ def test_placeholder_initialization_on_arrival():
     
     ponto = user.time_entries[0]
     
-    # Verify placeholders
-    assert ponto.lunch_start == time(12, 0)
-    assert ponto.lunch_start_is_placeholder is True
-    assert ponto.lunch_end == time(13, 0)
-    assert ponto.lunch_end_is_placeholder is True
-    assert ponto.departure == time(17, 0)
-    assert ponto.departure_is_placeholder is True
+    # Verify placeholders are calculated dynamically
+    assert ponto.get_placeholder("lunch_start", schedule) == time(12, 0)
+    assert ponto.get_placeholder("lunch_end", schedule) == time(13, 0)
+    assert ponto.get_placeholder("departure", schedule) == time(17, 0)
     
-    # Verify real time
-    assert ponto.arrival_is_placeholder is False
+    # Verify arrival is real, not placeholder
     assert ponto.arrival is not None
+    assert ponto.get_placeholder("arrival", schedule) is None
 
-def test_placeholder_swap_on_clock_out():
+def test_placeholder_disappears_on_clock_in():
     # Setup user and schedule
     schedule = WorkSchedule(
         user_id=1, 
@@ -58,6 +55,8 @@ def test_placeholder_swap_on_clock_out():
     
     ponto = user.time_entries[0]
     
-    assert ponto.lunch_start_is_placeholder is False
+    # Verify lunch_start is now real
     assert ponto.lunch_start is not None
-    assert ponto.lunch_end_is_placeholder is True # Still placeholder
+    assert ponto.get_placeholder("lunch_start", schedule) is None
+    # Verify lunch_end is still a placeholder
+    assert ponto.get_placeholder("lunch_end", schedule) == time(13, 0)

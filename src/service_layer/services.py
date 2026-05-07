@@ -171,21 +171,9 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             if not ponto:
                 has_lunch = user.work_schedule.has_lunch_break if user.work_schedule else True
                 ponto = DailyPonto(user_id=user_id, entry_date=today, arrival=now_time, has_lunch_break=has_lunch)
-                
-                # Setup placeholders if schedule exists
-                if user.work_schedule:
-                    if has_lunch:
-                        ponto.lunch_start = user.work_schedule.expected_lunch_start
-                        ponto.lunch_start_is_placeholder = True
-                        ponto.lunch_end = user.work_schedule.expected_lunch_end
-                        ponto.lunch_end_is_placeholder = True
-                    ponto.departure = user.work_schedule.expected_departure
-                    ponto.departure_is_placeholder = True
-                
                 user.time_entries.append(ponto)
             else:
                 ponto.arrival = now_time
-                ponto.arrival_is_placeholder = False
             ponto.location_data += f" | Chegada: {loc}"
             msg = "Chegada registrada"
             if user.work_schedule:
@@ -197,7 +185,6 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         elif stage == "lunch_start":
             if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.lunch_start = now_time
-            ponto.lunch_start_is_placeholder = False
             ponto.location_data += f" | Almoço (Sai): {loc}"
             msg = "Saída para almoço registrada"
             if user.work_schedule and user.work_schedule.expected_lunch_start:
@@ -209,7 +196,6 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         elif stage == "lunch_end":
             if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.lunch_end = now_time
-            ponto.lunch_end_is_placeholder = False
             ponto.location_data += f" | Almoço (Vol): {loc}"
             msg = "Retorno do almoço registrado"
             if user.work_schedule and user.work_schedule.expected_lunch_end:
@@ -221,7 +207,6 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         elif stage == "departure":
             if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.departure = now_time
-            ponto.departure_is_placeholder = False
             ponto.location_data += f" | Fim: {loc}"
             msg = "Fim de jornada registrado"
             if user.work_schedule:

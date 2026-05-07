@@ -85,11 +85,12 @@ class DailyPonto:
     lunch_end_late: bool = False
     departure_early: bool = False
 
-    # Flags for placeholders
-    arrival_is_placeholder: bool = False
-    lunch_start_is_placeholder: bool = False
-    lunch_end_is_placeholder: bool = False
-    departure_is_placeholder: bool = False
+    def get_placeholder(self, field: str, schedule: Optional[WorkSchedule]) -> Optional[time]:
+        if not schedule: return None
+        if field == "lunch_start" and not self.lunch_start: return schedule.expected_lunch_start
+        if field == "lunch_end" and not self.lunch_end: return schedule.expected_lunch_end
+        if field == "departure" and not self.departure: return schedule.expected_departure
+        return None
 
     @property
     def has_anomaly(self) -> bool:
