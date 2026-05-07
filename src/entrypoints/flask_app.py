@@ -931,7 +931,7 @@ def edit_journey(journey_id):
             return redirect(url_for("manage_journeys"))
         except Exception as e:
             flash(f"Erro: {str(e)}", "danger")
-    
+
     with uow:
         j = services.get_journey_type(uow, journey_id)
         if not j:
