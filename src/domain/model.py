@@ -85,6 +85,12 @@ class DailyPonto:
     lunch_end_late: bool = False
     departure_early: bool = False
 
+    # Flags for placeholders
+    arrival_is_placeholder: bool = False
+    lunch_start_is_placeholder: bool = False
+    lunch_end_is_placeholder: bool = False
+    departure_is_placeholder: bool = False
+
     @property
     def has_anomaly(self) -> bool:
         return any([
