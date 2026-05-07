@@ -85,7 +85,13 @@
                         <tr>
                             <td><strong>{{ j.name }}</strong></td>
                             <td>{{ j.expected_arrival.strftime('%H:%M') }}</td>
-                            <td>{{ j.expected_lunch_start.strftime('%H:%M') }} - {{ j.expected_lunch_end.strftime('%H:%M') }}</td>
+                            <td>
+                                {% if j.has_lunch_break %}
+                                    {{ j.expected_lunch_start.strftime('%H:%M') }} - {{ j.expected_lunch_end.strftime('%H:%M') }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
                             <td>{{ j.expected_departure.strftime('%H:%M') }}</td>
                             <td>{{ j.tolerance_minutes }}m</td>
                             <td>
