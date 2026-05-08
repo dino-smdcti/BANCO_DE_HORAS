@@ -86,7 +86,7 @@
                             <td><strong>{{ j.name }}</strong></td>
                             <td>{{ j.expected_arrival.strftime('%H:%M') }}</td>
                             <td>
-                                {% if j.has_lunch_break %}
+                                {% if j.has_lunch_break and j.expected_lunch_start and j.expected_lunch_end %}
                                     {{ j.expected_lunch_start.strftime('%H:%M') }} - {{ j.expected_lunch_end.strftime('%H:%M') }}
                                 {% else %}
                                     N/A

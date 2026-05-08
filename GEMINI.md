@@ -5,6 +5,7 @@
 - ALWAYS perform validation (testing/linting) after changes.
 - NEVER introduce secrets into the codebase.
 
-## Shell Command Security & Best Practices
-- **NEVER use "&&"**: You are strictly prohibited from using the "&&" operator for chaining shell commands. This operator is not reliable in all Windows environments and has caused repeated execution failures.
-- **Always use ";"**: Always use the semicolon (";") operator to chain shell commands (e.g., `git add . ; git commit -m "msg" ; git push origin main`). It is the consistent and reliable separator for your operational environment.
+## OS Environment & Command Compatibility
+- **Environment**: All commands are executed within a Windows PowerShell environment.
+- **Commands**: ALWAYS use PowerShell-compatible syntax. AVOID bash-specific utilities (e.g., `grep`, `sed`, `awk`) unless they are explicitly available in the environment. 
+- **Exception**: Only use Linux/bash-style syntax if the user explicitly confirms they are operating in a Linux environment.

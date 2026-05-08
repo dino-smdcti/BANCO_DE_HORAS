@@ -26,7 +26,9 @@
                                         <br>
                                         <small class="text-muted">
                                             {{ j.expected_arrival.strftime('%H:%M') }} - {{ j.expected_departure.strftime('%H:%M') }} 
+                                            {% if j.has_lunch_break and j.expected_lunch_start and j.expected_lunch_end %}
                                             (Almoço: {{ j.expected_lunch_start.strftime('%H:%M') }} às {{ j.expected_lunch_end.strftime('%H:%M') }})
+                                            {% endif %}
                                         </small>
                                     </div>
                                     <span class="badge bg-primary rounded-pill">{{ j.tolerance_minutes }}m tol.</span>
