@@ -15,6 +15,7 @@ class PontoStatus(str, Enum):
     JUSTIFIED = "Justificado"
     REJECTED = "Rejeitado"
     CORRECTED = "Corrigido"
+    DISMISSED = "Dispensado"
 
 @dataclass
 class CompanySettings:

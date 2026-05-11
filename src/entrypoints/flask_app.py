@@ -566,6 +566,22 @@ def dashboard():
                              saldo_total=saldo_total,
                              worked_hoje=worked_hoje)
 
+@app.route("/manager/clear-anomaly/<int:employee_id>/<string:entry_date>", methods=["POST"])
+@login_required
+def clear_anomaly(employee_id, entry_date):
+    if current_user.role not in ["manager", "admin"]:
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("dashboard"))
+    
+    e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+    uow = SqlAlchemyUnitOfWork()
+    try:
+        services.clear_ponto_anomaly(uow, current_user.id, employee_id, e_date)
+        flash("Anomalia removida com sucesso.", "success")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
 @app.route("/management")
 @login_required
 def management_panel():
@@ -577,7 +593,12 @@ def management_panel():
     with uow:
         employees = services.get_all_employees(uow, requester_id=int(current_user.id))
         pending_justs = [p for e in employees for p in e.time_entries if p.has_anomaly and not p.justification]
+        dismissed_justs = [
+            {"emp": e, "ponto": p} for e in employees 
+            for p in e.time_entries if p.status == PontoStatus.DISMISSED
+        ]
         pending_corrections = services.list_pending_corrections(uow, int(current_user.id))
+        analysis_date = services.get_start_analysis_date(uow)
         
         corrections_display = []
         for c in pending_corrections:
@@ -594,8 +615,31 @@ def management_panel():
         return render_template("manager_dashboard.html", 
                              employees=employees, 
                              today=date.today(),
+                             analysis_date=analysis_date,
                              pending_justs={"found": len(pending_justs) > 0, "entries": pending_justs},
+                             dismissed_justs=dismissed_justs,
                              pending_corrections=corrections_display)
+
+@app.route("/admin/update-analysis-date", methods=["POST"])
+@login_required
+def update_analysis_date():
+    if current_user.role != "admin":
+        flash("Acesso restrito.", "danger")
+        return redirect(url_for("management_panel"))
+    
+    start_date = datetime.strptime(request.form.get("start_date"), "%Y-%m-%d").date()
+    uow = SqlAlchemyUnitOfWork()
+    with uow:
+        settings = uow.session.query(CompanySettings).first()
+        if settings:
+            settings.start_analysis_date = start_date
+        else:
+            settings = CompanySettings(lat=0, lon=0, start_analysis_date=start_date)
+            uow.session.add(settings)
+        uow.commit()
+    
+    flash("Data de início de análise atualizada.", "success")
+    return redirect(url_for("management_panel"))
 
 
 @app.route("/submit-correction", methods=["POST"])

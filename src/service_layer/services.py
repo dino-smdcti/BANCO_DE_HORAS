@@ -571,18 +571,27 @@ def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: in
             uow.record_action(manager_id, "DELETE_JOURNEY_TYPE", target_id=journey_id, details=f"Deleted: {name}")
             uow.commit()
 
-def submit_justification(uow: AbstractUnitOfWork, user_id: int, entry_date: date, justification: str):
+def clear_ponto_anomaly(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date):
     with uow:
-        user = uow.users.get_user_by_id(user_id)
+        manager = ensure_manager(uow, manager_id)
+        user = uow.users.get_user_by_id(employee_id)
         if not user:
-            raise ValueError("User not found.")
+            raise ValueError("Employee not found.")
         
         ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
         if not ponto:
-             ponto = DailyPonto(user_id=user_id, entry_date=entry_date, status=PontoStatus.MISSING)
-             user.time_entries.append(ponto)
+            raise ValueError("Registro de ponto não encontrado.")
+            
+        # Limpar flags
+        ponto.arrival_late = False
+        ponto.lunch_start_late = False
+        ponto.lunch_end_late = False
+        ponto.departure_early = False
         
-        ponto.justification = justification
+        if ponto.status in [PontoStatus.LATE]:
+            ponto.status = PontoStatus.ON_TIME
+            
+        ponto.location_data += f" | Anomalia limpa por: {manager.profile.full_name or manager.email}"
         uow.commit()
-        uow.record_action(user_id, "SUBMIT_JUSTIFICATION", target_id=user_id, details=f"Date: {entry_date}")
+        uow.record_action(manager_id, "CLEAR_ANOMALY", target_id=employee_id, details=f"Date: {entry_date}")
         uow.commit()

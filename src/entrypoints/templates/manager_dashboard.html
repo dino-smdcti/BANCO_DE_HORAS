@@ -101,6 +101,9 @@
                                                 <input type="hidden" name="justified" value="false">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Rejeitar</button>
                                             </form>
+                                            <form action="{{ url_for('dismiss_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Dispensar</button>
+                                            </form>
                                         {% else %}
                                             <span class="badge bg-light text-dark">Aguardando Admin</span>
                                         {% endif %}
@@ -172,6 +175,37 @@
     </div>
 </div>
 
+{% if current_user.role == 'admin' %}
+<div class="card shadow border-danger mb-4">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">Configurações de Análise</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-danger">Sistema calculando saldos desde: <strong>{{ analysis_date.strftime('%d/%m/%Y') }}</strong></p>
+        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#editAnalysisDateModal">Alterar Data</button>
+    </div>
+</div>
+
+<!-- Edit Analysis Date Modal -->
+<div class="modal fade" id="editAnalysisDateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ url_for('update_analysis_date') }}" method="POST" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Alterar Data de Início de Análise</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Atenção: A alteração desta data impactará o cálculo de saldo de todos os usuários do sistema.</p>
+                <input type="date" name="start_date" class="form-control" value="{{ analysis_date.strftime('%Y-%m-%d') }}" required>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja alterar a data de início da análise? Esta ação pode alterar o saldo retroativo de todos os funcionários.')">Confirmar Alteração</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
 <!-- Holiday Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
     <div class="modal-dialog">
@@ -222,6 +256,38 @@
                 <button type="submit" class="btn btn-primary">Processar</button>
             </div>
         </form>
+    </div>
+</div>
+
+<div class="card shadow border-secondary mt-4">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">Justificativas Dispensadas</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Funcionário</th>
+                        <th>Data</th>
+                        <th>Justificativa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in dismissed_justs %}
+                        <tr>
+                            <td>{{ item.emp.profile.full_name or item.emp.email }}</td>
+                            <td>{{ item.ponto.entry_date.strftime('%d/%m/%Y') }}</td>
+                            <td><small class="text-muted">"{{ item.ponto.justification }}"</small></td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-3 text-muted small">Nenhuma justificativa dispensada.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endblock %}
