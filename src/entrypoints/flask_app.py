@@ -80,6 +80,17 @@ def load_user(user_id):
     return None
 
 @app.context_processor
+def utility_processor():
+    def get_role_label(role_value):
+        mapping = {
+            'employee': 'Funcionário',
+            'manager': 'Diretor',
+            'admin': 'Secretário'
+        }
+        return mapping.get(role_value, role_value)
+    return dict(get_role_label=get_role_label)
+
+@app.context_processor
 def inject_notifications():
     if current_user.is_authenticated:
         uow = SqlAlchemyUnitOfWork()
