@@ -427,7 +427,7 @@ def edit_employee(employee_id):
     with uow:
         employee = uow.users.get_user_by_id(employee_id)
         if not employee:
-            flash("FuncionÃ¡rio nÃ£o encontrado.", "danger")
+            flash("Funcionário nÃ£o encontrado.", "danger")
             return redirect(url_for("management_panel"))
         
         if form.validate_on_submit():
@@ -473,7 +473,7 @@ def demote_user(user_id):
         return redirect(url_for("dashboard"))
     uow = SqlAlchemyUnitOfWork()
     services.demote_to_employee(uow, current_user.id, user_id)
-    flash("UsuÃ¡rio rebaixado para FuncionÃ¡rio!", "warning")
+    flash("UsuÃ¡rio rebaixado para Funcionário!", "warning")
     return redirect(url_for("management_panel"))
 
 def get_maps_url(location_str):
@@ -782,7 +782,7 @@ def view_employee_logs(employee_id):
     with uow:
         employee = uow.users.get_user_by_id(employee_id)
         if not employee:
-            flash("FuncionÃ¡rio nÃ£o encontrado.", "danger")
+            flash("Funcionário nÃ£o encontrado.", "danger")
             return redirect(url_for("dashboard"))
         
         recent_entries = sorted(employee.time_entries, key=lambda x: x.entry_date, reverse=True)
@@ -1128,4 +1128,5 @@ def delete_ponto(employee_id, entry_date):
 def logout():
     logout_user()
     return redirect(url_for("index"))
+
 
