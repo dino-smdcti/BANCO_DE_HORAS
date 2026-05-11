@@ -101,7 +101,7 @@
                                                 <input type="hidden" name="justified" value="false">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Rejeitar</button>
                                             </form>
-                                            <form action="{{ url_for('dismiss_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                            <form action="{{ url_for('dismiss_justification', employee_id=emp.user_id, entry_date=p.entry_date.strftime('%Y-%m-%d')) }}" method="POST" class="d-inline">
                                                 <button type="submit" class="btn btn-sm btn-outline-secondary">Dispensar</button>
                                             </form>
                                         {% else %}
