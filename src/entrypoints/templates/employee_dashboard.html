@@ -6,7 +6,7 @@
         <div class="card shadow mb-4">
             <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-2">
                 <h5 class="mb-0">Registrar Ponto - <span class="text-primary">{{ current_stage }}</span></h5>
-                <form action="{{ url_for('Painel') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2">
+                <form action="{{ url_for('dashboard') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2">
                     <div class="d-flex align-items-center gap-1">
                         <input type="date" name="start_date" class="form-control form-control-sm" style="max-width: 150px;" value="{{ request.args.get('start_date', '') }}">
                         <span>-</span>
@@ -15,7 +15,7 @@
                     <div class="d-flex gap-1">
                         <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
                         {% if request.args.get('start_date') or request.args.get('end_date') %}
-                        <a href="{{ url_for('Painel') }}" class="btn btn-sm btn-outline-secondary">Limpar</a>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">Limpar</a>
                         {% endif %}
                     </div>
                 </form>
@@ -381,4 +381,5 @@
     </div>
 </div>
 {% endblock %}
+
 
