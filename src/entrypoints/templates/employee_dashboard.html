@@ -210,7 +210,7 @@
 
     <!-- Modal de Correção Retroativa -->
     <div class="modal fade" id="correctionModal" tabindex="-1">
-        <div class="modal-diaRegistro">
+        <div class="modal-dialog">
             <form action="{{ url_for('submit_correction') }}" method="POST" class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Solicitar Correção de Ponto</h5>
@@ -248,7 +248,7 @@
 
     <!-- Modal de Justificativa -->
     <div class="modal fade" id="justificationModal" tabindex="-1">
-        <div class="modal-diaRegistro">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Justificar Ponto</h5>
@@ -276,7 +276,7 @@
 
     <!-- Modal de Confirmação -->
     <div class="modal fade" id="confirmPontoModal" tabindex="-1">
-        <div class="modal-diaRegistro">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Confirmar Registro</h5>
@@ -358,7 +358,7 @@
 
 <!-- Note Modal -->
 <div class="modal fade" id="noteModal" tabindex="-1">
-    <div class="modal-diaRegistro">
+    <div class="modal-dialog">
         <form action="{{ url_for('update_note') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Nota do Ponto</h5>
