@@ -566,6 +566,22 @@ def dashboard():
                              saldo_total=saldo_total,
                              worked_hoje=worked_hoje)
 
+@app.route("/manager/dismiss-justification/<int:employee_id>/<string:entry_date>", methods=["POST"])
+@login_required
+def dismiss_justification(employee_id, entry_date):
+    if current_user.role not in ["manager", "admin"]:
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("dashboard"))
+    
+    e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+    uow = SqlAlchemyUnitOfWork()
+    try:
+        services.dismiss_justification(uow, current_user.id, employee_id, e_date)
+        flash("Justificativa dispensada com sucesso.", "info")
+    except ValueError as e:
+        flash(str(e), "danger")
+    return redirect(url_for("management_panel"))
+
 @app.route("/manager/clear-anomaly/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
 def clear_anomaly(employee_id, entry_date):
