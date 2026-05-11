@@ -16,7 +16,7 @@
                     </div>
                     <div class="mb-3 form-check form-switch">
                         {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
-                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoÃ§o?</label>
+                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Entrada</label>
@@ -24,24 +24,24 @@
                     </div>
                     <div id="lunchFields" class="row mb-3">
                         <div class="col">
-                            <label class="form-label">SaÃ­da AlmoÃ§o</label>
+                            <label class="form-label">Saída Almoço</label>
                             {{ form.lunch_start(class="form-control") }}
                         </div>
                         <div class="col">
-                            <label class="form-label">Volta AlmoÃ§o</label>
+                            <label class="form-label">Volta Almoço</label>
                             {{ form.lunch_end(class="form-control") }}
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">SaÃ­da Final</label>
+                        <label class="form-label">Saída Final</label>
                         {{ form.departure(class="form-control") }}
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">TolerÃ¢ncia (minutos)</label>
+                        <label class="form-label">Tolerã¢ncia (minutos)</label>
                         {{ form.tolerance(class="form-control") }}
                     </div>
                     <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary", value="Salvar AlteraÃ§Ãµes") }}
+                        {{ form.submit(class="btn btn-primary", value="Salvar Alterações") }}
                     </div>
                 </form>
             </div>

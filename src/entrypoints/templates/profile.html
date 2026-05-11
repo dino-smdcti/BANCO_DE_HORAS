@@ -14,12 +14,12 @@
                         <input type="E-mail" name="E-mail" class="form-control" value="{{ user.E-mail }}" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Nova Senha (deixe em branco para nÃ£o alterar)</label>
+                        <label class="form-label">Nova Senha (deixe em branco para não alterar)</label>
                         <input type="Senha" name="Senha" class="form-control">
                     </div>
                     <div class="mb-3 form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="E-mail_notifications" name="E-mail_notifications" {% if user.E-mail_notifications_enabled %}checked{% endif %}>
-                        <label class="form-check-label" for="E-mail_notifications">Receber notificaÃ§Ãµes por e-mail</label>
+                        <label class="form-check-label" for="E-mail_notifications">Receber notificaçãµes por e-mail</label>
                     </div>
                     
                     <hr>
@@ -32,7 +32,7 @@
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">MatrÃ­cula</label>
+                            <label class="form-label">Matrícula</label>
                             <input type="text" name="registration_number" class="form-control" value="{{ user.Perfil.registration_number or '' }}" {% if current_user.role != 'admin' %}readonly{% endif %}>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -59,7 +59,7 @@
 
                     <hr>
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary text-white">Salvar AlteraÃ§Ãµes</button>
+                        <button type="submit" class="btn btn-primary text-white">Salvar Alterações</button>
                         <a href="{{ url_for('dashboard') }}" class="btn btn-light">Voltar</a>
                     </div>
                 </form>

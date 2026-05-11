@@ -16,7 +16,7 @@
                     </div>
                     <div class="mb-3 form-check form-switch">
                         {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
-                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoÃ§o?</label>
+                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Entrada</label>
@@ -24,20 +24,20 @@
                     </div>
                     <div id="lunchFields" class="mb-2 row">
                         <div class="col">
-                            <label class="form-label">SaÃ­da AlmoÃ§o</label>
+                            <label class="form-label">Saída Almoço</label>
                             {{ form.lunch_start(class="form-control", placeholder="12:00") }}
                         </div>
                         <div class="col">
-                            <label class="form-label">Volta AlmoÃ§o</label>
+                            <label class="form-label">Volta Almoço</label>
                             {{ form.lunch_end(class="form-control", placeholder="13:00") }}
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">SaÃ­da Final</label>
+                        <label class="form-label">Saída Final</label>
                         {{ form.departure(class="form-control", placeholder="18:00") }}
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">TolerÃ¢ncia (min)</label>
+                        <label class="form-label">Tolerã¢ncia (min)</label>
                         {{ form.tolerance(class="form-control") }}
                     </div>
                     <div class="d-grid gap-2">
@@ -74,10 +74,10 @@
                         <tr>
                             <th>Nome</th>
                             <th>Entrada</th>
-                            <th>AlmoÃ§o</th>
-                            <th>SaÃ­da</th>
+                            <th>Almoço</th>
+                            <th>Saída</th>
                             <th>Tol.</th>
-                            <th>AÃ§Ãµes</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>

@@ -25,13 +25,13 @@ def add_notification(uow: AbstractUnitOfWork, user_id: int, message: str, email_
     # Send email if enabled
     user = uow.users.get_user_by_id(user_id)
     if user and user.email_notifications_enabled and email_sender:
-        email_sender(user.email, "Nova NotificaÃ§Ã£o - Banco de Horas", f"<p>{message}</p>")
+        email_sender(user.email, "Nova Notificação - Banco de Horas", f"<p>{message}</p>")
 
 def mark_notifications_as_read(uow: AbstractUnitOfWork, user_id: int):
     with uow:
         user = uow.users.get_user_by_id(user_id)
         if user:
-            # Deleta as notificaÃ§Ãµes lidas permanentemente
+            # Deleta as notificaçãµes lidas permanentemente
             for n in user.notifications:
                 uow.session.delete(n)
             uow.commit()
@@ -149,14 +149,14 @@ def get_company_settings(uow: AbstractUnitOfWork) -> Optional[CompanySettings]:
         return setting
 
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None, stage: Optional[str] = None, notes: Optional[str] = None) -> str:
-    loc = location or "NÃ£o obtida"
+    loc = location or "Não obtida"
 
     with uow:
         user = uow.users.get_user_by_id(user_id)
         if not user:
             raise ValueError("User not found.")
         
-        # Calculate BrasÃ­lia Time (UTC-3)
+        # Calculate Brasília Time (UTC-3)
         brazil_time = datetime.utcnow() - timedelta(hours=3)
         today = brazil_time.date()
         now_time = brazil_time.time()
@@ -168,7 +168,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             elif ponto.has_lunch_break and not ponto.lunch_start: stage = "lunch_start"
             elif ponto.has_lunch_break and not ponto.lunch_end: stage = "lunch_end"
             elif not ponto.departure: stage = "departure"
-            else: raise ValueError("Jornada de hoje jÃ¡ estÃ¡ completa.")
+            else: raise ValueError("Jornada de hoje já está completa.")
 
         if stage == "arrival":
             if not ponto:
@@ -200,7 +200,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.lunch_end = now_time
             ponto.location_data += f" | Almoço (Vol): {loc}"
-            msg = "Retorno do almoÃ§o registrado"
+            msg = "Retorno do almoço registrado"
             if user.work_schedule and user.work_schedule.expected_lunch_end:
                 limit = (datetime.combine(today, user.work_schedule.expected_lunch_end) + 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
@@ -221,7 +221,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             if notes:
                 ponto.notes = notes
         else:
-            raise ValueError("EstÃ¡gio invÃ¡lido.")
+            raise ValueError("Estágio inválido.")
         
         uow.commit()
         uow.record_action(user_id, "CLOCK_EVENT", target_id=user_id, details=f"{msg} ({stage})")
@@ -252,7 +252,7 @@ def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_
         ensure_manager(uow, manager_id)
         req = uow.session.query(CorrectionRequest).filter_by(id=request_id).first()
         if not req:
-            raise ValueError("SolicitaÃ§Ã£o não encontrada.")
+            raise ValueError("Solicitação não encontrada.")
         
         if approved:
             req.status = "approved"
@@ -268,12 +268,12 @@ def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_
             elif req.stage == "departure": ponto.departure = req.proposed_time
             
             ponto.status = PontoStatus.CORRECTED
-            ponto.location_data += f" | Corrigido via solicitaÃ§Ã£o aprovada por gestor {manager_id}"
+            ponto.location_data += f" | Corrigido via solicitação aprovada por gestor {manager_id}"
             
-            add_notification(uow, req.user_id, f"Sua solicitaÃ§Ã£o de correÃ§Ã£o para {req.ponto_date} foi APROVADA.")
+            add_notification(uow, req.user_id, f"Sua solicitação de correção para {req.ponto_date} foi APROVADA.")
         else:
             req.status = "rejected"
-            add_notification(uow, req.user_id, f"Sua solicitaÃ§Ã£o de correÃ§Ã£o para {req.ponto_date} foi REJEITADA.")
+            add_notification(uow, req.user_id, f"Sua solicitação de correção para {req.ponto_date} foi REJEITADA.")
         
         uow.commit()
         uow.record_action(manager_id, "REVIEW_CORRECTION_REQUEST", target_id=req.user_id, details=f"ReqID: {request_id}, Approved: {approved}")
@@ -425,7 +425,7 @@ def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
                 "Status": p.status.value,
                 "Justificativa": p.justification or "-",
                 "Minutos Trabalhados": p.worked_minutes,
-                "LocalizaÃ§Ã£o": p.location_data
+                "Localização": p.location_data
             })
         
         df = pd.DataFrame(data)

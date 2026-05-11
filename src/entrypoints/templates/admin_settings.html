@@ -3,11 +3,11 @@
 {% block content %}
 <div class="card shadow mb-4">
     <div class="card-header bg-white">
-        <h5 class="mb-0">ConfiguraÃ§Ãµes de GeolocalizaÃ§Ã£o</h5>
+        <h5 class="mb-0">Configurações de Geolocalização</h5>
     </div>
     <div class="card-body">
-        <p class="text-muted">Defina as coordenadas da sede da empresa. Estas coordenadas sÃ£o usadas para validar o registro de ponto (tolerÃ¢ncia de 1km).</p>
-        <p class="small text-info">Dica: VocÃª pode encontrar essas coordenadas clicando com o botÃ£o direito em qualquer local no Google Maps.</p>
+        <p class="text-muted">Defina as coordenadas da sede da empresa. Estas coordenadas são usadas para validar o registro de ponto (tolerã¢ncia de 1km).</p>
+        <p class="small text-info">Dica: Você pode encontrar essas coordenadas clicando com o botão direito em qualquer local no Google Maps.</p>
         <form action="{{ url_for('admin_Configuraçãos') }}" method="POST">
             <div class="mb-3">
                 <label class="form-label">Latitude</label>
@@ -18,7 +18,7 @@
                 <input type="number" step="any" name="lon" class="form-control" value="{{ Configuraçãos.lon if Configuraçãos else '' }}" required>
             </div>
             <div class="mb-3">
-                <label class="form-label">Data de InÃ­cio de AnÃ¡lise</label>
+                <label class="form-label">Data de Início de Análise</label>
                 <input type="date" name="start_date" class="form-control" value="{{ Configuraçãos.start_analysis_date.strftime('%Y-%m-%d') if Configuraçãos else '' }}" required>
             </div>
             <button type="submit" class="btn btn-primary">Salvar Coordenadas</button>

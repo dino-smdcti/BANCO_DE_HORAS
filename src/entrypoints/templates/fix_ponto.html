@@ -5,8 +5,8 @@
     <div class="col-md-6">
         <div class="card shadow">
             <div class="card-header bg-white">
-                <h4 class="mb-0">CorreÃ§Ã£o Manual de Ponto</h4>
-                <p class="text-muted small">FuncionÃ¡rio: {{ Funcionário.Perfil.full_name or Funcionário.E-mail }}</p>
+                <h4 class="mb-0">Correção Manual de Ponto</h4>
+                <p class="text-muted small">Funcionário: {{ Funcionário.Perfil.full_name or Funcionário.E-mail }}</p>
             </div>
             <div class="card-body">
                 <form method="POST">
@@ -20,11 +20,11 @@
                             <input type="text" name="arrival" class="form-control" placeholder="00:00">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">SaÃ­da AlmoÃ§o</label>
+                            <label class="form-label">Saída Almoço</label>
                             <input type="text" name="lunch_start" class="form-control" placeholder="00:00">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Volta AlmoÃ§o</label>
+                            <label class="form-label">Volta Almoço</label>
                             <input type="text" name="lunch_end" class="form-control" placeholder="00:00">
                         </div>
                         <div class="col-md-6 mb-3">
@@ -33,7 +33,7 @@
                         </div>
                     </div>
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-warning">Salvar AlteraÃ§Ãµes</button>
+                        <button type="submit" class="btn btn-warning">Salvar Alterações</button>
                         <a href="{{ url_for('dashboard') }}" class="btn btn-light">Cancelar</a>
                     </div>
                 </form>

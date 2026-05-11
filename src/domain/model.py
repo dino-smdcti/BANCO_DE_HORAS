@@ -9,7 +9,7 @@ class UserRole(str, Enum):
     EMPLOYEE = "employee"
 
 class PontoStatus(str, Enum):
-    ON_TIME = "No HorÃ¡rio"
+    ON_TIME = "No Horário"
     LATE = "Atrasado"
     MISSING = "Faltante"
     JUSTIFIED = "Justificado"
@@ -74,7 +74,7 @@ class DailyPonto:
     lunch_start: Optional[time] = None
     lunch_end: Optional[time] = None
     departure: Optional[time] = None
-    location_data: str = "" # Formato: "Chegada: ... | AlmoÃ§o: ..."
+    location_data: str = "" # Formato: "Chegada: ... | Almoço: ..."
     status: PontoStatus = PontoStatus.ON_TIME
     justification: Optional[str] = None
     notes: Optional[str] = None
@@ -108,8 +108,8 @@ class DailyPonto:
     def current_stage(self) -> str:
         if not self.arrival: return "Chegada"
         if self.has_lunch_break:
-            if not self.lunch_start: return "SaÃ­da AlmoÃ§o"
-            if not self.lunch_end: return "Retorno AlmoÃ§o"
+            if not self.lunch_start: return "Saída Almoço"
+            if not self.lunch_end: return "Retorno Almoço"
         if not self.departure: return "Fim Jornada"
         return "Jornada Completa"
 

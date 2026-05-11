@@ -5,22 +5,22 @@
     <div class="col-md-4">
         <div class="card shadow">
             <div class="card-header bg-white">
-                <h4 class="text-center mb-0">Registroin</h4>
+                <h4 class="text-center mb-0">Login</h4>
             </div>
             <div class="card-body">
                 <form method="POST">
                     {{ form.hidden_tag() }}
                     <div class="mb-3">
                         <label class="form-label">E-mail</label>
-                        {{ form.E-mail(class="form-control") }}
-                        {% for error in form.E-mail.errors %}
+                        {{ form.email(class="form-control", id="email") }}
+                        {% for error in form.email.errors %}
                             <span class="text-danger small">{{ error }}</span>
                         {% endfor %}
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Senha</label>
-                        {{ form.Senha(class="form-control") }}
-                        {% for error in form.Senha.errors %}
+                        {{ form.password(class="form-control", id="password") }}
+                        {% for error in form.password.errors %}
                             <span class="text-danger small">{{ error }}</span>
                         {% endfor %}
                     </div>
@@ -32,9 +32,9 @@
                 <div class="text-center">
                     <p class="mb-2">Problemas com a senha?</p>
                     <div class="d-flex justify-content-center gap-2">
-                        <a href="{{ url_for('forgot_Senha') }}" class="btn btn-sm btn-outline-secondary">Esqueci minha senha</a>
-                        <form action="{{ url_for('magic_Registroin') }}" method="POST" class="d-inline" id="magicForm">
-                            <input type="hidden" name="E-mail" id="magicE-mail">
+                        <a href="{{ url_for('forgot_password') }}" class="btn btn-sm btn-outline-secondary">Esqueci minha senha</a>
+                        <form action="{{ url_for('magic_login') }}" method="POST" class="d-inline" id="magicForm">
+                            <input type="hidden" name="email" id="magicEmail">
                             <button type="button" class="btn btn-sm btn-outline-success" onclick="requestMagicLink()">Entrar via E-mail</button>
                         </form>
                     </div>
@@ -46,13 +46,13 @@
 
 <script>
     function requestMagicLink() {
-        const E-mailInput = document.getElementById('E-mail');
-        if (!E-mailInput.value) {
+        const emailInput = document.getElementById('email');
+        if (!emailInput.value) {
             alert('Por favor, digite seu e-mail no campo acima para receber o link de acesso.');
-            E-mailInput.focus();
+            emailInput.focus();
             return;
         }
-        document.getElementById('magicE-mail').value = E-mailInput.value;
+        document.getElementById('magicEmail').value = emailInput.value;
         document.getElementById('magicForm').submit();
     }
 </script>

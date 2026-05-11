@@ -9,7 +9,7 @@
                     {% if self_select %}
                         Escolha sua Jornada de Trabalho
                     {% else %}
-                        Configurar HorÃ¡rio: {{ Funcionário.Perfil.full_name or Funcionário.E-mail }}
+                        Configurar Horário: {{ Funcionário.Perfil.full_name or Funcionário.E-mail }}
                     {% endif %}
                 </h4>
             </div>
@@ -27,7 +27,7 @@
                                         <small class="text-muted">
                                             {{ j.expected_arrival.strftime('%H:%M') }} - {{ j.expected_departure.strftime('%H:%M') }} 
                                             {% if j.has_lunch_break and j.expected_lunch_start and j.expected_lunch_end %}
-                                            (AlmoÃ§o: {{ j.expected_lunch_start.strftime('%H:%M') }} Ã s {{ j.expected_lunch_end.strftime('%H:%M') }})
+                                            (Almoço: {{ j.expected_lunch_start.strftime('%H:%M') }} ã s {{ j.expected_lunch_end.strftime('%H:%M') }})
                                             {% endif %}
                                         </small>
                                     </div>
@@ -49,7 +49,7 @@
                         {{ form.hidden_tag() }}
                         <div class="mb-3 form-check form-switch">
                             {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
-                            <label class="form-check-label" for="lunchToggle">Possui intervalo de almoÃ§o?</label>
+                            <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Entrada (Chegada)</label>
@@ -57,11 +57,11 @@
                         </div>
                         <div id="lunchFields" class="row mb-3">
                             <div class="col">
-                                <label class="form-label">SaÃ­da AlmoÃ§o</label>
+                                <label class="form-label">Saída Almoço</label>
                                 {{ form.lunch_start(class="form-control", id="lunch_start", placeholder="HH:MM") }}
                             </div>
                             <div class="col">
-                                <label class="form-label">Retorno AlmoÃ§o</label>
+                                <label class="form-label">Retorno Almoço</label>
                                 {{ form.lunch_end(class="form-control", id="lunch_end", placeholder="HH:MM") }}
                             </div>
                         </div>
@@ -70,13 +70,13 @@
                             {{ form.departure(class="form-control", id="departure", placeholder="HH:MM") }}
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">TolerÃ¢ncia (minutos)</label>
+                            <label class="form-label">Tolerã¢ncia (minutos)</label>
                             {{ form.tolerance(class="form-control", id="tolerance") }}
                         </div>
 
                         <hr>
                         <div class="mb-3 border-start border-primary ps-3">
-                            <label class="form-label text-primary small fw-bold">Salvar estes horÃ¡rios como novo Modelo?</label>
+                            <label class="form-label text-primary small fw-bold">Salvar estes horários como novo Modelo?</label>
                             {{ form.Salvar_as_new(class="form-control", placeholder="Nome do novo Modelo (opcional)") }}
                         </div>
 
