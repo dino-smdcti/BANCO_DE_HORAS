@@ -1,28 +1,28 @@
-{% extends "base.html" %}
+Ôªø{% extends "base.html" %}
 
 {% block content %}
 <div class="d-flex flex-column mb-4">
     <div class="d-flex flex-column mb-3">
         <h2 class="mb-0">Registros de Ponto</h2>
-        <p class="text-muted mb-0">Funcion√°rio: <strong>{{ Funcion·rio.profile.full_name or Funcion·rio.email }}</strong></p>
+        <p class="text-muted mb-0">Funcionrio: <strong>{{ Funcionrio.profile.full_name or Funcionrio.email }}</strong></p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('edit_Funcion·rio', Funcion·rio_id=Funcion·rio.user_id) }}" class="btn btn-sm btn-outline-primary">Editar Perfil</a>
-        <a href="{{ url_for('set_schedule', Funcion·rio_id=Funcion·rio.user_id) }}" class="btn btn-sm btn-outline-primary">Definir Hor√°rio</a>
-        <a href="{{ url_for('fix_ponto', Funcion·rio_id=Funcion·rio.user_id) }}" class="btn btn-sm btn-warning">Corrigir Ponto</a>
-        <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#vacationModal">Lan√ßar F√©rias</button>
-        <a href="{{ url_for('download_report', user_id=Funcion·rio.user_id) }}" class="btn btn-sm btn-success">Exportar Excel</a>
+        <a href="{{ url_for('edit_Funcionrio', Funcionrio_id=Funcionrio.user_id) }}" class="btn btn-sm btn-outline-primary">Editar Perfil</a>
+        <a href="{{ url_for('set_schedule', Funcionrio_id=Funcionrio.user_id) }}" class="btn btn-sm btn-outline-primary">Definir Horrio</a>
+        <a href="{{ url_for('fix_ponto', Funcionrio_id=Funcionrio.user_id) }}" class="btn btn-sm btn-warning">Corrigir Ponto</a>
+        <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#vacationModal">Lanar Frias</button>
+        <a href="{{ url_for('download_report', user_id=Funcionrio.user_id) }}" class="btn btn-sm btn-success">Exportar Excel</a>
         <a href="{{ url_for('management_panel') }}" class="btn btn-sm btn-outline-dark">Voltar ao Painel</a>
-        <form action="{{ url_for('delete_user', user_id=Funcion·rio.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcion√°rio?');">
-            <button type="submit" class="btn btn-sm btn-danger">Remover Funcion√°rio</button>
+        <form action="{{ url_for('delete_user', user_id=Funcionrio.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionrio?');">
+            <button type="submit" class="btn btn-sm btn-danger">Remover Funcionrio</button>
         </form>
         {% if current_user.role == 'admin' %}
-            {% if Funcion·rio.role.value == 'Funcion·rio' %}
-                <form action="{{ url_for('promote_user', user_id=Funcion·rio.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Promover este usu√°rio a Gestor?');">
+            {% if Funcionrio.role.value == 'Funcionrio' %}
+                <form action="{{ url_for('promote_user', user_id=Funcionrio.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Promover este usurio a Gestor?');">
                     <button type="submit" class="btn btn-sm btn-warning">Promover</button>
                 </form>
-            {% elif Funcion·rio.role.value == 'Diretor' %}
-                <form action="{{ url_for('demote_user', user_id=Funcion·rio.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Rebaixar este gestor a Funcion√°rio?');">
+            {% elif Funcionrio.role.value == 'Diretor' %}
+                <form action="{{ url_for('demote_user', user_id=Funcionrio.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Rebaixar este gestor a Funcionrio?');">
                     <button type="submit" class="btn btn-sm btn-secondary">Demover</button>
                 </form>
             {% endif %}
@@ -33,23 +33,23 @@
 <!-- Vacation Modal -->
 <div class="modal fade" id="vacationModal" tabindex="-1">
     <div class="modal-dialog">
-        <form action="{{ url_for('add_vacation', Funcion·rio_id=Funcion·rio.user_id) }}" method="POST" class="modal-content">
+        <form action="{{ url_for('add_vacation', Funcionrio_id=Funcionrio.user_id) }}" method="POST" class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Lan√ßar F√©rias - {{ Funcion·rio.profile.full_name }}</h5>
+                <h5 class="modal-title">Lanar Frias - {{ Funcionrio.profile.full_name }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label">In√≠cio</label>
+                    <label class="form-label">Incio</label>
                     <input type="date" name="start_date" class="form-control" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">T√©rmino</label>
+                    <label class="form-label">Trmino</label>
                     <input type="date" name="end_date" class="form-control" required>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">Salvar F√©rias</button>
+                <button type="submit" class="btn btn-primary">Salvar Frias</button>
             </div>
         </form>
     </div>
@@ -63,13 +63,13 @@
                     <tr>
                         <th>Data</th>
                         <th>Chegada</th>
-                        <th>Almo√ßo (Sai)</th>
-                        <th>Almo√ßo (Vol)</th>
+                        <th>Almoo (Sai)</th>
+                        <th>Almoo (Vol)</th>
                         <th>Fim Jornada</th>
-                        <th>Localiza√ß√£o</th>
+                        <th>Localizao</th>
                         <th>Status</th>
                         <th>Justificativa</th>
-                        <th>A√ß√µes</th>
+                        <th>Aes</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -97,19 +97,19 @@
                             <td>
                                 {{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}
                                 {% if p.departure_early %}
-                                    <div class="mt-1"><span class="badge bg-danger">Sa√≠da Cedo</span></div>
+                                    <div class="mt-1"><span class="badge bg-danger">Sada Cedo</span></div>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if "N√£o obtida" in p.location_data or not p.location_data %}
-                                    <span class="badge bg-danger">Sem Localiza√ß√£o</span>
+                                {% if "No obtida" in p.location_data or not p.location_data %}
+                                    <span class="badge bg-danger">Sem Localizao</span>
                                 {% else %}
                                     <small class="text-muted" title="{{ p.location_data }}">Obtida</small>
                                 {% endif %}
                             </td>
                             <td>
                                 <span class="badge 
-                                    {% if p.status.value == 'No Hor√°rio' %}bg-success
+                                    {% if p.status.value == 'No Horrio' %}bg-success
                                     {% elif p.status.value == 'Atrasado' %}bg-warning text-dark
                                     {% elif p.status.value == 'Faltante' %}bg-danger
                                     {% elif p.status.value == 'Justificado' %}bg-info text-dark
@@ -129,13 +129,13 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('fix_ponto', Funcion·rio_id=Funcion·rio.user_id) }}?date={{ p.entry_date }}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
+                                <a href="{{ url_for('fix_ponto', Funcionrio_id=Funcionrio.user_id) }}?date={{ p.entry_date }}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
                                 {% if p.has_anomaly %}
-                                    <form action="{{ url_for('clear_anomaly', Funcion·rio_id=Funcion·rio.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                    <form action="{{ url_for('clear_anomaly', Funcionrio_id=Funcionrio.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-warning">Limpar Anomalia</button>
                                     </form>
                                 {% endif %}
-                                <form action="{{ url_for('delete_ponto', Funcion·rio_id=Funcion·rio.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline" onsubmit="return confirm('ATEN√á√ÉO: Voc√™ est√° prestes a excluir permanentemente este registro de ponto. Esta a√ß√£o n√£o pode ser desfeita. Deseja continuar?');">
+                                <form action="{{ url_for('delete_ponto', Funcionrio_id=Funcionrio.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline" onsubmit="return confirm('ATENO: Voc est prestes a excluir permanentemente este registro de ponto. Esta ao no pode ser desfeita. Deseja continuar?');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
                                 </form>
                             </td>
@@ -149,3 +149,4 @@
     </div>
 </div>
 {% endblock %}
+
