@@ -6,7 +6,7 @@
         <div class="card shadow">
             <div class="card-header bg-white">
                 <h4 class="mb-0">Correção Manual de Ponto</h4>
-                <p class="text-muted small">Funcionário: {{ Funcionário.Perfil.full_name or Funcionário.E-mail }}</p>
+                <p class="text-muted small">Funcionário: {{ Funcionário.profile.full_name or Funcionário.E-mail }}</p>
             </div>
             <div class="card-body">
                 <form method="POST">
