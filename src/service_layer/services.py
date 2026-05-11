@@ -626,7 +626,7 @@ def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id:
         if not ponto.has_anomaly:
             raise ValueError(f"No anomaly (late/missing) found for date {entry_date}. Status: {ponto.status.value}")
             
-        ponto.status = PontoStatus.DISMISSED
+        ponto.status = PontoStatus.DISMISSED.value
         ponto.location_data += f" | Justificativa dispensada por: {manager.profile.full_name or manager.email}"
         uow.commit()
         uow.record_action(manager_id, "DISMISS_JUSTIFICATION", target_id=employee_id, details=f"Date: {entry_date}")
