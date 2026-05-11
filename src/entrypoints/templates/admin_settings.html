@@ -8,7 +8,7 @@
     <div class="card-body">
         <p class="text-muted">Defina as coordenadas da sede da empresa. Estas coordenadas são usadas para validar o registro de ponto (tolerã¢ncia de 1km).</p>
         <p class="small text-info">Dica: Você pode encontrar essas coordenadas clicando com o botão direito em qualquer local no Google Maps.</p>
-        <form action="{{ url_for('admin_Configuraçãos') }}" method="POST">
+        <form action="{{ url_for('admin_settings') }}" method="POST">
             <div class="mb-3">
                 <label class="form-label">Latitude</label>
                 <input type="number" step="any" name="lat" class="form-control" value="{{ Configuraçãos.lat if Configuraçãos else '' }}" required>
