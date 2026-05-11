@@ -20,19 +20,16 @@ def manager_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+import traceback
+import sys
+
 def handle_errors(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except ValueError as e:
-            flash(str(e), "danger")
-            return redirect(url_for("dashboard"))
-        except PermissionError as e:
-            flash(str(e), "danger")
-            return redirect(url_for("dashboard"))
         except Exception as e:
-            # Displaying the actual error for debugging during the fix process
-            flash(f"Erro: {str(e)}", "danger")
+            traceback.print_exc(file=sys.stderr)
+            flash(f"Erro detalhado: {str(e)}", "danger")
             return redirect(url_for("dashboard"))
     return decorated_function
