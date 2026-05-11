@@ -9,7 +9,7 @@
                     {% if self_select %}
                         Escolha sua Jornada de Trabalho
                     {% else %}
-                        Configurar Hor√°rio: {{ employee.profile.full_name or employee.email }}
+                        Configurar Hor√°rio: {{ Funcion·rio.profile.full_name or Funcion·rio.email }}
                     {% endif %}
                 </h4>
             </div>
@@ -103,7 +103,7 @@
                     const journeyId = this.value;
                     if (journeyId == "0") return;
 
-                    fetch(`/manager/get-journey/${journeyId}`)
+                    fetch(`/Diretor/get-journey/${journeyId}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.error) return;

@@ -32,7 +32,7 @@
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
                             <i class="bi bi-calendar-check"></i> Ponto
                         </a>
-                        {% if current_user.role in ['manager', 'admin'] %}
+                        {% if current_user.role in ['Diretor', 'admin'] %}
                             <a class="nav-link text-warning d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
                                 <i class="bi bi-people"></i> Gestão
                             </a>
