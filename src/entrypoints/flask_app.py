@@ -4,7 +4,7 @@ from src.adapters.orm import start_mappers, metadata
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
 from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm, WorkScheduleForm, JourneyTypeForm
-from src.domain.model import User, PontoStatus, JourneyType, AuditLog
+from src.domain.model import User, PontoStatus, JourneyType, AuditLog, CompanySettings
 from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import create_engine
 from datetime import datetime, date
@@ -1024,17 +1024,19 @@ def admin_settings():
     if request.method == "POST":
         lat = float(request.form.get("lat"))
         lon = float(request.form.get("lon"))
+        start_date = datetime.strptime(request.form.get("start_date"), "%Y-%m-%d").date()
         
         with uow:
             settings = uow.session.query(CompanySettings).first()
             if settings:
                 settings.lat = lat
                 settings.lon = lon
+                settings.start_analysis_date = start_date
             else:
-                settings = CompanySettings(id=1, lat=lat, lon=lon)
+                settings = CompanySettings(lat=lat, lon=lon, start_analysis_date=start_date)
                 uow.session.add(settings)
             uow.commit()
-            flash("Configurações de localização atualizadas.", "success")
+            flash("Configurações atualizadas.", "success")
             return redirect(url_for("admin_settings"))
             
     with uow:

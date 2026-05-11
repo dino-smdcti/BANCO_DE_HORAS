@@ -45,7 +45,7 @@ def register_user(
     with uow:
         existing_user = uow.users.get_user_by_email(email)
         if existing_user:
-            return False
+            raise ValueError("Email already exists.")
         
         # If no password provided, use a placeholder
         pw_hash = generate_password_hash(password) if password else "!"
@@ -471,6 +471,11 @@ def add_holiday(uow: AbstractUnitOfWork, manager_id: int, holiday_date: date, de
         uow.commit()
         uow.record_action(manager_id, "ADD_HOLIDAY", target_id=None, details=f"Date: {holiday_date}, Desc: {description}")
         uow.commit()
+
+def get_start_analysis_date(uow: AbstractUnitOfWork) -> date:
+    with uow:
+        settings = uow.session.query(CompanySettings).first()
+        return settings.start_analysis_date if settings else date(2026, 1, 1)
 
 def get_all_employees(uow: AbstractUnitOfWork, requester_id: Optional[int] = None) -> List[User]:
     with uow:

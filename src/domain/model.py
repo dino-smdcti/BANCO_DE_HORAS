@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from typing import List, Optional
 from enum import Enum
 
@@ -20,6 +20,7 @@ class PontoStatus(str, Enum):
 class CompanySettings:
     lat: float
     lon: float
+    start_analysis_date: date = date(2026, 1, 1)
 
 @dataclass
 class WorkSchedule:
@@ -230,11 +231,13 @@ class User:
     @property
     def total_balance(self) -> int:
         DAILY_TARGET_MINUTES = 480
-        
+
         balance = 0
         if not self.work_schedule: return 0
-        
+
+        # Calcular com base nos registros existentes
         for p in self.time_entries:
             if p.is_complete:
                 balance += (p.worked_minutes - DAILY_TARGET_MINUTES)
+
         return balance

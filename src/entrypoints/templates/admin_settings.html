@@ -17,6 +17,10 @@
                 <label class="form-label">Longitude</label>
                 <input type="number" step="any" name="lon" class="form-control" value="{{ settings.lon if settings else '' }}" required>
             </div>
+            <div class="mb-3">
+                <label class="form-label">Data de Início de Análise</label>
+                <input type="date" name="start_date" class="form-control" value="{{ settings.start_analysis_date.strftime('%Y-%m-%d') if settings else '' }}" required>
+            </div>
             <button type="submit" class="btn btn-primary">Salvar Coordenadas</button>
         </form>
     </div>
