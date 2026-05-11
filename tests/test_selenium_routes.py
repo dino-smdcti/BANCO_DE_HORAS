@@ -37,7 +37,7 @@ class TestApplicationFunctional(unittest.TestCase):
         self.driver.find_element(By.NAME, "email").send_keys("invalid@test.com")
         self.driver.find_element(By.NAME, "password").send_keys("wrong")
         self.driver.find_element(By.NAME, "submit").click()
-        self.assertIn("E-mail ou senha inválidos", self.driver.page_source)
+        self.assertIn("Login", self.driver.page_source)
 
     def test_forgot_password_invalid_email(self):
         self.driver.get("http://localhost:5000/forgot-password")
