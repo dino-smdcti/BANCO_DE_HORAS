@@ -95,14 +95,14 @@
                                         {% if current_user.id != emp.user_id or current_user.role == 'admin' %}
                                             <form action="{{ url_for('justify_ponto', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
                                                 <input type="hidden" name="justified" value="true">
-                                                <button type="submit" class="btn btn-sm btn-success">approve</button>
+                                                <button type="submit" class="btn btn-sm btn-success">Aprovar</button>
                                             </form>
                                             <form action="{{ url_for('justify_ponto', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
                                                 <input type="hidden" name="justified" value="false">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">reject</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Rejeitar</button>
                                             </form>
-                                            <form action="{{ url_for('dismiss_justification', employee_id=emp.user_id, entry_date=p.entry_date.strftime('%Y-%m-%d')) }}" method="POST" class="d-inline">
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary">dismiss</button>
+                                            <form action="{{ url_for('Dispensar_justification', employee_id=emp.user_id, entry_date=p.entry_date.strftime('%Y-%m-%d')) }}" method="POST" class="d-inline">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary">Dispensar</button>
                                             </form>
                                         {% else %}
                                             <span class="badge bg-light text-dark">Aguardando Admin</span>
@@ -156,11 +156,11 @@
                             <td><span class="badge bg-dark">{{ c.time.strftime('%H:%M') }}</span></td>
                             <td><small>"{{ c.justification }}"</small></td>
                             <td>
-                                <form action="{{ url_for('review_correction', request_id=c.id, action='approve') }}" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-xs btn-success py-0" style="font-size: 0.7rem;">approve</button>
+                                <form action="{{ url_for('review_correction', request_id=c.id, action='Aprovar') }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-xs btn-success py-0" style="font-size: 0.7rem;">Aprovar</button>
                                 </form>
-                                <form action="{{ url_for('review_correction', request_id=c.id, action='reject') }}" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-xs btn-outline-danger py-0" style="font-size: 0.7rem;">reject</button>
+                                <form action="{{ url_for('review_correction', request_id=c.id, action='Rejeitar') }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-xs btn-outline-danger py-0" style="font-size: 0.7rem;">Rejeitar</button>
                                 </form>
                             </td>
                         </tr>
@@ -186,20 +186,20 @@
     </div>
 </div>
 
-<!-- Edit Analysis Date Modal -->
+<!-- Editar Analysis Date Modal -->
 <div class="modal fade" id="editAnalysisDateModal" tabindex="-1">
     <div class="modal-diaRegistro">
         <form action="{{ url_for('update_analysis_date') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Alterar Data de Início de Análise</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
             </div>
             <div class="modal-body">
                 <p class="small text-muted">Atenção: A alteração desta data impactará o cálculo de saldo de todos os usuários do sistema.</p>
                 <input type="date" name="start_date" class="form-control" value="{{ analysis_date.strftime('%Y-%m-%d') }}" required>
             </div>
             <div class="modal-footer">
-                <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja alterar a data de início da análise? Esta ação pode alterar o saldo retroativo de todos os funcionários.')">Confirmar Alteração</button>
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja alterar a data de início da análise? Esta ação pode alterar o saldo retroativo de todos os funcionários.')">Confirmarar Alteração</button>
             </div>
         </form>
     </div>
@@ -212,7 +212,7 @@
         <form action="{{ url_for('add_holiday') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Cadastrar Feriado / Ponto Facultativo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
@@ -243,7 +243,7 @@
         <form action="{{ url_for('generate_missing') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Processar Faltas do Dia</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
             </div>
             <div class="modal-body">
                 <p>O sistema criará registros de falta para todos os funcionários que não registraram ponto na data selecionada.</p>
@@ -274,7 +274,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in dismissed_justs %}
+                    {% for item in Dispensared_justs %}
                         <tr>
                             <td>{{ item.emp.profile.full_name or item.emp.E-mail }}</td>
                             <td>{{ item.ponto.entry_date.strftime('%d/%m/%Y') }}</td>

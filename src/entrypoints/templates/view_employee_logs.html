@@ -7,14 +7,14 @@
         <p class="text-muted mb-0">Funcionário: <strong>{{ employee.profile.full_name or employee.email }}</strong></p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('edit_employee', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary">Editar Perfil</a>
+        <a href="{{ url_for('edit_employee', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary">Editarar Perfil</a>
         <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary">Definir Horário</a>
         <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" class="btn btn-sm btn-warning">Corrigir Ponto</a>
         <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
         <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-success">Exportar Excel</a>
         <a href="{{ url_for('management_panel') }}" class="btn btn-sm btn-outline-dark">Voltar ao Painel</a>
         <form action="{{ url_for('delete_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionário?');">
-            <button type="submit" class="btn btn-sm btn-danger">Remover Funcionário</button>
+            <button type="submit" class="btn btn-sm btn-danger">Removerr Funcionário</button>
         </form>
         {% if current_user.role == 'admin' %}
             {% if employee.role.value == 'employee' %}
@@ -36,7 +36,7 @@
         <form action="{{ url_for('add_vacation', employee_id=employee.user_id) }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Lançar Férias - {{ employee.profile.full_name }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
@@ -129,7 +129,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}?date={{ p.entry_date }}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
+                                <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}?date={{ p.entry_date }}" class="btn btn-sm btn-outline-primary me-1">Editarar</a>
                                 {% if p.has_anomaly %}
                                     <form action="{{ url_for('clear_anomaly', employee_id=employee.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-warning">Limpar Anomalia</button>

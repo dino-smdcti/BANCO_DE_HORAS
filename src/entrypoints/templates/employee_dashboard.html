@@ -170,7 +170,7 @@
                     {% endif %}
                     <button type="button" 
                             class="btn btn-lg w-100 py-4 fs-2 text-uppercase btn-grab-attention" 
-                            onclick="showConfirmModalTrigger('{{ current_stage }}', '{{ next_time }}')">
+                            onclick="showConfirmarModalTrigger('{{ current_stage }}', '{{ next_time }}')">
                         Registrar {{ current_stage }}
                     </button>
                 {% else %}
@@ -266,7 +266,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-Dispensar="modal">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-Dispensar="modal">Cancelarar</button>
                         <button type="submit" class="btn btn-primary">Enviar Justificativa</button>
                     </div>
                 </form>
@@ -274,12 +274,12 @@
         </div>
     </div>
 
-    <!-- Modal de Confirmação -->
+    <!-- Modal de Confirmaração -->
     <div class="modal fade" id="confirmPontoModal" tabindex="-1">
         <div class="modal-diaRegistro">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Confirmar Registro</h5>
+                    <h5 class="modal-title">Confirmarar Registro</h5>
                     <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
                 </div>
                 <form id="clockForm" action="{{ url_for('clock') }}" method="POST">
@@ -310,14 +310,14 @@
                         </div>
                         <div id="locStatus" class="text-center py-2">
                             <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
+                                <span class="visually-hidden">Carregando...</span>
                             </div>
                             <span id="confirmLoc">Obtendo localização...</span>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <input type="hidden" name="location" id="locationInput">
-                        <button type="submit" id="btnConfirmPonto" class="btn btn-primary w-100 py-2 fw-bold" disabled>Confirmar e Registrar</button>
+                        <button type="submit" id="btnConfirmarPonto" class="btn btn-primary w-100 py-2 fw-bold" disabled>Confirmarar e Registrar</button>
                     </div>
                 </form>
             </div>
