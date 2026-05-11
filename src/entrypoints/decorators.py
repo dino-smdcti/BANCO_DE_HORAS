@@ -32,7 +32,7 @@ def handle_errors(f):
             flash(str(e), "danger")
             return redirect(url_for("dashboard"))
         except Exception as e:
-            # Log error internally here
-            flash("Ocorreu um erro inesperado.", "danger")
+            # Displaying the actual error for debugging during the fix process
+            flash(f"Erro: {str(e)}", "danger")
             return redirect(url_for("dashboard"))
     return decorated_function

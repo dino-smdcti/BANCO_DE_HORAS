@@ -21,7 +21,7 @@
                 <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Promover este usuário a Gestor?');">
                     <button type="submit" class="btn btn-sm btn-warning">Promover</button>
                 </form>
-            {% elif employee.role.value == 'Diretor' %}
+            {% elif employee.role.value == 'manager' %}
                 <form action="{{ url_for('demote_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Rebaixar este gestor a funcionário?');">
                     <button type="submit" class="btn btn-sm btn-secondary">Demover</button>
                 </form>
