@@ -563,35 +563,16 @@ def dashboard():
                              saldo_total=saldo_total,
                              worked_hoje=worked_hoje)
 
-@app.route("/manager/archived-justifications", methods=["GET"])
+@app.route("/manager/archive-justification-action/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
 @manager_required
 @handle_errors
-def archived_justifications():
-    employee_id = request.args.get("employee_id")
-    date_str = request.args.get("date")
-    
+def archive_justification_action(employee_id, entry_date):
+    e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
     uow = SqlAlchemyUnitOfWork()
-    with uow:
-        employees = services.get_all_employees(uow, requester_id=int(current_user.id))
-        
-        # Filter logic
-        archived = [
-            {"emp": e, "ponto": p} for e in employees 
-            for p in e.time_entries if p.status == PontoStatus.DISMISSED
-        ]
-        
-        if employee_id:
-            archived = [a for a in archived if a['emp'].user_id == int(employee_id)]
-        if date_str:
-            target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-            archived = [a for a in archived if a['ponto'].entry_date == target_date]
-            
-        return render_template("archived_justifications.html", 
-                               archived_justs=archived, 
-                               employees=employees,
-                               selected_emp=int(employee_id) if employee_id else None,
-                               selected_date=date_str)
+    services.dismiss_justification(uow, current_user.id, employee_id, e_date)
+    flash("Justificativa arquivada com sucesso.", "info")
+    return redirect(url_for("management_panel"))
 
 @app.route("/manager/clear-anomaly/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
