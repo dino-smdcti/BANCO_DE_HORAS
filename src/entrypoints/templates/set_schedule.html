@@ -9,7 +9,7 @@
                     {% if self_select %}
                         Escolha sua Jornada de Trabalho
                     {% else %}
-                        Configurar Horário: {{ Funcionário.profile.full_name or Funcionário.email }}
+                        Configurar Horário: {{ employee.profile.full_name or Funcionário.email }}
                     {% endif %}
                 </h4>
             </div>
@@ -21,7 +21,7 @@
                             {% for j in Jornadas %}
                                 <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                                     <div>
-                                        <input class="form-check-input me-2" type="radio" name="Jornada_id" value="{{ j.Jornada_id }}" required>
+                                        <input class="form-check-input me-2" type="radio" name="journey_id" value="{{ j.journey_id }}" required>
                                         <strong>{{ j.name }}</strong>
                                         <br>
                                         <small class="text-muted">
@@ -42,7 +42,7 @@
                 {% else %}
                     <div class="mb-4 p-3 bg-light rounded">
                         <label class="form-label fw-bold">Usar Modelo Predefinido</label>
-                        {{ form.Jornada_type(class="form-select", id="Jornada_select") }}
+                        {{ form.Jornada_type(class="form-select", id="journey_select") }}
                     </div>
 
                     <form method="POST">
@@ -99,11 +99,11 @@
                     }
                 }
 
-                document.getElementById('Jornada_select').addEventListener('change', function() {
-                    const JornadaId = this.value;
-                    if (JornadaId == "0") return;
+                document.getElementById('journey_select').addEventListener('change', function() {
+                    const journey_id = this.value;
+                    if (journey_id == "0") return;
 
-                    fetch(`/Diretor/get-Jornada/${JornadaId}`)
+                    fetch(`/manager/get-journey/${journey_id}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.error) return;
