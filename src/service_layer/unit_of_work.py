@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+﻿from abc import ABC, abstractmethod
 from typing import Optional
 from datetime import datetime
 from sqlalchemy import create_engine
@@ -74,3 +74,4 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
     def record_action(self, user_id: int, action: str, target_id: Optional[int] = None, details: Optional[str] = None):
         log = AuditLog(user_id=user_id, action=action, target_id=target_id, timestamp=datetime.now(), details=details)
         self.session.add(log)
+

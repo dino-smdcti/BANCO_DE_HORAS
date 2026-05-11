@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+﻿from abc import ABC, abstractmethod
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from src.domain.model import User, DailyPonto, UserRole
@@ -49,3 +49,4 @@ class SqlAlchemyRepository(AbstractRepository):
 
     def add_time_entry(self, entry: DailyPonto):
         self.session.add(entry)
+
