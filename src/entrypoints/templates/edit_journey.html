@@ -1,0 +1,69 @@
+﻿{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">Editar Jornada: {{ Jornada.name }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label class="form-label">Nome da Jornada</label>
+                        {{ form.name(class="form-control") }}
+                    </div>
+                    <div class="mb-3 form-check form-switch">
+                        {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
+                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Entrada</label>
+                        {{ form.arrival(class="form-control") }}
+                    </div>
+                    <div id="lunchFields" class="row mb-3">
+                        <div class="col">
+                            <label class="form-label">Saída Almoço</label>
+                            {{ form.lunch_start(class="form-control") }}
+                        </div>
+                        <div class="col">
+                            <label class="form-label">Volta Almoço</label>
+                            {{ form.lunch_end(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Saída Final</label>
+                        {{ form.departure(class="form-control") }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tolerã¢ncia (minutos)</label>
+                        {{ form.tolerance(class="form-control") }}
+                    </div>
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary", value="Salvar Alterações") }}
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('manage_Jornadas') }}" class="btn btn-link">Cancelar e Voltar</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleLunchFields() {
+    const toggle = document.getElementById('lunchToggle');
+    const fields = document.getElementById('lunchFields');
+    if (toggle.checked) {
+        fields.classList.remove('d-none');
+    } else {
+        fields.classList.add('d-none');
+    }
+}
+document.addEventListener('DOMContentLoaded', toggleLunchFields);
+</script>
+{% endblock %}
+
+
