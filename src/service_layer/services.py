@@ -621,8 +621,10 @@ def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id:
             raise ValueError("Employee not found.")
         
         ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
-        if not ponto or not ponto.has_anomaly:
-            raise ValueError("No anomaly found for this date.")
+        if not ponto:
+            raise ValueError(f"No record found for date {entry_date}.")
+        if not ponto.has_anomaly:
+            raise ValueError(f"No anomaly (late/missing) found for date {entry_date}. Status: {ponto.status.value}")
             
         ponto.status = PontoStatus.DISMISSED
         ponto.location_data += f" | Justificativa dispensada por: {manager.profile.full_name or manager.email}"
