@@ -119,9 +119,6 @@ company_settings = Table(
     Column("start_analysis_date", Date, nullable=False, default=date(2026, 1, 1)),
 )
 
-# ... inside start_mappers():
-    mapper_registry.map_imperatively(CompanySettings, company_settings)
-
 notifications = Table(
     "notifications",
     metadata,
