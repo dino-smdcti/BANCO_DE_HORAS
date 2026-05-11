@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Arquivo de Justificativas</h2>
+    
+    <form method="GET" class="row g-3 mb-4">
+        <div class="col-md-4">
+            <label class="form-label">Funcionário</label>
+            <select name="employee_id" class="form-select">
+                <option value="">Todos</option>
+                {% for emp in employees %}
+                    <option value="{{ emp.user_id }}" {% if selected_emp == emp.user_id %}selected{% endif %}>
+                        {{ emp.profile.full_name or emp.email }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Data</label>
+            <input type="date" name="date" class="form-control" value="{{ selected_date or '' }}">
+        </div>
+        <div class="col-md-2 align-self-end">
+            <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+        </div>
+        <div class="col-md-2 align-self-end">
+            <a href="{{ url_for('archived_justifications') }}" class="btn btn-outline-secondary w-100">Limpar</a>
+        </div>
+    </form>
+
+    <div class="card shadow">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Funcionário</th>
+                        <th>Data</th>
+                        <th>Justificativa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in archived_justs %}
+                        <tr>
+                            <td>{{ item.emp.profile.full_name or item.emp.email }}</td>
+                            <td>{{ item.ponto.entry_date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ item.ponto.justification }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">Nenhuma justificativa arquivada encontrada.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{{ url_for('management_panel') }}" class="btn btn-outline-dark">Voltar ao Painel</a>
+    </div>
+</div>
+{% endblock %}
