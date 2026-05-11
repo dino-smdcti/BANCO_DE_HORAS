@@ -107,7 +107,7 @@
                                                         <i class="bi bi-x-lg"></i>
                                                     </button>
                                                 </form>
-                                                <form action="{{ url_for('archive_justification_action', employee_id=emp.user_id, entry_date=p.entry_date.strftime('%Y-%m-%d')) }}" method="POST" class="d-inline">
+                                                <form action="{{ url_for('archive_justification', employee_id=emp.user_id, entry_date=p.entry_date.strftime('%Y-%m-%d')) }}" method="POST" class="d-inline">
                                                     <button type="submit" class="btn btn-outline-secondary" title="Arquivar">
                                                         <i class="bi bi-archive-fill"></i>
                                                     </button>
