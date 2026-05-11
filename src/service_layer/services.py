@@ -31,8 +31,9 @@ def mark_notifications_as_read(uow: AbstractUnitOfWork, user_id: int):
     with uow:
         user = uow.users.get_user_by_id(user_id)
         if user:
+            # Deleta as notificações lidas permanentemente
             for n in user.notifications:
-                n.is_read = True
+                uow.session.delete(n)
             uow.commit()
 
 def register_user(
