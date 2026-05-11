@@ -595,3 +595,20 @@ def clear_ponto_anomaly(uow: AbstractUnitOfWork, manager_id: int, employee_id: i
         uow.commit()
         uow.record_action(manager_id, "CLEAR_ANOMALY", target_id=employee_id, details=f"Date: {entry_date}")
         uow.commit()
+
+def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date):
+    with uow:
+        manager = ensure_manager(uow, manager_id)
+        user = uow.users.get_user_by_id(employee_id)
+        if not user:
+            raise ValueError("Employee not found.")
+        
+        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
+        if not ponto or not ponto.has_anomaly:
+            raise ValueError("No anomaly found for this date.")
+            
+        ponto.status = PontoStatus.DISMISSED
+        ponto.location_data += f" | Justificativa dispensada por: {manager.profile.full_name or manager.email}"
+        uow.commit()
+        uow.record_action(manager_id, "DISMISS_JUSTIFICATION", target_id=employee_id, details=f"Date: {entry_date}")
+        uow.commit()
