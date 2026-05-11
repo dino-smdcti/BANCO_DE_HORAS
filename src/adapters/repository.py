@@ -39,7 +39,7 @@ class SqlAlchemyRepository(AbstractRepository):
         return self.session.query(User).filter_by(email=email).first()
 
     def get_user_by_id(self, user_id: int) -> Optional[User]:
-        return self.session.query(User).filter_by(user_id=user_id).first()
+        return self.session.query(User).filter(User.user_id == user_id).first()
 
     def list_employees(self) -> List[User]:
         return self.session.query(User).filter_by(role=UserRole.EMPLOYEE).all()
