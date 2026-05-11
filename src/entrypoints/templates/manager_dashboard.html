@@ -28,21 +28,21 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for employee in employees %}
+                    {% for Funcion�rio in Funcion�rios %}
                         <tr>
-                            <td>{{ employee.profile.full_name or employee.email }}</td>
+                            <td>{{ Funcion�rio.profile.full_name or Funcion�rio.email }}</td>
                             <td>
-                                <span class="badge {{ 'bg-primary' if employee.role.value == 'admin' else 'bg-secondary' }}">
-                                    {{ employee.role.value|capitalize }}
+                                <span class="badge {{ 'bg-primary' if Funcion�rio.role.value == 'admin' else 'bg-secondary' }}">
+                                    {{ Funcion�rio.role.value|capitalize }}
                                 </span>
                             </td>
                             <td>
-                                <span class="badge {{ 'bg-success' if employee.total_balance >= 0 else 'bg-danger' }}">
-                                    {{ (employee.total_balance // 60) }}h {{ (employee.total_balance % 60)|abs }}m
+                                <span class="badge {{ 'bg-success' if Funcion�rio.total_balance >= 0 else 'bg-danger' }}">
+                                    {{ (Funcion�rio.total_balance // 60) }}h {{ (Funcion�rio.total_balance % 60)|abs }}m
                                 </span>
                             </td>
                             <td>
-                                <a href="{{ url_for('view_employee_logs', employee_id=employee.user_id) }}" class="btn btn-sm btn-info text-white">Ver</a>
+                                <a href="{{ url_for('view_Funcion�rio_logs', Funcion�rio_id=Funcion�rio.user_id) }}" class="btn btn-sm btn-info text-white">Ver</a>
                             </td>
                         </tr>
                     {% else %}
@@ -74,7 +74,7 @@
                 </thead>
                 <tbody>
                     {% set pending_justs_found = namespace(found=false) %}
-                    {% for emp in employees %}
+                    {% for emp in Funcion�rios %}
                         {% for p in emp.time_entries %}
                             {% if p.justification and p.status.value not in ['Justificado', 'Rejeitado'] %}
                                 {% set pending_justs_found.found = true %}
@@ -93,11 +93,11 @@
                                     </td>
                                     <td>
                                         {% if current_user.id != emp.user_id or current_user.role == 'admin' %}
-                                            <form action="{{ url_for('justify_ponto', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                            <form action="{{ url_for('justify_ponto', Funcion�rio_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
                                                 <input type="hidden" name="justified" value="true">
                                                 <button type="submit" class="btn btn-sm btn-success">Aprovar</button>
                                             </form>
-                                            <form action="{{ url_for('justify_ponto', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                            <form action="{{ url_for('justify_ponto', Funcion�rio_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
                                                 <input type="hidden" name="justified" value="false">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Rejeitar</button>
                                             </form>
