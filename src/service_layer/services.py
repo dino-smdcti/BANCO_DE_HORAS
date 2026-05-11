@@ -186,10 +186,10 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                     ponto.status = PontoStatus.LATE
                     ponto.arrival_late = True
         elif stage == "lunch_start":
-            if not ponto: raise ValueError("Registro de chegada nÃ£o encontrado.")
+            if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.lunch_start = now_time
-            ponto.location_data += f" | AlmoÃ§o (Sai): {loc}"
-            msg = "SaÃ­da para almoÃ§o registrada"
+            ponto.location_data += f" | Almoço (Sai): {loc}"
+            msg = "Saída para almoço registrada"
             if user.work_schedule and user.work_schedule.expected_lunch_start:
                 limit = (datetime.combine(today, user.work_schedule.expected_lunch_start) - 
                          timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
@@ -197,9 +197,9 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                     ponto.status = PontoStatus.LATE
                     ponto.lunch_start_late = True
         elif stage == "lunch_end":
-            if not ponto: raise ValueError("Registro de chegada nÃ£o encontrado.")
+            if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.lunch_end = now_time
-            ponto.location_data += f" | AlmoÃ§o (Vol): {loc}"
+            ponto.location_data += f" | Almoço (Vol): {loc}"
             msg = "Retorno do almoÃ§o registrado"
             if user.work_schedule and user.work_schedule.expected_lunch_end:
                 limit = (datetime.combine(today, user.work_schedule.expected_lunch_end) + 
@@ -208,7 +208,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                     ponto.status = PontoStatus.LATE
                     ponto.lunch_end_late = True
         elif stage == "departure":
-            if not ponto: raise ValueError("Registro de chegada nÃ£o encontrado.")
+            if not ponto: raise ValueError("Registro de chegada não encontrado.")
             ponto.departure = now_time
             ponto.location_data += f" | Fim: {loc}"
             msg = "Fim de jornada registrado"
@@ -252,7 +252,7 @@ def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_
         ensure_manager(uow, manager_id)
         req = uow.session.query(CorrectionRequest).filter_by(id=request_id).first()
         if not req:
-            raise ValueError("SolicitaÃ§Ã£o nÃ£o encontrada.")
+            raise ValueError("SolicitaÃ§Ã£o não encontrada.")
         
         if approved:
             req.status = "approved"
@@ -419,8 +419,8 @@ def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
             data.append({
                 "Data": p.entry_date.strftime("%d/%m/%Y"),
                 "Chegada": p.arrival.strftime("%H:%M:%S") if p.arrival else "-",
-                "AlmoÃ§o (Sai)": p.lunch_start.strftime("%H:%M:%S") if p.lunch_start else "-",
-                "AlmoÃ§o (Vol)": p.lunch_end.strftime("%H:%M:%S") if p.lunch_end else "-",
+                "Almoço (Sai)": p.lunch_start.strftime("%H:%M:%S") if p.lunch_start else "-",
+                "Almoço (Vol)": p.lunch_end.strftime("%H:%M:%S") if p.lunch_end else "-",
                 "Fim": p.departure.strftime("%H:%M:%S") if p.departure else "-",
                 "Status": p.status.value,
                 "Justificativa": p.justification or "-",
@@ -597,7 +597,7 @@ def clear_ponto_anomaly(uow: AbstractUnitOfWork, manager_id: int, employee_id: i
         
         ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
         if not ponto:
-            raise ValueError("Registro de ponto nÃ£o encontrado.")
+            raise ValueError("Registro de ponto não encontrado.")
             
         # Limpar flags
         ponto.arrival_late = False
