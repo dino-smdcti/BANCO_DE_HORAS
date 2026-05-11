@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 <div class="row flex-column-reverse flex-md-row">
@@ -6,7 +6,7 @@
         <div class="card shadow mb-4">
             <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-2">
                 <h5 class="mb-0">Registrar Ponto - <span class="text-primary">{{ current_stage }}</span></h5>
-                <form action="{{ url_for('dashboard') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2">
+                <form action="{{ url_for('Painel') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2">
                     <div class="d-flex align-items-center gap-1">
                         <input type="date" name="start_date" class="form-control form-control-sm" style="max-width: 150px;" value="{{ request.args.get('start_date', '') }}">
                         <span>-</span>
@@ -15,7 +15,7 @@
                     <div class="d-flex gap-1">
                         <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
                         {% if request.args.get('start_date') or request.args.get('end_date') %}
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">Limpar</a>
+                        <a href="{{ url_for('Painel') }}" class="btn btn-sm btn-outline-secondary">Limpar</a>
                         {% endif %}
                     </div>
                 </form>
@@ -28,15 +28,15 @@
                                 <th>Nota</th>
                                 <th>Data</th>
                                 <th>Chegada</th>
-                                <th>Almoço (Saída)</th>
-                                <th>Almoço (Volta)</th>
+                                <th>AlmoÃ§o (SaÃ­da)</th>
+                                <th>AlmoÃ§o (Volta)</th>
                                 <th>Fim Jornada</th>
                                 <th>Total</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for p in recent_entries %}
-                                <tr class="{% if p.status.value == 'Faltante' %}table-danger-light{% elif p.status.value == 'Justificado' %}table-success-light{% elif p.has_anomaly %}table-warning-light{% endif %}">
+                                <tr class="{% if p.status.value == 'Faltante' %}table-danger-light{% elif p.status.value == 'Justificado' %}table-success-light{% elif p.has_Anomalia %}table-warning-light{% endif %}">
                                     <td>
                                         <button type="button" class="btn btn-sm btn-link p-0 {{ 'text-primary' if p.notes else 'text-secondary' }}" 
                                                 onclick="openNoteModal('{{ p.entry_date }}', '{{ p.notes|replace("'", "\\'") if p.notes else '' }}')">
@@ -53,7 +53,7 @@
                                 {% endif %}
                             </td>
 
-                            <!-- Saída Almoço -->
+                            <!-- SaÃ­da AlmoÃ§o -->
                             <td>
                                 {{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}
                                 {% if p.status.value != 'Corrigido' and p.lunch_start_late %}
@@ -61,7 +61,7 @@
                                 {% endif %}
                             </td>
 
-                            <!-- Volta Almoço -->
+                            <!-- Volta AlmoÃ§o -->
                             <td>
                                 {{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '-' }}
                                 {% if p.status.value != 'Corrigido' and p.lunch_end_late %}
@@ -73,12 +73,12 @@
                             <td>
                                 {{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}
                                 {% if p.status.value != 'Corrigido' and p.departure_early %}
-                                    <div class="mt-1"><span class="badge bg-danger">Saída Cedo</span></div>
+                                    <div class="mt-1"><span class="badge bg-danger">SaÃ­da Cedo</span></div>
                                 {% endif %}
                             </td>
                                     <td class="fw-bold text-primary">{{ p.worked_minutes // 60 }}h {{ p.worked_minutes % 60 }}m</td>
                                 </tr>
-                                {% if p.justification or (p.has_anomaly and not p.justification) or p.notes %}
+                                {% if p.justification or (p.has_Anomalia and not p.justification) or p.notes %}
                                 <tr class="table-light">
                                     <td colspan="6" class="py-1 px-4">
                                         <div class="d-flex flex-column gap-1">
@@ -86,12 +86,12 @@
                                                 <div class="d-flex justify-content-between align-items-center">
                                                     <small class="text-muted"><strong>Justificativa:</strong> {{ p.justification }}</small>
                                                     {% if p.status.value != 'Justificado' %}
-                                                        <span class="badge bg-warning text-dark">Em análise</span>
+                                                        <span class="badge bg-warning text-dark">Em anÃ¡lise</span>
                                                     {% else %}
                                                         <span class="badge bg-success">Aprovada</span>
                                                     {% endif %}
                                                 </div>
-                                            {% elif p.has_anomaly %}
+                                            {% elif p.has_Anomalia %}
                                                 <div>
                                                     <button class="btn btn-xs btn-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
                                                         Justificar
@@ -117,25 +117,25 @@
             </div>
         </div>
 
-        <!-- Recursos Avançados (Inconvenientes) -->
+        <!-- Recursos AvanÃ§ados (Inconvenientes) -->
         <div class="mt-5 pt-5 opacity-50" style="font-size: 0.75rem;">
             <p class="text-muted text-center text-decoration-underline" style="cursor: pointer;" onclick="document.getElementById('hiddenActions').classList.toggle('d-none')">
-                Recursos Avançados de Ponto (Clique se realmente precisar)
+                Recursos AvanÃ§ados de Ponto (Clique se realmente precisar)
             </p>
             <div id="hiddenActions" class="d-none card card-body border-dashed bg-light text-center">
-                <h6 class="small fw-bold">Seleção Manual de Estágio</h6>
-                <p class="small text-muted mb-2">Use isto apenas se a detecção automática falhar. O local não será validado com precisão.</p>
+                <h6 class="small fw-bold">SeleÃ§Ã£o Manual de EstÃ¡gio</h6>
+                <p class="small text-muted mb-2">Use isto apenas se a detecÃ§Ã£o automÃ¡tica falhar. O local nÃ£o serÃ¡ validado com precisÃ£o.</p>
                 <form action="{{ url_for('clock') }}" method="POST" class="d-flex flex-wrap justify-content-center gap-2 mb-4">
-                    <input type="hidden" name="location" value="Manual/Avançado">
-                    <button type="submit" name="stage" value="arrival" class="btn btn-xs btn-outline-secondary py-0">Forçar Entrada</button>
-                    <button type="submit" name="stage" value="lunch_start" class="btn btn-xs btn-outline-secondary py-0">Forçar Saída Almoço</button>
-                    <button type="submit" name="stage" value="lunch_end" class="btn btn-xs btn-outline-secondary py-0">Forçar Volta Almoço</button>
-                    <button type="submit" name="stage" value="departure" class="btn btn-xs btn-outline-secondary py-0">Forçar Fim Jornada</button>
+                    <input type="hidden" name="location" value="Manual/AvanÃ§ado">
+                    <button type="submit" name="stage" value="arrival" class="btn btn-xs btn-outline-secondary py-0">ForÃ§ar Entrada</button>
+                    <button type="submit" name="stage" value="lunch_start" class="btn btn-xs btn-outline-secondary py-0">ForÃ§ar SaÃ­da AlmoÃ§o</button>
+                    <button type="submit" name="stage" value="lunch_end" class="btn btn-xs btn-outline-secondary py-0">ForÃ§ar Volta AlmoÃ§o</button>
+                    <button type="submit" name="stage" value="departure" class="btn btn-xs btn-outline-secondary py-0">ForÃ§ar Fim Jornada</button>
                 </form>
 
-                <h6 class="small fw-bold">Pedido de Correção</h6>
-                <p class="small text-muted mb-2">Esqueceu de bater o ponto ontem? Solicite uma correção que será analisada pelo gestor.</p>
-                <button class="btn btn-xs btn-danger py-0" onclick="new bootstrap.Modal(document.getElementById('correctionModal')).show()">Solicitar Correção Retroativa</button>
+                <h6 class="small fw-bold">Pedido de CorreÃ§Ã£o</h6>
+                <p class="small text-muted mb-2">Esqueceu de bater o ponto ontem? Solicite uma correÃ§Ã£o que serÃ¡ analisada pelo gestor.</p>
+                <button class="btn btn-xs btn-danger py-0" onclick="new bootstrap.Modal(document.getElementById('correctionModal')).show()">Solicitar CorreÃ§Ã£o Retroativa</button>
             </div>
         </div>
     </div>
@@ -144,7 +144,7 @@
         {% if maps_url %}
         <div class="card shadow-sm mb-4">
             <div class="card-header" style="background-color: var(--primary-mint) !important; color: var(--dark-accent)">
-                Localização Atual
+                LocalizaÃ§Ã£o Atual
             </div>
             <div class="card-body p-0">
                 <iframe 
@@ -164,8 +164,8 @@
                     {% set next_time = '' %}
                     {% if sched_data %}
                         {% if current_stage == 'Chegada' %}{% set next_time = sched_data.expected_arrival %}{% endif %}
-                        {% if current_stage == 'Saída Almoço' %}{% set next_time = sched_data.expected_lunch_start %}{% endif %}
-                        {% if current_stage == 'Retorno Almoço' %}{% set next_time = sched_data.expected_lunch_end %}{% endif %}
+                        {% if current_stage == 'SaÃ­da AlmoÃ§o' %}{% set next_time = sched_data.expected_lunch_start %}{% endif %}
+                        {% if current_stage == 'Retorno AlmoÃ§o' %}{% set next_time = sched_data.expected_lunch_end %}{% endif %}
                         {% if current_stage == 'Fim Jornada' %}{% set next_time = sched_data.expected_departure %}{% endif %}
                     {% endif %}
                     <button type="button" 
@@ -208,13 +208,13 @@
         </div>
     </div>
 
-    <!-- Modal de Correção Retroativa -->
+    <!-- Modal de CorreÃ§Ã£o Retroativa -->
     <div class="modal fade" id="correctionModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-diaRegistro">
             <form action="{{ url_for('submit_correction') }}" method="POST" class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Solicitar Correção de Ponto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title">Solicitar CorreÃ§Ã£o de Ponto</h5>
+                    <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -222,25 +222,25 @@
                         <input type="date" name="ponto_date" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small">Estágio a Corrigir</label>
+                        <label class="form-label small">EstÃ¡gio a Corrigir</label>
                         <select name="stage" class="form-select" required>
                             <option value="arrival">Chegada</option>
-                            <option value="lunch_start">Saída Almoço</option>
-                            <option value="lunch_end">Volta Almoço</option>
+                            <option value="lunch_start">SaÃ­da AlmoÃ§o</option>
+                            <option value="lunch_end">Volta AlmoÃ§o</option>
                             <option value="departure">Fim Jornada</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small">Horário que deveria constar (HH:MM)</label>
+                        <label class="form-label small">HorÃ¡rio que deveria constar (HH:MM)</label>
                         <input type="time" name="proposed_time" class="form-control" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Justificativa detalhada</label>
-                        <textarea name="justification" class="form-control" rows="3" required placeholder="Por que este ponto está incorreto ou ausente?"></textarea>
+                        <textarea name="justification" class="form-control" rows="3" required placeholder="Por que este ponto estÃ¡ incorreto ou ausente?"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-danger w-100">Enviar para Análise do Gestor</button>
+                    <button type="submit" class="btn btn-danger w-100">Enviar para AnÃ¡lise do Gestor</button>
                 </div>
             </form>
         </div>
@@ -248,11 +248,11 @@
 
     <!-- Modal de Justificativa -->
     <div class="modal fade" id="justificationModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-diaRegistro">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Justificar Ponto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
                 </div>
                 <form action="{{ url_for('submit_justification') }}" method="POST">
                     <div class="modal-body">
@@ -266,7 +266,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-Dispensar="modal">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Enviar Justificativa</button>
                     </div>
                 </form>
@@ -274,17 +274,17 @@
         </div>
     </div>
 
-    <!-- Modal de Confirmação -->
+    <!-- Modal de ConfirmaÃ§Ã£o -->
     <div class="modal fade" id="confirmPontoModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-diaRegistro">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Confirmar Registro</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
                 </div>
                 <form id="clockForm" action="{{ url_for('clock') }}" method="POST">
                     <div class="modal-body">
-                        <p>Você está prestes a registrar o seguinte ponto:</p>
+                        <p>VocÃª estÃ¡ prestes a registrar o seguinte ponto:</p>
                         <ul class="list-group list-group-flush mb-3">
                             <li class="list-group-item"><strong>Tipo:</strong> {{ current_stage }}</li>
                             <li class="list-group-item"><strong>Hora Atual:</strong> <span id="confirmTime"></span></li>
@@ -293,7 +293,7 @@
                         {% if current_stage == "Fim Jornada" %}
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Deseja adicionar alguma nota sobre o dia? (Opcional)</label>
-                            <textarea name="notes" id="notesInput" class="form-control" rows="2" placeholder="Ex: Saí mais tarde devido a reunião extra..."></textarea>
+                            <textarea name="notes" id="notesInput" class="form-control" rows="2" placeholder="Ex: SaÃ­ mais tarde devido a reuniÃ£o extra..."></textarea>
                         </div>
                         {% endif %}
 
@@ -312,7 +312,7 @@
                             <div class="spinner-border spinner-border-sm text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
-                            <span id="confirmLoc">Obtendo localização...</span>
+                            <span id="confirmLoc">Obtendo localizaÃ§Ã£o...</span>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -358,11 +358,11 @@
 
 <!-- Note Modal -->
 <div class="modal fade" id="noteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form action="{{ url_for('update_note') }}" method="POST" class="modal-content">
+    <div class="modal-diaRegistro">
+        <form action="{{ url_for('Atualizar_note') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Nota do Ponto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" name="entry_date" id="note_entry_date">
@@ -381,3 +381,4 @@
     </div>
 </div>
 {% endblock %}
+

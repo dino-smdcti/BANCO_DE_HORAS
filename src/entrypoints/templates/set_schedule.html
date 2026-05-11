@@ -9,7 +9,7 @@
                     {% if self_select %}
                         Escolha sua Jornada de Trabalho
                     {% else %}
-                        Configurar HorÃ¡rio: {{ Funcionário.profile.full_name or Funcionário.email }}
+                        Configurar HorÃ¡rio: {{ Funcionário.Perfil.full_name or Funcionário.E-mail }}
                     {% endif %}
                 </h4>
             </div>
@@ -18,10 +18,10 @@
                     <p class="text-muted">Selecione abaixo a jornada de trabalho que melhor se adapta ao seu contrato.</p>
                     <form method="POST">
                         <div class="list-group mb-4">
-                            {% for j in journeys %}
+                            {% for j in Jornadas %}
                                 <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                                     <div>
-                                        <input class="form-check-input me-2" type="radio" name="journey_id" value="{{ j.journey_id }}" required>
+                                        <input class="form-check-input me-2" type="radio" name="Jornada_id" value="{{ j.Jornada_id }}" required>
                                         <strong>{{ j.name }}</strong>
                                         <br>
                                         <small class="text-muted">
@@ -41,8 +41,8 @@
                     </form>
                 {% else %}
                     <div class="mb-4 p-3 bg-light rounded">
-                        <label class="form-label fw-bold">Usar Template Predefinido</label>
-                        {{ form.journey_type(class="form-select", id="journey_select") }}
+                        <label class="form-label fw-bold">Usar Modelo Predefinido</label>
+                        {{ form.Jornada_type(class="form-select", id="Jornada_select") }}
                     </div>
 
                     <form method="POST">
@@ -76,8 +76,8 @@
 
                         <hr>
                         <div class="mb-3 border-start border-primary ps-3">
-                            <label class="form-label text-primary small fw-bold">Salvar estes horÃ¡rios como novo template?</label>
-                            {{ form.save_as_new(class="form-control", placeholder="Nome do novo template (opcional)") }}
+                            <label class="form-label text-primary small fw-bold">Salvar estes horÃ¡rios como novo Modelo?</label>
+                            {{ form.Salvar_as_new(class="form-control", placeholder="Nome do novo Modelo (opcional)") }}
                         </div>
 
                         <div class="d-grid">
@@ -99,11 +99,11 @@
                     }
                 }
 
-                document.getElementById('journey_select').addEventListener('change', function() {
-                    const journeyId = this.value;
-                    if (journeyId == "0") return;
+                document.getElementById('Jornada_select').addEventListener('change', function() {
+                    const JornadaId = this.value;
+                    if (JornadaId == "0") return;
 
-                    fetch(`/Diretor/get-journey/${journeyId}`)
+                    fetch(`/Diretor/get-Jornada/${JornadaId}`)
                         .then(response => response.json())
                         .then(data => {
                             if (data.error) return;
@@ -122,10 +122,11 @@
             {% endif %}
 
             <div class="card-footer">
-                <a href="{{ url_for('dashboard') }}" class="btn btn-link">Voltar ao Painel</a>
+                <a href="{{ url_for('Painel') }}" class="btn btn-link">Voltar ao Painel</a>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
 

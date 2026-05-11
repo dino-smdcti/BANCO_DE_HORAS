@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -6,7 +6,7 @@
         <div class="card shadow">
             <div class="card-header bg-white">
                 <h4 class="mb-0">Complete seu Perfil</h4>
-                <p class="text-muted small">Escreva suas informações profissionais para prosseguir.</p>
+                <p class="text-muted small">Escreva suas informaÃ§Ãµes profissionais para prosseguir.</p>
             </div>
             <div class="card-body">
                 <form method="POST">
@@ -17,7 +17,7 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Matrícula</label>
+                            <label class="form-label">MatrÃ­cula</label>
                             {{ form.registration_number(class="form-control", id="regNum", placeholder="00000000-00", maxlength="12") }}
                         </div>
                         <div class="col-md-6 mb-3">
@@ -27,7 +27,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Secretaria</label>
-                        {{ form.secretariat(class="form-control", id="secretariat", value="Secretaria Municipal de Desenvolvimento Ciência Tecnologia e Inovação") }}
+                        {{ form.secretariat(class="form-control", id="secretariat", value="Secretaria Municipal de Desenvolvimento CiÃªncia TecnoRegistroia e InovaÃ§Ã£o") }}
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -35,14 +35,14 @@
                             {{ form.department(class="form-control capitalize") }}
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Posição /Cargo</label>
+                            <label class="form-label">PosiÃ§Ã£o /Cargo</label>
                             {{ form.position(class="form-control capitalize") }}
                         </div>
                     </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Matrícula Mask (last 2 digits after dash)
+        // MatrÃ­cula Mask (last 2 digits after dash)
         const regInput = document.getElementById('regNum');
         regInput.addEventListener('input', (e) => {
             let val = e.target.value.replace(/\D/g, '');
@@ -70,3 +70,4 @@
     </div>
 </div>
 {% endblock %}
+

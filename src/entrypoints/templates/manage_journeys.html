@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 <div class="row">
@@ -16,7 +16,7 @@
                     </div>
                     <div class="mb-3 form-check form-switch">
                         {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
-                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
+                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoÃ§o?</label>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Entrada</label>
@@ -24,20 +24,20 @@
                     </div>
                     <div id="lunchFields" class="mb-2 row">
                         <div class="col">
-                            <label class="form-label">Saída Almoço</label>
+                            <label class="form-label">SaÃ­da AlmoÃ§o</label>
                             {{ form.lunch_start(class="form-control", placeholder="12:00") }}
                         </div>
                         <div class="col">
-                            <label class="form-label">Volta Almoço</label>
+                            <label class="form-label">Volta AlmoÃ§o</label>
                             {{ form.lunch_end(class="form-control", placeholder="13:00") }}
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Saída Final</label>
+                        <label class="form-label">SaÃ­da Final</label>
                         {{ form.departure(class="form-control", placeholder="18:00") }}
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Tolerância (min)</label>
+                        <label class="form-label">TolerÃ¢ncia (min)</label>
                         {{ form.tolerance(class="form-control") }}
                     </div>
                     <div class="d-grid gap-2">
@@ -74,14 +74,14 @@
                         <tr>
                             <th>Nome</th>
                             <th>Entrada</th>
-                            <th>Almoço</th>
-                            <th>Saída</th>
+                            <th>AlmoÃ§o</th>
+                            <th>SaÃ­da</th>
                             <th>Tol.</th>
-                            <th>Ações</th>
+                            <th>AÃ§Ãµes</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for j in journeys %}
+                        {% for j in Jornadas %}
                         <tr>
                             <td><strong>{{ j.name }}</strong></td>
                             <td>{{ j.expected_arrival.strftime('%H:%M') }}</td>
@@ -95,9 +95,9 @@
                             <td>{{ j.expected_departure.strftime('%H:%M') }}</td>
                             <td>{{ j.tolerance_minutes }}m</td>
                             <td>
-                                <a href="{{ url_for('edit_journey', journey_id=j.journey_id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
-                                <form action="{{ url_for('delete_journey', journey_id=j.journey_id) }}" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir este template de jornada?')">Excluir</button>
+                                <a href="{{ url_for('edit_Jornada', Jornada_id=j.Jornada_id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
+                                <form action="{{ url_for('Excluir_Jornada', Jornada_id=j.Jornada_id) }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir este Modelo de jornada?')">Excluir</button>
                                 </form>
                             </td>
                         </tr>
@@ -111,3 +111,4 @@
     </div>
 </div>
 {% endblock %}
+

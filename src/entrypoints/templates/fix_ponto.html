@@ -6,7 +6,7 @@
         <div class="card shadow">
             <div class="card-header bg-white">
                 <h4 class="mb-0">CorreÃ§Ã£o Manual de Ponto</h4>
-                <p class="text-muted small">FuncionÃ¡rio: {{ Funcionário.profile.full_name or Funcionário.email }}</p>
+                <p class="text-muted small">FuncionÃ¡rio: {{ Funcionário.Perfil.full_name or Funcionário.E-mail }}</p>
             </div>
             <div class="card-body">
                 <form method="POST">
@@ -34,7 +34,7 @@
                     </div>
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-warning">Salvar AlteraÃ§Ãµes</button>
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-light">Cancelar</a>
+                        <a href="{{ url_for('Painel') }}" class="btn btn-light">Cancelar</a>
                     </div>
                 </form>
             </div>
@@ -42,4 +42,5 @@
     </div>
 </div>
 {% endblock %}
+
 

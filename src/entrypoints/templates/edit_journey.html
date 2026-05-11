@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card shadow">
             <div class="card-header bg-warning text-dark">
-                <h4 class="mb-0">Editar Jornada: {{ journey.name }}</h4>
+                <h4 class="mb-0">Editar Jornada: {{ Jornada.name }}</h4>
             </div>
             <div class="card-body">
                 <form method="POST">
@@ -16,7 +16,7 @@
                     </div>
                     <div class="mb-3 form-check form-switch">
                         {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
-                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
+                        <label class="form-check-label" for="lunchToggle">Possui intervalo de almoÃ§o?</label>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Entrada</label>
@@ -24,29 +24,29 @@
                     </div>
                     <div id="lunchFields" class="row mb-3">
                         <div class="col">
-                            <label class="form-label">Saída Almoço</label>
+                            <label class="form-label">SaÃ­da AlmoÃ§o</label>
                             {{ form.lunch_start(class="form-control") }}
                         </div>
                         <div class="col">
-                            <label class="form-label">Volta Almoço</label>
+                            <label class="form-label">Volta AlmoÃ§o</label>
                             {{ form.lunch_end(class="form-control") }}
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Saída Final</label>
+                        <label class="form-label">SaÃ­da Final</label>
                         {{ form.departure(class="form-control") }}
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Tolerância (minutos)</label>
+                        <label class="form-label">TolerÃ¢ncia (minutos)</label>
                         {{ form.tolerance(class="form-control") }}
                     </div>
                     <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary", value="Salvar Alterações") }}
+                        {{ form.submit(class="btn btn-primary", value="Salvar AlteraÃ§Ãµes") }}
                     </div>
                 </form>
             </div>
             <div class="card-footer">
-                <a href="{{ url_for('manage_journeys') }}" class="btn btn-link">Cancelar e Voltar</a>
+                <a href="{{ url_for('manage_Jornadas') }}" class="btn btn-link">Cancelar e Voltar</a>
             </div>
         </div>
     </div>
@@ -65,3 +65,4 @@ function toggleLunchFields() {
 document.addEventListener('DOMContentLoaded', toggleLunchFields);
 </script>
 {% endblock %}
+

@@ -6,9 +6,9 @@
 </div>
 
 <div class="d-grid gap-2 mb-4 d-flex flex-wrap">
-        <a href="{{ url_for('manage_journeys') }}" class="btn btn-outline-dark me-2">Templates de Jornada</a>
+        <a href="{{ url_for('manage_Jornadas') }}" class="btn btn-outline-dark me-2">Modelos de Jornada</a>
         <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#missingModal">Processar Faltas</button>
-        <a href="{{ url_for('register') }}" class="btn btn-success me-2">Novo Usuário</a>
+        <a href="{{ url_for('Registrar') }}" class="btn btn-success me-2">Novo Usuário</a>
         <button class="btn btn-outline-dark" data-bs-toggle="modal" data-bs-target="#holidayModal">Cadastrar Feriado</button>
 </div>
 
@@ -30,7 +30,7 @@
                 <tbody>
                     {% for employee in employees %}
                         <tr>
-                            <td>{{ employee.profile.full_name or employee.email }}</td>
+                            <td>{{ employee.Perfil.full_name or employee.E-mail }}</td>
                             <td>
                                 <span class="badge {{ 'bg-primary' if employee.role.value == 'admin' else 'bg-secondary' }}">
                                     {{ employee.role.value|capitalize }}
@@ -42,7 +42,7 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{{ url_for('view_employee_logs', employee_id=employee.user_id) }}" class="btn btn-sm btn-info text-white">Ver</a>
+                                <a href="{{ url_for('view_employee_Registros', employee_id=employee.user_id) }}" class="btn btn-sm btn-info text-white">Ver</a>
                             </td>
                         </tr>
                     {% else %}
@@ -79,7 +79,7 @@
                             {% if p.justification and p.status.value not in ['Justificado', 'Rejeitado'] %}
                                 {% set pending_justs_found.found = true %}
                                 <tr>
-                                    <td>{{ emp.profile.full_name or emp.email }}</td>
+                                    <td>{{ emp.Perfil.full_name or emp.E-mail }}</td>
                                     <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
                                     <td>
                                         {% if p.status.value == 'Faltante' %}
@@ -101,7 +101,7 @@
                                                 <input type="hidden" name="justified" value="false">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Rejeitar</button>
                                             </form>
-                                            <form action="{{ url_for('dismiss_justification', employee_id=emp.user_id, entry_date=p.entry_date.strftime('%Y-%m-%d')) }}" method="POST" class="d-inline">
+                                            <form action="{{ url_for('Dispensar_justification', employee_id=emp.user_id, entry_date=p.entry_date.strftime('%Y-%m-%d')) }}" method="POST" class="d-inline">
                                                 <button type="submit" class="btn btn-sm btn-outline-secondary">Dispensar</button>
                                             </form>
                                         {% else %}
@@ -156,10 +156,10 @@
                             <td><span class="badge bg-dark">{{ c.time.strftime('%H:%M') }}</span></td>
                             <td><small>"{{ c.justification }}"</small></td>
                             <td>
-                                <form action="{{ url_for('review_correction', request_id=c.id, action='approve') }}" method="POST" class="d-inline">
+                                <form action="{{ url_for('review_correction', request_id=c.id, action='Aprovar') }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-xs btn-success py-0" style="font-size: 0.7rem;">Aprovar</button>
                                 </form>
-                                <form action="{{ url_for('review_correction', request_id=c.id, action='reject') }}" method="POST" class="d-inline">
+                                <form action="{{ url_for('review_correction', request_id=c.id, action='Rejeitar') }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-xs btn-outline-danger py-0" style="font-size: 0.7rem;">Rejeitar</button>
                                 </form>
                             </td>
@@ -188,11 +188,11 @@
 
 <!-- Edit Analysis Date Modal -->
 <div class="modal fade" id="editAnalysisDateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form action="{{ url_for('update_analysis_date') }}" method="POST" class="modal-content">
+    <div class="modal-diaRegistro">
+        <form action="{{ url_for('Atualizar_analysis_date') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Alterar Data de Início de Análise</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
             </div>
             <div class="modal-body">
                 <p class="small text-muted">Atenção: A alteração desta data impactará o cálculo de saldo de todos os usuários do sistema.</p>
@@ -208,11 +208,11 @@
 
 <!-- Holiday Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-diaRegistro">
         <form action="{{ url_for('add_holiday') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Cadastrar Feriado / Ponto Facultativo</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
@@ -237,13 +237,13 @@
 {% endblock %}
 
 {% block extra_modals %}
-<!-- Missing Logs Modal -->
+<!-- Missing Registros Modal -->
 <div class="modal fade" id="missingModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-diaRegistro">
         <form action="{{ url_for('generate_missing') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Processar Faltas do Dia</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
             </div>
             <div class="modal-body">
                 <p>O sistema criará registros de falta para todos os funcionários que não registraram ponto na data selecionada.</p>
@@ -274,9 +274,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in dismissed_justs %}
+                    {% for item in Dispensared_justs %}
                         <tr>
-                            <td>{{ item.emp.profile.full_name or item.emp.email }}</td>
+                            <td>{{ item.emp.Perfil.full_name or item.emp.E-mail }}</td>
                             <td>{{ item.ponto.entry_date.strftime('%d/%m/%Y') }}</td>
                             <td><small class="text-muted">"{{ item.ponto.justification }}"</small></td>
                         </tr>
@@ -291,5 +291,6 @@
     </div>
 </div>
 {% endblock %}
+
 
 

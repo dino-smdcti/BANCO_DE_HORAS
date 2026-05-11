@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -17,7 +17,7 @@
                     {% if current_user.full_name %}
                         {{ current_user.full_name.split()[0] }}
                     {% else %}
-                        {{ current_user.email.split('@')[0] }}
+                        {{ current_user.E-mail.split('@')[0] }}
                     {% endif %}
                 {% else %}
                     BANCO DE HORAS
@@ -29,15 +29,15 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <div class="navbar-nav align-items-center">
                     {% if current_user.is_authenticated %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
+                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('Painel') }}">
                             <i class="bi bi-calendar-check"></i> Ponto
                         </a>
                         {% if current_user.role in ['Diretor', 'admin'] %}
                             <a class="nav-link text-warning d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
-                                <i class="bi bi-people"></i> Gestão
+                                <i class="bi bi-people"></i> GestÃ£o
                             </a>
                         {% endif %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('profile') }}">
+                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('Perfil') }}">
                             <i class="bi bi-person-gear"></i> Dados
                         </a>
                     {% endif %}
@@ -53,12 +53,12 @@
                                 </span>
                             </a>
                         </div>
-                        <a class="nav-link d-flex align-items-center gap-1 text-danger nav-logout" href="{{ url_for('logout') }}">
+                        <a class="nav-link d-flex align-items-center gap-1 text-danger nav-Registroout" href="{{ url_for('Registroout') }}">
                             <i class="bi bi-box-arrow-right"></i> Sair
                         </a>
                     {% else %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('login') }}">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('Registroin') }}">
+                            <i class="bi bi-box-arrow-in-right"></i> Registroin
                         </a>
                     {% endif %}
                 </div>
@@ -68,11 +68,11 @@
 
     <!-- Notification Modal -->
     <div class="modal fade" id="notifModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-diaRegistro modal-diaRegistro-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Notificações</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title">NotificaÃ§Ãµes</h5>
+                    <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
                 </div>
                 <div class="modal-body p-0">
                     <div class="list-group list-group-flush">
@@ -84,7 +84,7 @@
                                 <p class="mb-1">{{ n.message }}</p>
                             </div>
                         {% else %}
-                            <div class="p-4 text-center text-muted">Nenhuma notificação.</div>
+                            <div class="p-4 text-center text-muted">Nenhuma notificaÃ§Ã£o.</div>
                         {% endfor %}
                     </div>
                 </div>
@@ -113,3 +113,4 @@
     </script>
 </body>
 </html>
+
