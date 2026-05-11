@@ -30,7 +30,7 @@
                 <tbody>
                     {% for employee in employees %}
                         <tr>
-                            <td>{{ employee.Perfil.full_name or employee.E-mail }}</td>
+                            <td>{{ employee.profile.full_name or employee.email }}</td>
                             <td>
                                 <span class="badge {{ 'bg-primary' if employee.role.value == 'admin' else 'bg-secondary' }}">
                                     {{ employee.role.value|capitalize }}
@@ -79,7 +79,7 @@
                             {% if p.justification and p.status.value not in ['Justificado', 'Rejeitado'] %}
                                 {% set pending_justs_found.found = true %}
                                 <tr>
-                                    <td>{{ emp.Perfil.full_name or emp.E-mail }}</td>
+                                    <td>{{ emp.profile.full_name or emp.email }}</td>
                                     <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
                                     <td>
                                         {% if p.status.value == 'Faltante' %}
@@ -276,7 +276,7 @@
                 <tbody>
                     {% for item in dismissed_justs %}
                         <tr>
-                            <td>{{ item.emp.Perfil.full_name or item.emp.E-mail }}</td>
+                            <td>{{ item.emp.profile.full_name or item.emp.email }}</td>
                             <td>{{ item.ponto.entry_date.strftime('%d/%m/%Y') }}</td>
                             <td><small class="text-muted">"{{ item.ponto.justification }}"</small></td>
                         </tr>

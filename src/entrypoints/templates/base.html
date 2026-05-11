@@ -17,7 +17,7 @@
                     {% if current_user.full_name %}
                         {{ current_user.full_name.split()[0] }}
                     {% else %}
-                        {{ current_user.E-mail.split('@')[0] }}
+                        {{ current_user.email.split('@')[0] }}
                     {% endif %}
                 {% else %}
                     BANCO DE HORAS
