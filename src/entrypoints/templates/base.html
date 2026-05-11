@@ -29,15 +29,15 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <div class="navbar-nav align-items-center">
                     {% if current_user.is_authenticated %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('Painel') }}">
+                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
                             <i class="bi bi-calendar-check"></i> Ponto
                         </a>
-                        {% if current_user.role in ['Diretor', 'admin'] %}
+                        {% if current_user.role in ['manager', 'admin'] %}
                             <a class="nav-link text-warning d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
-                                <i class="bi bi-people"></i> GestÃ£o
+                                <i class="bi bi-people"></i> Gestão
                             </a>
                         {% endif %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('Perfil') }}">
+                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('profile') }}">
                             <i class="bi bi-person-gear"></i> Dados
                         </a>
                     {% endif %}
@@ -53,12 +53,12 @@
                                 </span>
                             </a>
                         </div>
-                        <a class="nav-link d-flex align-items-center gap-1 text-danger nav-Registroout" href="{{ url_for('Registroout') }}">
+                        <a class="nav-link d-flex align-items-center gap-1 text-danger" href="{{ url_for('logout') }}">
                             <i class="bi bi-box-arrow-right"></i> Sair
                         </a>
                     {% else %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('Registroin') }}">
-                            <i class="bi bi-box-arrow-in-right"></i> Registroin
+                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('login') }}">
+                            <i class="bi bi-box-arrow-in-right"></i> Login
                         </a>
                     {% endif %}
                 </div>
