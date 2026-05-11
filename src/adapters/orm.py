@@ -116,7 +116,11 @@ company_settings = Table(
     Column("id", Integer, primary_key=True),
     Column("lat", Float, nullable=False),
     Column("lon", Float, nullable=False),
+    Column("start_analysis_date", Date, nullable=False, default=date(2026, 1, 1)),
 )
+
+# ... inside start_mappers():
+    mapper_registry.map_imperatively(CompanySettings, company_settings)
 
 notifications = Table(
     "notifications",
@@ -131,6 +135,8 @@ notifications = Table(
 def start_mappers():
     if User in mapper_registry.mappers:
         return
+
+    mapper_registry.map_imperatively(CompanySettings, company_settings)
 
     mapper_registry.map_imperatively(
         User,
