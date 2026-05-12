@@ -121,16 +121,16 @@ class DailyPonto:
             d2 = datetime.combine(date.min, t2)
             return int((d2 - d1).total_seconds() / 60)
         
-        # If the user has a lunch break, they are expected to have 2 blocks of work:
-        # 1. Arrival to LunchStart
-        # 2. LunchEnd to Departure
-        if self.has_lunch_break:
-            morning = delta(self.arrival, self.lunch_start)
-            afternoon = delta(self.lunch_end, self.departure)
-            return morning + afternoon
+        # Total duration from Arrival to Departure
+        total_span = delta(self.arrival, self.departure)
         
-        # If no lunch break, calculate the continuous block from arrival to departure
-        return delta(self.arrival, self.departure)
+        # Calculate break duration
+        break_duration = delta(self.lunch_start, self.lunch_end)
+        
+        if self.has_lunch_break:
+            return total_span - break_duration
+        
+        return total_span
 
     def get_predicted_worked_minutes(self, schedule: WorkSchedule) -> int:
         def delta(t1, t2):
