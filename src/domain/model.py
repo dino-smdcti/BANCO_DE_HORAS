@@ -245,7 +245,7 @@ class User:
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
 
-        # Calculate daily target dynamically
+        # Total expected minutes for the day based on the schedule
         if self.work_schedule.has_lunch_break:
             target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
                               delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
@@ -253,17 +253,18 @@ class User:
             target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
 
         balance = 0
-        
-        # Calculate target for all days from start_analysis_date up to today, excluding today
         today = date.today()
+        
         for p in self.time_entries:
-            # Exclude today from historical balance calculation
+            # Exclude today from historical balance
             if p.entry_date >= today:
                 continue
                 
             if p.status == PontoStatus.MISSING:
                 balance -= target_minutes
             else:
+                # Credit all actual work performed
+                # Anomalies (deviations) don't reduce credit, they just trigger an anomaly flag
                 balance += (p.worked_minutes - target_minutes)
 
         return balance
