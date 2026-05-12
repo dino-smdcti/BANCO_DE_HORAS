@@ -154,6 +154,7 @@ class DailyPonto:
     def is_complete(self) -> bool:
         if self.has_lunch_break:
             return all([self.arrival, self.lunch_start, self.lunch_end, self.departure])
+        # If no lunch break, only arrival and departure are needed
         return all([self.arrival, self.departure])
 
     @property
