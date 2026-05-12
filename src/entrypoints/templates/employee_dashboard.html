@@ -169,7 +169,8 @@
                         {% if current_stage == 'Fim Jornada' %}{% set next_time = sched_data.expected_departure %}{% endif %}
                     {% endif %}
                     <button type="button" 
-                            class="btn btn-lg w-100 py-4 fs-2 text-uppercase btn-grab-attention" 
+                            class="btn btn-lg w-100 py-4 fs-3 fs-md-2 text-uppercase btn-grab-attention" 
+                            style="word-break: break-word;"
                             onclick="showConfirmModalTrigger('{{ current_stage }}', '{{ next_time }}')">
                         Registrar {{ current_stage }}
                     </button>
