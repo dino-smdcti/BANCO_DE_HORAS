@@ -6,27 +6,27 @@
         <h2 class="mb-0">Registros de Ponto</h2>
         <p class="text-muted mb-0">Funcionário: <strong>{{ employee.profile.full_name or employee.email }}</strong></p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('edit_employee', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary">Editar Perfil</a>
+    <div class="d-flex flex-wrap gap-2 action-container">
+        <a href="{{ url_for('edit_employee', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary btn-compact">Editar Perfil</a>
         <form action="{{ url_for('reset_user_password', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente enviar um e-mail de redefinição de senha para este usuário?');">
-            <button type="submit" class="btn btn-sm btn-info text-white">Redefinir Senha</button>
+            <button type="submit" class="btn btn-sm btn-info text-white btn-compact">Redefinir Senha</button>
         </form>
-        <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary">Definir Horário</a>
-        <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" class="btn btn-sm btn-warning">Corrigir Ponto</a>
-        <button class="btn btn-sm btn-info text-white" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
-        <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-success">Exportar Excel</a>
-        <a href="{{ url_for('management_panel') }}" class="btn btn-sm btn-outline-dark">Voltar ao Painel</a>
+        <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-outline-primary btn-compact">Definir Horário</a>
+        <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" class="btn btn-sm btn-warning btn-compact">Corrigir Ponto</a>
+        <button class="btn btn-sm btn-info text-white btn-compact" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
+        <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-success btn-compact">Exportar Excel</a>
+        <a href="{{ url_for('management_panel') }}" class="btn btn-sm btn-outline-dark btn-compact">Voltar ao Painel</a>
         <form action="{{ url_for('delete_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja realmente excluir este funcionário?');">
-            <button type="submit" class="btn btn-sm btn-danger">Remover Funcionário</button>
+            <button type="submit" class="btn btn-sm btn-danger btn-compact">Remover Funcionário</button>
         </form>
         {% if current_user.role == 'admin' %}
             {% if employee.role.value == 'employee' %}
                 <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Promover este usuário a Gestor?');">
-                    <button type="submit" class="btn btn-sm btn-warning">Promover</button>
+                    <button type="submit" class="btn btn-sm btn-warning btn-compact">Promover</button>
                 </form>
             {% elif employee.role.value == 'manager' %}
                 <form action="{{ url_for('demote_user', user_id=employee.user_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Rebaixar este gestor a funcionário?');">
-                    <button type="submit" class="btn btn-sm btn-secondary">Demover</button>
+                    <button type="submit" class="btn btn-sm btn-secondary btn-compact">Demover</button>
                 </form>
             {% endif %}
         {% endif %}

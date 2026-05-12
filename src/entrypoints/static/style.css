@@ -177,7 +177,18 @@ body {
     .nav-link { padding: 0.2rem 0.4rem !important; font-size: 0.85rem; }
 }
 
-/* New Modular Classes */
-.input-max-width { max-width: 150px; }
-.iframe-border { border: 0; border-radius: var(--border-radius-lg); }
-.card-shadow-custom { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.btn, .form-control, .form-select {
+    white-space: nowrap;
+}
+
+.btn-compact {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+}
+
+.action-container {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    white-space: nowrap;
+}
