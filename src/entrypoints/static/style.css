@@ -60,11 +60,27 @@ body {
     font-size: 0.85rem;
 }
 
-.action-container {
-    display: flex;
-    gap: 5px;
-    align-items: center;
-    flex-wrap: wrap;
+.btn-grab-attention {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: var(--white);
+    border: none;
+    font-weight: 800;
+    letter-spacing: 1px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: pulse-primary 2.5s infinite;
+}
+
+.btn-grab-attention:hover {
+    background: var(--accent);
+    color: var(--white);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(31, 111, 95, 0.3);
+}
+
+@keyframes pulse-primary {
+    0% { box-shadow: 0 0 0 0 rgba(111, 207, 151, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(111, 207, 151, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(111, 207, 151, 0); }
 }
 
 .btn, .form-control, .form-select {
