@@ -16,8 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const timeMask = (v) => {
         v = v.replace(/\D/g, ""); // Remove tudo o que não é dígito
-        v = v.substring(0, 4); // Limita a 4 dígitos
-        if (v.length > 2) {
+        v = v.substring(0, 6); // Limita a 6 dígitos (HHMMSS)
+        
+        if (v.length > 4) {
+            v = v.replace(/(\d{2})(\d{2})(\d{1,2})/, "$1:$2:$3");
+        } else if (v.length > 2) {
             v = v.replace(/(\d{2})(\d{1,2})/, "$1:$2");
         }
         return v;
