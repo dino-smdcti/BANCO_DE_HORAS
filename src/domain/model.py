@@ -117,22 +117,20 @@ class DailyPonto:
     def worked_minutes(self) -> int:
         def delta(t1, t2):
             if not t1 or not t2: return 0
-            # Ensure calculation handles the case where start/end times might cross midnight (though unlikely here)
             d1 = datetime.combine(date.min, t1)
             d2 = datetime.combine(date.min, t2)
             return int((d2 - d1).total_seconds() / 60)
         
-        total = 0
-        # Sort timestamps and process pairs
-        stamps = [self.arrival, self.lunch_start, self.lunch_end, self.departure]
-        # Filter only present stamps
-        present = [s for s in stamps if s]
+        # If the user has a lunch break, they are expected to have 2 blocks of work:
+        # 1. Arrival to LunchStart
+        # 2. LunchEnd to Departure
+        if self.has_lunch_break:
+            morning = delta(self.arrival, self.lunch_start)
+            afternoon = delta(self.lunch_end, self.departure)
+            return morning + afternoon
         
-        # We need pairs (start, end)
-        for i in range(0, len(present) - 1, 2):
-            total += delta(present[i], present[i+1])
-            
-        return total
+        # If no lunch break, calculate the continuous block from arrival to departure
+        return delta(self.arrival, self.departure)
 
     def get_predicted_worked_minutes(self, schedule: WorkSchedule) -> int:
         def delta(t1, t2):
