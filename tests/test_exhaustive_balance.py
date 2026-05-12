@@ -10,7 +10,7 @@ class TestExhaustiveBalance(unittest.TestCase):
             ("8h_no_lunch", False, time(8,0), time(16,0), 480, 480, 0),
             ("6h_with_lunch", True, time(8,0), time(14,0), 300, 300, 0),
             ("6h_no_lunch", False, time(8,0), time(14,0), 360, 360, 0),
-            ("6h_no_lunch_early_departure", False, time(8,0), time(14,0), 330, 360, -30),
+            ("6h_no_lunch_early_departure", False, time(8,0), time(13,30), 330, 360, -30),
         ]
 
         for name, has_lunch, arrival, departure, worked, target, expected_bal in scenarios:
