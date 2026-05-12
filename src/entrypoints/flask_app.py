@@ -886,6 +886,18 @@ def add_holiday():
     flash("Feriado adicionado.", "success")
     return redirect(url_for("dashboard"))
 
+@app.route("/manager/delete-user/<int:user_id>", methods=["POST"])
+@login_required
+def delete_user(user_id):
+    if current_user.role not in ["manager", "admin"]:
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("dashboard"))
+    
+    uow = SqlAlchemyUnitOfWork()
+    services.delete_user(uow, current_user.id, user_id)
+    flash("Usuário excluído.", "warning")
+    return redirect(url_for("management_panel"))
+
 @app.route("/manager/reset-user-password/<int:user_id>", methods=["POST"])
 @login_required
 def reset_user_password(user_id):
