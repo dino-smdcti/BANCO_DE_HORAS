@@ -119,12 +119,16 @@ class DailyPonto:
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
         
-        if not self.has_lunch_break:
+        # If all 4 timestamps are present, calculate sum of both periods
+        if self.arrival and self.lunch_start and self.lunch_end and self.departure:
+            return delta(self.arrival, self.lunch_start) + delta(self.lunch_end, self.departure)
+            
+        # Otherwise, if no lunch break, treat as continuous
+        if not self.has_lunch_break and self.arrival and self.departure:
             return delta(self.arrival, self.departure)
 
-        morning = delta(self.arrival, self.lunch_start)
-        afternoon = delta(self.lunch_end, self.departure)
-        return morning + afternoon
+        # Fallback for incomplete days
+        return 0
 
     def get_predicted_worked_minutes(self, schedule: WorkSchedule) -> int:
         def delta(t1, t2):
@@ -245,9 +249,11 @@ class User:
             target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
 
         balance = 0
-        for p in self.time_entries:
-            if p.is_complete:
-                balance += (p.worked_minutes - target_minutes)
+        # Filter for days where the ponto is officially complete
+        completed_entries = [p for p in self.time_entries if p.is_complete]
+        
+        for p in completed_entries:
+            balance += (p.worked_minutes - target_minutes)
 
         return balance
 
