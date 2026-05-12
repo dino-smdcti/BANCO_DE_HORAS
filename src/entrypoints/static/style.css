@@ -54,7 +54,9 @@ body {
 .btn-warning { background-color: var(--warning); border-color: var(--warning); }
 .btn-danger { background-color: var(--danger); border-color: var(--danger); }
 
-.table { background-color: var(--white); border-radius: var(--border-radius); }
+.bg-primary { background-color: var(--primary) !important; }
+.bg-secondary { background-color: var(--secondary) !important; }
+.bg-accent { background-color: var(--accent) !important; }
 
 .btn-compact {
     padding: 0.25rem 0.5rem;
