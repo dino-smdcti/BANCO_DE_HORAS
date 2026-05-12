@@ -254,10 +254,13 @@ class User:
 
         balance = 0
         
-        # Calculate target for all days from start_analysis_date up to today
-        # We need a reference date. For simplicity, we iterate over all entries 
-        # and ensure we also debit for days that are MISSING/Faltante.
+        # Calculate target for all days from start_analysis_date up to today, excluding today
+        today = date.today()
         for p in self.time_entries:
+            # Exclude today from historical balance calculation
+            if p.entry_date >= today:
+                continue
+                
             if p.status == PontoStatus.MISSING:
                 balance -= target_minutes
             else:
