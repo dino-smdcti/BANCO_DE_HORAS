@@ -253,20 +253,23 @@ class User:
 
         balance = 0
         today = date.today()
-        
+        balance = 0
+        today = date.today()
+
         for p in self.time_entries:
             if p.entry_date >= today: continue
 
             if self.work_schedule.has_lunch_break:
                 entry_target = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
-                                delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
+                                  delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
             else:
                 entry_target = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
 
-            # If entry is missing or rejected, debit the target.
+            diff = p.worked_minutes - entry_target
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= entry_target
             else:
-                balance += (p.worked_minutes - entry_target)
+                balance += diff
+            print(f"DEBUG: worked={p.worked_minutes}, target={entry_target}, diff={diff}, balance={balance}")
 
         return balance
