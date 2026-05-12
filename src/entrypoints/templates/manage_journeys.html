@@ -44,25 +44,11 @@
                         {{ form.submit(class="btn btn-dark") }}
                         <a href="{{ url_for('management_panel') }}" class="btn btn-outline-secondary">Voltar ao Painel</a>
                     </div>
-                    </form>
-                    </div>
-                    </div>
-                    </div>
-                    </div>
-
-                    <script>
-                    function toggleLunchFields() {
-                    const toggle = document.getElementById('lunchToggle');
-                    const fields = document.getElementById('lunchFields');
-                    if (toggle.checked) {
-                    fields.classList.remove('d-none');
-                    } else {
-                    fields.classList.add('d-none');
-                    }
-                    }
-                    // Initialize state
-                    document.addEventListener('DOMContentLoaded', toggleLunchFields);
-                    </script>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <div class="col-md-8">
         <div class="card shadow">
             <div class="card-header bg-white">
@@ -81,7 +67,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for j in Jornadas %}
+                        {% for j in journeys %}
                         <tr>
                             <td><strong>{{ j.name }}</strong></td>
                             <td>{{ j.expected_arrival.strftime('%H:%M') }}</td>
@@ -95,14 +81,14 @@
                             <td>{{ j.expected_departure.strftime('%H:%M') }}</td>
                             <td>{{ j.tolerance_minutes }}m</td>
                             <td>
-                                <a href="{{ url_for('edit_Jornada', journey_id=j.journey_id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
+                                <a href="{{ url_for('edit_journey', journey_id=j.journey_id) }}" class="btn btn-sm btn-outline-warning">Editar</a>
                                 <form action="{{ url_for('delete_journey', journey_id=j.journey_id) }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir este Modelo de jornada?')">Excluir</button>
                                 </form>
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="5" class="text-center py-4">Nenhuma jornada cadastrada.</td></tr>
+                        <tr><td colspan="6" class="text-center py-4">Nenhuma jornada cadastrada.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -110,6 +96,19 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
+<script>
+function toggleLunchFields() {
+    const toggle = document.getElementById('lunchToggle');
+    const fields = document.getElementById('lunchFields');
+    if (toggle.checked) {
+        fields.classList.remove('d-none');
+    } else {
+        fields.classList.add('d-none');
+    }
+}
+// Initialize state
+document.addEventListener('DOMContentLoaded', toggleLunchFields);
+</script>
+{% endblock %}
 
