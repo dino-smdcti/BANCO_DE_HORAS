@@ -4,7 +4,7 @@
 <div class="row flex-column-reverse flex-md-row">
     <div class="col-md-9">
         <div class="card shadow mb-4">
-            <div class="card-header bg-primary text-white d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-2">
+            <div class="card-header text-white" style="background-color: var(--accent) !important; display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 0.5rem; padding: 1rem;">
                 <h5 class="mb-0">Registrar Ponto - <span class="text-white">{{ current_stage }}</span></h5>
                 <form action="{{ url_for('dashboard') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2">
                     <div class="d-flex align-items-center gap-1">
