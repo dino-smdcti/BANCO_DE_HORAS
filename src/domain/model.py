@@ -201,6 +201,10 @@ class User:
         return self.profile.is_complete()
 
     @property
+    def unread_notifications_count(self) -> int:
+        return sum(1 for n in self.notifications if not n.is_read)
+
+    @property
     def total_balance(self) -> int:
         if not self.work_schedule: return 0
 
