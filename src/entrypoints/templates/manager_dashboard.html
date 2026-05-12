@@ -34,7 +34,10 @@
                             <td>{{ employee.profile.full_name or employee.email }}</td>
                             <td>
                                 <span class="badge {{ 'bg-primary' if employee.role.value == 'admin' else 'bg-secondary' }}">
-                                    {{ employee.role.value|capitalize }}
+                                    {% if employee.role.value == 'admin' %}Secretário
+                                    {% elif employee.role.value == 'manager' %}Diretor
+                                    {% elif employee.role.value == 'employee' %}Funcionário
+                                    {% else %}{{ employee.role.value|capitalize }}{% endif %}
                                 </span>
                             </td>
                             <td>

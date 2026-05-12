@@ -42,7 +42,7 @@
                 {% else %}
                     <div class="mb-4 p-3 bg-light rounded">
                         <label class="form-label fw-bold">Usar Modelo Predefinido</label>
-                        {{ form.Jornada_type(class="form-select", id="journey_select") }}
+                        {{ form.journey_type(class="form-select", id="journey_select") }}
                     </div>
 
                     <form method="POST">
@@ -77,7 +77,7 @@
                         <hr>
                         <div class="mb-3 border-start border-primary ps-3">
                             <label class="form-label text-primary small fw-bold">Salvar estes horários como novo Modelo?</label>
-                            {{ form.Salvar_as_new(class="form-control", placeholder="Nome do novo Modelo (opcional)") }}
+                            {{ form.save_as_new(class="form-control", placeholder="Nome do novo Modelo (opcional)") }}
                         </div>
 
                         <div class="d-grid">
