@@ -253,10 +253,11 @@ class User:
 
         balance = 0
         today = date.today()
-
+        
         for p in self.time_entries:
             # Exclude today from historical balance
-            if p.entry_date >= today: continue
+            if p.entry_date >= today:
+                continue
 
             # If entry is missing or rejected, debit the target.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
