@@ -202,29 +202,33 @@ class User:
     @property
     def unread_notifications_count(self) -> int:
         return sum(1 for n in self.notifications if not n.is_read)
+@property
+def total_balance(self) -> int:
+    if not self.work_schedule: return 0
 
-    @property
-    def total_balance(self) -> int:
-        if not self.work_schedule: return 0
+    def delta(t1, t2):
+        if not t1 or not t2: return 0
+        d1 = datetime.combine(date.min, t1)
+        d2 = datetime.combine(date.min, t2)
+        return int((d2 - d1).total_seconds() / 60)
 
-        def delta(t1, t2):
-            if not t1 or not t2: return 0
-            return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
+    # Calculate daily target
+    if self.work_schedule.has_lunch_break:
+        target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
+                          delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
+    else:
+        target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
 
-        # Calculate daily target
-        if self.work_schedule.has_lunch_break:
-            target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
-                              delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
+    balance = 0
+    today = date.today()
+    for p in self.time_entries:
+        # Explicitly exclude today from total balance
+        if p.entry_date >= today:
+            continue
+
+        # Simple debit logic
+        if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
+            balance -= target_minutes
         else:
-            target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
-
-        balance = 0
-        today = date.today()
-        for p in self.time_entries:
-            if p.entry_date >= today: continue
-            
-            if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
-                balance -= target_minutes
-            else:
-                balance += (p.worked_minutes - target_minutes)
-        return balance
+            balance += (p.worked_minutes - target_minutes)
+    return balance
