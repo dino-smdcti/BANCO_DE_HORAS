@@ -261,9 +261,12 @@ class User:
             # If entry is missing or rejected, debit the target.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
-            else:
-                # Otherwise, credit (worked - target)
+            elif p.is_complete:
+                # Credit actual work (could be less than target, which results in a net debit for that day)
                 balance += (p.worked_minutes - target_minutes)
+            else:
+                # Incomplete day (without missing/rejected flag) - debit the target to prevent undercounting
+                balance -= target_minutes
 
         return balance
 
