@@ -4,12 +4,15 @@
 <div class="d-flex flex-column mb-4">
     <div class="d-flex flex-column mb-3">
         <h2 class="mb-0">Registros de Ponto</h2>
-        <p class="text-muted mb-0">Funcionário: <strong>{{ employee.profile.full_name or employee.email }}</strong> 
-            <a href="{{ url_for('edit_employee', employee_id=employee.user_id) }}" class="btn btn-link btn-sm p-0 text-muted ms-2" style="font-size: 0.75rem;">(editar)</a>
-            <form action="{{ url_for('reset_user_password', user_id=employee.user_id) }}" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-link btn-sm p-0 text-muted ms-2" style="font-size: 0.75rem;" onclick="return confirm('Deseja realmente enviar um e-mail de redefinição de senha para este usuário?');">(redefinir senha)</button>
-            </form>
-        </p>
+        <div class="d-flex align-items-center flex-wrap">
+            <p class="text-muted mb-0 me-2">Funcionário: <strong>{{ employee.profile.full_name or employee.email }}</strong></p>
+            <div class="d-flex align-items-center">
+                <a href="{{ url_for('edit_employee', employee_id=employee.user_id) }}" class="btn btn-link btn-sm p-0 text-muted ms-2" style="font-size: 0.75rem;">(editar)</a>
+                <form action="{{ url_for('reset_user_password', user_id=employee.user_id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-link btn-sm p-0 text-muted ms-2" style="font-size: 0.75rem;" onclick="return confirm('Deseja realmente enviar um e-mail de redefinição de senha para este usuário?');">(redefinir senha)</button>
+                </form>
+            </div>
+        </div>
     </div>
     <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
         <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-success btn-compact">Exportar Excel</a>
@@ -136,7 +139,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}?date={{ p.entry_date }}" class="btn btn-sm btn-outline-primary me-1">Editar</a>
+                                <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}?date={{ p.entry_date }}" class="btn btn-sm btn-warning btn-compact me-1">Corrigir</a>
                                 {% if p.has_anomaly %}
                                     <form action="{{ url_for('clear_anomaly', employee_id=employee.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-warning">Limpar Anomalia</button>
