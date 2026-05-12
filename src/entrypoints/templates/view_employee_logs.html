@@ -87,16 +87,20 @@
                             <form action="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" method="POST">
                                 <input type="hidden" name="entry_date" value="{{ p.entry_date }}">
                                 <td>
-                                    <input type="text" name="arrival" value="{{ p.arrival.strftime('%H:%M') if p.arrival else '' }}" class="form-control form-control-sm btn-compact" style="width: 60px;" maxlength="5">
+                                    <input type="text" name="arrival" value="{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.arrival_late %}<div class="mt-1"><span class="badge bg-danger">Atraso</span></div>{% endif %}
                                 </td>
                                 <td>
-                                    <input type="text" name="lunch_start" value="{{ p.lunch_start.strftime('%H:%M') if p.lunch_start else '' }}" class="form-control form-control-sm btn-compact" style="width: 60px;" maxlength="5">
+                                    <input type="text" name="lunch_start" value="{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.lunch_start_late %}<div class="mt-1"><span class="badge bg-danger">Anomalia</span></div>{% endif %}
                                 </td>
                                 <td>
-                                    <input type="text" name="lunch_end" value="{{ p.lunch_end.strftime('%H:%M') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 60px;" maxlength="5">
+                                    <input type="text" name="lunch_end" value="{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.lunch_end_late %}<div class="mt-1"><span class="badge bg-danger">Atraso</span></div>{% endif %}
                                 </td>
                                 <td>
-                                    <input type="text" name="departure" value="{{ p.departure.strftime('%H:%M') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 60px;" maxlength="5">
+                                    <input type="text" name="departure" value="{{ p.departure.strftime('%H:%M:%S') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.departure_early %}<div class="mt-1"><span class="badge bg-danger">Saída Cedo</span></div>{% endif %}
                                 </td>
                             <td>
                                 <!-- Status/Details remain static -->
