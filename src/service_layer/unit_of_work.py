@@ -55,15 +55,17 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
         self._nested_count += 1
         return super().__enter__()
 
-    def __exit__(self, *args):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self._nested_count -= 1
         if self._nested_count == 0:
-            super().__exit__(*args)
+            if exc_type is None:
+                self.commit()
+            else:
+                self.rollback()
             self.session.close()
         else:
-            # If nested, we don't call super().__exit__ because it rolls back by default
-            # but we might want to check for errors. For now, just decrement.
-            pass
+            if exc_type is not None:
+                self.rollback()
 
     def commit(self):
         self.session.commit()
