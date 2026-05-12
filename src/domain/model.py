@@ -253,6 +253,7 @@ class User:
 
         # Calculate balance
         total = 0
+        today = date.today()
         for p in self.time_entries:
             if p.entry_date >= today: continue
             
