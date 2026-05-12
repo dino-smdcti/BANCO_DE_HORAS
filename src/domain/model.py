@@ -244,18 +244,20 @@ class User:
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
 
+    @property
+    def total_balance(self) -> int:
+        if not self.work_schedule: return 0
+
+        def delta(t1, t2):
+            if not t1 or not t2: return 0
+            return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
+
         # Calculate daily target dynamically
         if self.work_schedule.has_lunch_break:
             target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
                               delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
         else:
             target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
-
-        # Calculate daily target dynamically
-        target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
-        if self.work_schedule.has_lunch_break:
-            target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
-                              delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
 
         # Calculate balance
         total = 0
