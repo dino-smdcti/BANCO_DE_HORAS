@@ -40,13 +40,13 @@
                         </div>
                     </form>
                 {% else %}
-                    <div class="mb-4 p-3 bg-light rounded">
-                        <label class="form-label fw-bold">Usar Modelo Predefinido</label>
-                        {{ form.journey_type(class="form-select", id="journey_select") }}
-                    </div>
-
                     <form method="POST">
                         {{ form.hidden_tag() }}
+                        <div class="mb-3 p-3 bg-light rounded">
+                            <label class="form-label fw-bold">Usar Modelo Predefinido</label>
+                            {{ form.journey_type(class="form-select", id="journey_select") }}
+                        </div>
+                        
                         <div class="mb-3 form-check form-switch">
                             {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
                             <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>
