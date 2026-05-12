@@ -216,6 +216,10 @@ def reset_password(token):
     
     if request.method == "POST":
         password = request.form.get("password")
+        if not password:
+            flash("A senha é obrigatória.", "danger")
+            return render_template("reset_password.html", token=token)
+            
         uow = SqlAlchemyUnitOfWork()
         with uow:
             user = uow.users.get_user_by_email(email)
