@@ -886,17 +886,31 @@ def add_holiday():
     flash("Feriado adicionado.", "success")
     return redirect(url_for("dashboard"))
 
-@app.route("/manager/delete-user/<int:user_id>", methods=["POST"])
+@app.route("/manager/reset-user-password/<int:user_id>", methods=["POST"])
 @login_required
-def delete_user(user_id):
+def reset_user_password(user_id):
     if current_user.role not in ["manager", "admin"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
     uow = SqlAlchemyUnitOfWork()
-    services.delete_user(uow, current_user.id, user_id)
-    flash("Usuário excluído.", "warning")
-    return redirect(url_for("dashboard"))
+    with uow:
+        user = uow.users.get_user_by_id(user_id)
+        if not user:
+            flash("Usuário não encontrado.", "danger")
+            return redirect(url_for("management_panel"))
+        
+        token = serializer.dumps(user.email, salt="password-reset-salt")
+        reset_url = url_for("reset_password", token=token, _external=True)
+        
+        # Optionally send via email as well
+        html = render_template("emails/reset_password.html", reset_url=reset_url)
+        if send_email(user.email, "Redefinição de Senha Solicitada", html):
+            flash(f"Link de redefinição enviado para o e-mail do usuário.", "success")
+        else:
+            flash(f"Não foi possível enviar o e-mail. Link de redefinição: {reset_url}", "warning")
+            
+    return redirect(url_for("view_employee_logs", employee_id=user_id))
 
 @app.route("/manager/set-schedule/<int:employee_id>", methods=["GET", "POST"])
 @login_required
