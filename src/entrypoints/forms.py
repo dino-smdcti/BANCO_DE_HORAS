@@ -28,7 +28,7 @@ class WorkScheduleForm(FlaskForm):
     lunch_start = StringField("Início Almoço (HH:MM)")
     lunch_end = StringField("Fim Almoço (HH:MM)")
     departure = StringField("Saída Esperada (HH:MM)", validators=[DataRequired()])
-    tolerance = StringField("Tolerã¢ncia (minutos)", default="15", validators=[DataRequired()])
+    tolerance = StringField("Tolerância (minutos)", default="15", validators=[DataRequired()])
     save_as_new = StringField("Salvar como Novo Tipo (Nome)", validators=[])
     submit = SubmitField("Salvar Horário")
 
@@ -39,6 +39,6 @@ class JourneyTypeForm(FlaskForm):
     lunch_start = StringField("Início Almoço (HH:MM)")
     lunch_end = StringField("Fim Almoço (HH:MM)")
     departure = StringField("Saída Esperada (HH:MM)", validators=[DataRequired()])
-    tolerance = StringField("Tolerã¢ncia (minutos)", default="15", validators=[DataRequired()])
+    tolerance = StringField("Tolerância (minutos)", default="15", validators=[DataRequired()])
     submit = SubmitField("Criar Tipo de Jornada")
 
