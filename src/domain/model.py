@@ -255,16 +255,14 @@ class User:
         today = date.today()
         
         for p in self.time_entries:
-            # Exclude today from historical balance
-            if p.entry_date >= today:
-                continue
+            if p.entry_date >= today: continue
 
-            # If entry is missing or rejected, debit the target.
+            # Re-calculate target to ensure it is correctly associated with the workday
+            current_target = target_minutes 
+
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
-                balance -= target_minutes
+                balance -= current_target
             else:
-                # Credit actual work (worked - target)
-                balance += (p.worked_minutes - target_minutes)
+                balance += (p.worked_minutes - current_target)
 
         return balance
-
