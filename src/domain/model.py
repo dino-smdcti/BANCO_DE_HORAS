@@ -231,15 +231,20 @@ class User:
 
     @property
     def total_balance(self) -> int:
-        DAILY_TARGET_MINUTES = 480
-
-        balance = 0
         if not self.work_schedule: return 0
 
-        # Calcular com base nos registros existentes
+        def delta(t1, t2):
+            if not t1 or not t2: return 0
+            return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
+
+        # Calculate daily target dynamically
+        target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
+                          delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
+
+        balance = 0
         for p in self.time_entries:
             if p.is_complete:
-                balance += (p.worked_minutes - DAILY_TARGET_MINUTES)
+                balance += (p.worked_minutes - target_minutes)
 
         return balance
 
