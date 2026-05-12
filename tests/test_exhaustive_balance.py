@@ -5,12 +5,19 @@ from src.domain.model import User, WorkSchedule, DailyPonto, PontoStatus
 class TestExhaustiveBalance(unittest.TestCase):
     def test_combinations(self):
         scenarios = [
-            # (name, has_lunch, arrival, departure, worked_mins, expected_target, expected_balance)
-            ("8h_with_lunch", True, time(8,0), time(17,0), 480, 480, 0),
-            ("8h_no_lunch", False, time(8,0), time(16,0), 480, 480, 0),
-            ("6h_with_lunch", True, time(8,0), time(14,0), 300, 300, 0),
-            ("6h_no_lunch", False, time(8,0), time(14,0), 360, 360, 0),
-            ("6h_no_lunch_early_departure", False, time(8,0), time(13,30), 330, 330, 0),
+            # name, has_lunch, arrival, departure, worked, target, expected_bal
+            # Normal day
+            ("8h_normal", True, time(8,0), time(17,0), 480, 480, 0),
+            # Late arrival, same departure (-30m)
+            ("8h_late_arrival", True, time(8,30), time(17,0), 450, 480, -30),
+            # Early arrival, same departure (+30m)
+            ("8h_early_arrival", True, time(7,30), time(17,0), 510, 480, 30),
+            # Normal arrival, early departure (-30m)
+            ("8h_early_departure", True, time(8,0), time(16,30), 450, 480, -30),
+            # Normal arrival, late departure (+30m)
+            ("8h_late_departure", True, time(8,0), time(17,30), 510, 480, 30),
+            # 6h scenario: Early arrival, early departure (still 6h total)
+            ("6h_shifted", False, time(7,0), time(13,0), 360, 360, 0),
         ]
 
         for name, has_lunch, arrival, departure, worked, target, expected_bal in scenarios:
