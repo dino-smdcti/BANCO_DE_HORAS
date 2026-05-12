@@ -33,7 +33,10 @@
                         <tr>
                             <td>{{ employee.profile.full_name or employee.email }}</td>
                             <td>
-                                <span class="badge {{ 'bg-accent' if employee.role.value == 'admin' else 'bg-primary' }}">
+                                <span class="badge 
+                                    {% if employee.role.value == 'admin' %}bg-accent text-white
+                                    {% elif employee.role.value == 'manager' %}bg-secondary text-white
+                                    {% else %}bg-primary text-white{% endif %}">
                                     {% if employee.role.value == 'admin' %}Secretário
                                     {% elif employee.role.value == 'manager' %}Diretor
                                     {% elif employee.role.value == 'employee' %}Funcionário
