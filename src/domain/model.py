@@ -253,11 +253,15 @@ class User:
             target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
 
         balance = 0
-        # Filter for days where the ponto is officially complete
-        completed_entries = [p for p in self.time_entries if p.is_complete]
         
-        for p in completed_entries:
-            balance += (p.worked_minutes - target_minutes)
+        # Calculate target for all days from start_analysis_date up to today
+        # We need a reference date. For simplicity, we iterate over all entries 
+        # and ensure we also debit for days that are MISSING/Faltante.
+        for p in self.time_entries:
+            if p.status == PontoStatus.MISSING:
+                balance -= target_minutes
+            else:
+                balance += (p.worked_minutes - target_minutes)
 
         return balance
 
