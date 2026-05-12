@@ -30,10 +30,19 @@ class TestExhaustiveBalance(unittest.TestCase):
             ponto.lunch_end = lunch_end
             ponto.has_lunch_break = has_lunch
             
+        ponto = DailyPonto(user_id=1, entry_date=date(2026, 5, 2), status=PontoStatus.ON_TIME) 
+            ponto.arrival = arrival
+            ponto.departure = departure
+            ponto.lunch_start = lunch_start
+            ponto.lunch_end = lunch_end
+            ponto.has_lunch_break = has_lunch
+            
             user.time_entries.append(ponto)
             
             # Logic check
             self.assertEqual(ponto.worked_minutes, worked, f"Failed worked_minutes for {name}")
+            # Ensure day is marked complete
+            self.assertTrue(ponto.is_complete, f"Day not complete for {name}")
             # Note: User.total_balance uses its own target logic
             self.assertEqual(user.total_balance, expected_bal, f"Failed balance for {name}")
 
