@@ -238,8 +238,11 @@ class User:
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
 
         # Calculate daily target dynamically
-        target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
-                          delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
+        if self.work_schedule.has_lunch_break:
+            target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
+                              delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
+        else:
+            target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
 
         balance = 0
         for p in self.time_entries:
