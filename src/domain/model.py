@@ -258,7 +258,8 @@ class User:
             # Exclude today from historical balance
             if p.entry_date >= today:
                 continue
-                
+
+            # If entry is missing or rejected, debit the target.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
             else:
