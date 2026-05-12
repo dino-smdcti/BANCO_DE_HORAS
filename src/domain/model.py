@@ -258,17 +258,11 @@ class User:
             # Exclude today from historical balance
             if p.entry_date >= today: continue
 
-            if self.work_schedule.has_lunch_break:
-                daily_target = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
-                                  delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
-            else:
-                daily_target = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
-
             # If entry is missing or rejected, debit the target.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
-                balance -= daily_target
+                balance -= target_minutes
             else:
                 # Credit actual work (worked - target)
-                balance += (p.worked_minutes - daily_target)
+                balance += (p.worked_minutes - target_minutes)
 
         return balance
