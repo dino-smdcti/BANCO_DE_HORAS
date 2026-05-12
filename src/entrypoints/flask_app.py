@@ -643,6 +643,9 @@ def management_panel():
     uow = SqlAlchemyUnitOfWork()
     with uow:
         employees = services.get_all_employees(uow, requester_id=int(current_user.id))
+        for e in employees:
+            uow.session.refresh(e)
+            
         pending_justs = [p for e in employees for p in e.time_entries if p.has_anomaly and not p.justification]
         dismissed_justs = [
             {"emp": e, "ponto": p} for e in employees 
