@@ -838,7 +838,13 @@ def fix_ponto(employee_id):
         entry_date = datetime.strptime(request.form.get("entry_date"), "%Y-%m-%d").date()
         
         def parse_time(val):
-            return datetime.strptime(val, "%H:%M").time() if val else None
+            if not val: return None
+            for fmt in ("%H:%M:%S", "%H:%M"):
+                try:
+                    return datetime.strptime(val, fmt).time()
+                except ValueError:
+                    continue
+            return None
 
         services.manual_ponto_correction(
             uow,
@@ -852,7 +858,7 @@ def fix_ponto(employee_id):
             email_sender=send_email
         )
         flash("Registro corrigido manualmente.", "success")
-        return redirect(url_for("dashboard"))
+        return redirect(url_for("view_employee_logs", employee_id=employee_id))
 
     with uow:
         employee = uow.users.get_user_by_id(employee_id)
