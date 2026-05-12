@@ -4,8 +4,8 @@
 <div class="row flex-column-reverse flex-md-row">
     <div class="col-md-9">
         <div class="card shadow mb-4">
-            <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-2">
-                <h5 class="mb-0">Registrar Ponto - <span class="text-primary">{{ current_stage }}</span></h5>
+            <div class="card-header bg-primary text-white d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-2">
+                <h5 class="mb-0">Registrar Ponto - <span class="text-white">{{ current_stage }}</span></h5>
                 <form action="{{ url_for('dashboard') }}" method="GET" class="d-flex flex-wrap align-items-center gap-2">
                     <div class="d-flex align-items-center gap-1">
                         <input type="date" name="start_date" class="form-control form-control-sm" style="max-width: 150px;" value="{{ request.args.get('start_date', '') }}">
@@ -216,7 +216,7 @@
             <form action="{{ url_for('submit_correction') }}" method="POST" class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Solicitar Correção de Ponto</h5>
-                    <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -254,7 +254,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Justificar Ponto</h5>
-                    <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="{{ url_for('submit_justification') }}" method="POST">
                     <div class="modal-body">
@@ -268,7 +268,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-Dispensar="modal">Cancelar</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Enviar Justificativa</button>
                     </div>
                 </form>
@@ -282,7 +282,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Confirmar Registro</h5>
-                    <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="clockForm" action="{{ url_for('clock') }}" method="POST">
                     <div class="modal-body">
@@ -364,7 +364,7 @@
         <form action="{{ url_for('update_note') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Nota do Ponto</h5>
-                <button type="button" class="btn-close" data-bs-Dispensar="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" name="entry_date" id="note_entry_date">
