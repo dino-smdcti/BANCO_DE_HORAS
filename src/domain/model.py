@@ -114,13 +114,12 @@ class DailyPonto:
             d2 = datetime.combine(date.min, t2)
             return int((d2 - d1).total_seconds() / 60)
         
-        total_span = delta(self.arrival, self.departure)
-        break_duration = delta(self.lunch_start, self.lunch_end)
-        
+        # New calculation rule: [LunchStart - Arrival] + [Departure - LunchEnd]
         if self.has_lunch_break:
-            return total_span - break_duration
+            return delta(self.arrival, self.lunch_start) + delta(self.lunch_end, self.departure)
         
-        return total_span
+        # If no lunch break, continuous block from arrival to departure
+        return delta(self.arrival, self.departure)
 
     def get_predicted_worked_minutes(self, schedule: WorkSchedule) -> int:
         def delta(t1, t2):
@@ -210,9 +209,7 @@ class User:
 
         def delta(t1, t2):
             if not t1 or not t2: return 0
-            d1 = datetime.combine(date.min, t1)
-            d2 = datetime.combine(date.min, t2)
-            return int((d2 - d1).total_seconds() / 60)
+            return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
 
         # Calculate daily target
         if self.work_schedule.has_lunch_break:
