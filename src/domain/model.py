@@ -260,11 +260,11 @@ class User:
             if p.entry_date >= today:
                 continue
                 
-            if p.status == PontoStatus.MISSING:
+            if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
+                # Debit the full target for missing or rejected days
                 balance -= target_minutes
             else:
-                # Credit all actual work performed
-                # Anomalies (deviations) don't reduce credit, they just trigger an anomaly flag
+                # Credit actual work (could be less than target, which results in a net debit for that day)
                 balance += (p.worked_minutes - target_minutes)
 
         return balance
