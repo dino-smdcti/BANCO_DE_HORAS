@@ -258,11 +258,11 @@ class User:
             if p.entry_date >= today:
                 continue
                 
-            # Debit the full target for missing or rejected days
+            # If entry is missing or rejected, debit the target.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
             else:
-                # Credit actual work (could be less than target, which results in a net debit for that day)
+                # Otherwise, credit (worked - target)
                 balance += (p.worked_minutes - target_minutes)
 
         return balance
