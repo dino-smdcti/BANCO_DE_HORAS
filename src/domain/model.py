@@ -252,20 +252,17 @@ class User:
             target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
 
         # Calculate daily target dynamically
-        target_minutes = 480 # Force 480 for 8h scenario to debug
-        if self.work_schedule:
-             if self.work_schedule.has_lunch_break:
-                target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
-                                  delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
-             else:
-                target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
+        target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
+        if self.work_schedule.has_lunch_break:
+            target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
+                              delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
 
         # Calculate balance
         total = 0
         today = date.today()
         for p in self.time_entries:
             if p.entry_date >= today: continue
-
+            
             # Simple debit logic
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 total -= target_minutes
