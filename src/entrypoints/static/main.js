@@ -13,7 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('a.btn, button.btn').forEach(el => {
         el.addEventListener('click', function(e) {
             // Exclude modal triggers, dropdowns, and buttons that aren't navigation/actions
-            if (this.hasAttribute('data-bs-toggle') || this.getAttribute('type') === 'button' || this.classList.contains('no-loading')) {
+            if (this.hasAttribute('data-bs-toggle') || 
+                this.getAttribute('data-bs-target') || 
+                this.getAttribute('type') === 'button' || 
+                this.classList.contains('no-loading')) {
                 return;
             }
             setLoadingState(this);
