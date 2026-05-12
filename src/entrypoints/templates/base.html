@@ -27,7 +27,8 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <div class="navbar-nav align-items-center">
+                <!-- Left-aligned: Navigation -->
+                <div class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
                         {% if current_user.role in ['manager', 'admin'] %}
                             <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
@@ -42,10 +43,10 @@
                         </a>
                     {% endif %}
                 </div>
-                <div class="navbar-nav ms-auto align-items-center">
+                <!-- Right-aligned: Notifications & Logout -->
+                <div class="navbar-nav">
                     {% if current_user.is_authenticated %}
-                        <!-- Notifications -->
-                        <div class="nav-item dropdown me-2">
+                        <div class="nav-item dropdown d-flex align-items-center me-2">
                             <a class="nav-link position-relative p-1" href="#" id="notifDropdown" role="button" data-bs-toggle="modal" data-bs-target="#notifModal" onclick="markReadTrigger()">
                                 <i class="bi bi-bell fs-5"></i>
                                 <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ 'd-none' if not (user_notifs_count > 0) }}">
