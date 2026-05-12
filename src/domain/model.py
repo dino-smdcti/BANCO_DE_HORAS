@@ -253,16 +253,12 @@ class User:
 
         balance = 0
         today = date.today()
-        
         for p in self.time_entries:
             if p.entry_date >= today: continue
 
-            # Re-calculate target to ensure it is correctly associated with the workday
-            current_target = target_minutes 
-
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
-                balance -= current_target
+                balance -= target_minutes
             else:
-                balance += (p.worked_minutes - current_target)
+                balance += (p.worked_minutes - target_minutes)
 
         return balance
