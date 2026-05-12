@@ -245,7 +245,7 @@ class User:
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
 
-        # Total expected minutes for the day based on the schedule
+        # Calculate daily target dynamically
         if self.work_schedule.has_lunch_break:
             target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
                               delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
@@ -260,11 +260,12 @@ class User:
             if p.entry_date >= today:
                 continue
                 
+            # Only full absences or explicitly rejected entries trigger a full target debit.
+            # Otherwise, credit the actual time worked regardless of schedule adherence.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
-                # Debit the full target for missing or rejected days
                 balance -= target_minutes
             else:
-                # Credit actual work (could be less than target, which results in a net debit for that day)
+                # Credit all actual work performed
                 balance += (p.worked_minutes - target_minutes)
 
         return balance
