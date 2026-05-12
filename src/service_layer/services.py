@@ -303,13 +303,16 @@ def set_work_schedule(
             ensure_manager(uow, manager_id)
         
         if user.work_schedule:
+            print(f"DEBUG: Updating existing schedule for user {employee_id}")
             user.work_schedule.expected_arrival = arrival
             user.work_schedule.expected_lunch_start = lunch_start
             user.work_schedule.expected_lunch_end = lunch_end
             user.work_schedule.expected_departure = departure
             user.work_schedule.tolerance_minutes = tolerance
             user.work_schedule.has_lunch_break = has_lunch_break
+            uow.session.add(user.work_schedule)
         else:
+            print(f"DEBUG: Creating new schedule for user {employee_id}")
             schedule = WorkSchedule(
                 user_id=employee_id,
                 expected_arrival=arrival,
@@ -321,9 +324,17 @@ def set_work_schedule(
             )
             user.work_schedule = schedule
             uow.session.add(schedule)
-        uow.commit()
-        uow.record_action(manager_id, "SET_WORK_SCHEDULE", target_id=employee_id, details=f"Arrival: {arrival}, Departure: {departure}, Lunch: {has_lunch_break}")
-        uow.commit()
+        
+        try:
+            print("DEBUG: Attempting session flush...")
+            uow.session.flush()
+            print("DEBUG: Flush successful. Committing...")
+            uow.commit()
+            print("DEBUG: Commit successful.")
+        except Exception as e:
+            print(f"ERROR: Database persistence failed: {str(e)}")
+            uow.session.rollback()
+            raise e
 
 def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date: date):
     with uow:
@@ -343,7 +354,9 @@ def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date:
                     user_id=emp.user_id,
                     entry_date=target_date,
                     status=PontoStatus.MISSING,
-                    location_data="Sistema: Falta detectada"
+                    location_data="Sistema: Falta automática gerada",
+                    # Explicitly mark as a full day absence for balance logic
+                    notes="Ausência sem registro de ponto."
                 )
                 emp.time_entries.append(ponto)
         uow.commit()
