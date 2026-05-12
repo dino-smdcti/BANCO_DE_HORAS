@@ -310,7 +310,7 @@ def set_work_schedule(
             user.work_schedule.tolerance_minutes = tolerance
             user.work_schedule.has_lunch_break = has_lunch_break
         else:
-            user.work_schedule = WorkSchedule(
+            schedule = WorkSchedule(
                 user_id=employee_id,
                 expected_arrival=arrival,
                 expected_lunch_start=lunch_start,
@@ -319,6 +319,8 @@ def set_work_schedule(
                 tolerance_minutes=tolerance,
                 has_lunch_break=has_lunch_break
             )
+            user.work_schedule = schedule
+            uow.session.add(schedule)
         uow.commit()
         uow.record_action(manager_id, "SET_WORK_SCHEDULE", target_id=employee_id, details=f"Arrival: {arrival}, Departure: {departure}, Lunch: {has_lunch_break}")
         uow.commit()
