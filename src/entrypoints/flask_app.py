@@ -935,7 +935,7 @@ def set_schedule(employee_id):
                 flash(f"Template '{form.save_as_new.data}' salvo!", "info")
 
             flash("Horário de trabalho configurado.", "success")
-            return redirect(url_for("management_panel"))
+            return redirect(url_for("view_employee_logs", employee_id=employee_id))
         except Exception as e:
             flash(f"Erro: {str(e)}", "danger")
 
