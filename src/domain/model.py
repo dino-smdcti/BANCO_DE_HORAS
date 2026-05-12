@@ -251,19 +251,14 @@ class User:
         else:
             target_minutes = delta(self.work_schedule.expected_arrival, self.work_schedule.expected_departure)
 
-        balance = 0
-        today = date.today()
-        
+        # Calculate balance
+        total = 0
         for p in self.time_entries:
-            # Exclude today from historical balance
-            if p.entry_date >= today:
-                continue
-                
-            # If entry is missing or rejected, debit the target.
+            if p.entry_date >= today: continue
+            
+            # Simple debit logic
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
-                balance -= target_minutes
+                total -= target_minutes
             else:
-                # Credit actual work (worked - target)
-                balance += (p.worked_minutes - target_minutes)
-
-        return balance
+                total += (p.worked_minutes - target_minutes)
+        return total
