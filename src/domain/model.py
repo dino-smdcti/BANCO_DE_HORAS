@@ -1,4 +1,4 @@
-﻿from dataclasses import dataclass
+from dataclasses import dataclass
 from datetime import datetime, date, time, timedelta
 from typing import List, Optional
 from enum import Enum
@@ -49,8 +49,8 @@ class JourneyType:
 class Holiday:
     holiday_date: date
     description: str
-    is_mandatory: bool = True  # True = Feriado, False = Ponto Facultativo
-
+    is_mandatory: bool = True
+    
 @dataclass
 class Vacation:
     user_id: int
@@ -74,14 +74,13 @@ class DailyPonto:
     lunch_start: Optional[time] = None
     lunch_end: Optional[time] = None
     departure: Optional[time] = None
-    location_data: str = "" # Formato: "Chegada: ... | Almoço: ..."
+    location_data: str = ""
     status: PontoStatus = PontoStatus.ON_TIME
     justification: Optional[str] = None
     notes: Optional[str] = None
     has_lunch_break: bool = True
     ponto_id: Optional[int] = None
     
-    # Flags for lateness/deviations
     arrival_late: bool = False
     lunch_start_late: bool = False
     lunch_end_late: bool = False
@@ -96,13 +95,7 @@ class DailyPonto:
 
     @property
     def has_anomaly(self) -> bool:
-        return any([
-            self.arrival_late,
-            self.lunch_start_late,
-            self.lunch_end_late,
-            self.departure_early,
-            self.status == PontoStatus.MISSING
-        ])
+        return any([self.arrival_late, self.lunch_start_late, self.lunch_end_late, self.departure_early, self.status == PontoStatus.MISSING])
 
     @property
     def current_stage(self) -> str:
@@ -121,10 +114,7 @@ class DailyPonto:
             d2 = datetime.combine(date.min, t2)
             return int((d2 - d1).total_seconds() / 60)
         
-        # Total duration from Arrival to Departure
         total_span = delta(self.arrival, self.departure)
-        
-        # Calculate break duration
         break_duration = delta(self.lunch_start, self.lunch_end)
         
         if self.has_lunch_break:
@@ -137,7 +127,6 @@ class DailyPonto:
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
 
-        # Use actuals if available, otherwise use scheduled times
         arr = self.arrival or schedule.expected_arrival
         ls = self.lunch_start or schedule.expected_lunch_start
         le = self.lunch_end or schedule.expected_lunch_end
@@ -154,7 +143,6 @@ class DailyPonto:
     def is_complete(self) -> bool:
         if self.has_lunch_break:
             return all([self.arrival, self.lunch_start, self.lunch_end, self.departure])
-        # If no lunch break, only arrival and departure are needed
         return all([self.arrival, self.departure])
 
     @property
@@ -167,10 +155,10 @@ class DailyPonto:
 class CorrectionRequest:
     user_id: int
     ponto_date: date
-    stage: str  # 'arrival', 'lunch_start', 'lunch_end', 'departure'
+    stage: str
     proposed_time: time
     justification: str
-    status: str = "pending"  # "pending", "approved", "rejected"
+    status: str = "pending"
     created_at: datetime = datetime.now()
     request_id: Optional[int] = None
 
@@ -184,14 +172,7 @@ class UserProfile:
     full_name: Optional[str] = None
 
     def is_complete(self) -> bool:
-        return all([
-            self.registration_number,
-            self.cpf,
-            self.department,
-            self.position,
-            self.secretariat,
-            self.full_name
-        ])
+        return all([self.registration_number, self.cpf, self.department, self.position, self.secretariat, self.full_name])
 
 @dataclass
 class AuditLog:
@@ -203,16 +184,7 @@ class AuditLog:
     log_id: Optional[int] = None
 
 class User:
-    def __init__(
-        self, 
-        email: str, 
-        password_hash: str, 
-        role: UserRole,
-        user_id: Optional[int] = None,
-        profile: Optional[UserProfile] = None,
-        work_schedule: Optional[WorkSchedule] = None,
-        email_notifications_enabled: bool = False
-    ):
+    def __init__(self, email, password_hash, role, user_id=None, profile=None, work_schedule=None, email_notifications_enabled=False):
         self.user_id = user_id
         self.email = email
         self.password_hash = password_hash
@@ -220,21 +192,13 @@ class User:
         self.profile = profile or UserProfile()
         self.work_schedule = work_schedule
         self.email_notifications_enabled = email_notifications_enabled
-        self.time_entries: List[DailyPonto] = []
-        self.vacations: List[Vacation] = []
-        self.notifications: List[Notification] = []
+        self.time_entries = []
+        self.vacations = []
+        self.notifications = []
 
     @property
     def is_profile_complete(self) -> bool:
         return self.profile.is_complete()
-    
-    @property
-    def is_manager(self) -> bool:
-        return self.role == UserRole.MANAGER
-
-    @property
-    def unread_notifications_count(self) -> int:
-        return sum(1 for n in self.notifications if not n.is_read)
 
     @property
     def total_balance(self) -> int:
@@ -242,17 +206,11 @@ class User:
 
         def delta(t1, t2):
             if not t1 or not t2: return 0
-            return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
+            d1 = datetime.combine(date.min, t1)
+            d2 = datetime.combine(date.min, t2)
+            return int((d2 - d1).total_seconds() / 60)
 
-    @property
-    def total_balance(self) -> int:
-        if not self.work_schedule: return 0
-
-        def delta(t1, t2):
-            if not t1 or not t2: return 0
-            return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
-
-        # Calculate daily target dynamically
+        # Calculate daily target
         if self.work_schedule.has_lunch_break:
             target_minutes = (delta(self.work_schedule.expected_arrival, self.work_schedule.expected_lunch_start) + 
                               delta(self.work_schedule.expected_lunch_end, self.work_schedule.expected_departure))
@@ -264,11 +222,8 @@ class User:
         for p in self.time_entries:
             if p.entry_date >= today: continue
             
-            # Simple debit logic
-            # Explicitly debit the daily target for missing/rejected days
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
             else:
-                # Credit actual work (worked - target)
                 balance += (p.worked_minutes - target_minutes)
         return balance
