@@ -950,6 +950,8 @@ def set_schedule(employee_id):
                     j = services.get_journey_type(uow, journey_id)
                     if j:
                         arr, l_s, l_e, dep, tol, has_lunch = j.expected_arrival, j.expected_lunch_start, j.expected_lunch_end, j.expected_departure, j.tolerance_minutes, j.has_lunch_break
+                    else:
+                        raise ValueError("Modelo de jornada não encontrado.")
             else:
                 arr = parse_time(form.arrival.data)
                 l_s = parse_time(form.lunch_start.data)
@@ -1135,12 +1137,27 @@ def audit_logs():
     if current_user.role != "admin":
         flash("Acesso restrito ao Administrador.", "danger")
         return redirect(url_for("dashboard"))
-    
+
+    user_email = request.args.get("user_email")
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
     uow = SqlAlchemyUnitOfWork()
     with uow:
-        logs = uow.session.query(AuditLog).order_by(AuditLog.timestamp.desc()).all()
-        return render_template("audit_logs.html", audit_logs=logs)
+        query = uow.session.query(AuditLog)
 
+        if user_email:
+            user = uow.users.get_user_by_email(user_email)
+            if user:
+                query = query.filter(AuditLog.user_id == user.user_id)
+
+        if start_date:
+            query = query.filter(AuditLog.timestamp >= datetime.strptime(start_date, "%Y-%m-%d"))
+        if end_date:
+            query = query.filter(AuditLog.timestamp <= datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
+
+        logs = query.order_by(AuditLog.timestamp.desc()).all()
+        return render_template("audit_logs.html", audit_logs=logs)
 @app.route("/admin/settings", methods=["GET", "POST"])
 @login_required
 def admin_settings():
