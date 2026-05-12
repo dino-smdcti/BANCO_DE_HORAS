@@ -18,7 +18,6 @@
         <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-success btn-compact">Exportar Excel</a>
         <button class="btn btn-sm btn-secondary btn-compact" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
         <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-primary text-white btn-compact">Definir Horário</a>
-        <a href="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" class="btn btn-sm btn-warning btn-compact">Corrigir Ponto</a>
         
         {% if current_user.role == 'admin' %}
             {% if employee.role.value == 'employee' %}
