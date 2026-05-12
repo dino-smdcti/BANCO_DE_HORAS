@@ -30,6 +30,7 @@ html, body {
 .navbar {
     background-color: var(--accent) !important;
     margin: 0 !important;
+    margin-bottom: 2rem !important;
     padding: 0.5rem 0 !important;
 }
 
