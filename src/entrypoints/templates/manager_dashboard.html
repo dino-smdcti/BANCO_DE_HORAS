@@ -46,9 +46,11 @@
                                 <div class="d-flex flex-column gap-1">
                                     <span class="badge {{ 'bg-success' if employee.total_balance >= 0 else 'bg-danger' }} text-white">
                                         Hist: {{ (employee.total_balance // 60) }}h {{ (employee.total_balance % 60)|abs }}m
+                                        Hist: {{ '+' if employee.total_balance >= 0 else '-' }}{{ (employee.total_balance|abs // 60) }}h {{ (employee.total_balance|abs % 60) }}m
                                     </span>
                                     <span class="badge {{ 'bg-success' if employee.today_balance >= 0 else 'bg-danger' }} text-white">
                                         Hoje: {{ (employee.today_balance // 60) }}h {{ (employee.today_balance % 60)|abs }}m
+                                        Hoje: {{ '+' if employee.today_balance >= 0 else '-' }}{{ (employee.today_balance|abs // 60) }}h {{ (employee.today_balance|abs % 60) }}m
                                     </span>
                                 </div>
                             </td>
