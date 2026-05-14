@@ -832,6 +832,7 @@ def bulk_fix_ponto(employee_id):
 
     uow = SqlAlchemyUnitOfWork()
     dates = request.form.getlist("dates")
+    emp_ids = request.form.getlist("emp_ids")
     
     def parse_time(val):
         if not val: return None
@@ -843,28 +844,40 @@ def bulk_fix_ponto(employee_id):
         return None
 
     try:
-        for entry_date_str in dates:
-            entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
-            arrival = parse_time(request.form.get(f"arrival_{entry_date_str}"))
-            lunch_start = parse_time(request.form.get(f"lunch_start_{entry_date_str}"))
-            lunch_end = parse_time(request.form.get(f"lunch_end_{entry_date_str}"))
-            departure = parse_time(request.form.get(f"departure_{entry_date_str}"))
+        # If emp_ids are provided (from bulk anomaly form), iterate over them
+        if emp_ids and len(emp_ids) == len(dates):
+            for i, entry_date_str in enumerate(dates):
+                emp_id = int(emp_ids[i])
+                entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
+                arrival = parse_time(request.form.get(f"arrival_{emp_id}_{entry_date_str}"))
+                lunch_start = parse_time(request.form.get(f"lunch_start_{emp_id}_{entry_date_str}"))
+                lunch_end = parse_time(request.form.get(f"lunch_end_{emp_id}_{entry_date_str}"))
+                departure = parse_time(request.form.get(f"departure_{emp_id}_{entry_date_str}"))
 
-            services.manual_ponto_correction(
-                uow,
-                current_user.id,
-                employee_id,
-                entry_date,
-                arrival,
-                lunch_start,
-                lunch_end,
-                departure
-            )
+                services.manual_ponto_correction(
+                    uow, current_user.id, emp_id, entry_date, 
+                    arrival, lunch_start, lunch_end, departure
+                )
+        else:
+            # Fallback to single employee from route param
+            for entry_date_str in dates:
+                entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
+                arrival = parse_time(request.form.get(f"arrival_{entry_date_str}"))
+                lunch_start = parse_time(request.form.get(f"lunch_start_{entry_date_str}"))
+                lunch_end = parse_time(request.form.get(f"lunch_end_{entry_date_str}"))
+                departure = parse_time(request.form.get(f"departure_{entry_date_str}"))
+
+                services.manual_ponto_correction(
+                    uow, current_user.id, employee_id, entry_date, 
+                    arrival, lunch_start, lunch_end, departure
+                )
         flash("Registros atualizados com sucesso.", "success")
     except Exception as e:
         flash(f"Erro ao processar correções: {str(e)}", "danger")
 
-    return redirect(url_for("view_employee_logs", employee_id=employee_id))
+    if employee_id != 0:
+        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+    return redirect(url_for("management_panel"))
 
 @app.route("/manager/fix-ponto/<int:employee_id>", methods=["GET", "POST"])
 @login_required
