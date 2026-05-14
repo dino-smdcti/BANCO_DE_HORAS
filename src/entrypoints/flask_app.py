@@ -701,26 +701,6 @@ def submit_correction():
         flash(f"Erro ao enviar correção: {str(e)}", "danger")
     return redirect(url_for("dashboard"))
 
-@app.route("/submit-justification", methods=["POST"])
-@login_required
-def submit_justification():
-    entry_date_str = request.form.get("entry_date")
-    justification = request.form.get("justification")
-    
-    if not entry_date_str or not justification:
-        flash("Data e justificativa são obrigatórias.", "warning")
-        return redirect(url_for("dashboard"))
-    
-    try:
-        entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
-        uow = SqlAlchemyUnitOfWork()
-        services.submit_justification(uow, current_user.id, entry_date, justification)
-        flash("Justificativa enviada com sucesso.", "success")
-    except ValueError as e:
-        flash(str(e), "danger")
-    
-    return redirect(url_for("dashboard"))
-
 @app.route("/notifications/read", methods=["POST"])
 @login_required
 def mark_notifications_read():
