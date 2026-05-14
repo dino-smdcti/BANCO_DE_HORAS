@@ -280,34 +280,6 @@
         </div>
     </div>
 
-    <!-- Modal de Justificativa -->
-    <div class="modal fade" id="justificationModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Justificar Ponto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form action="{{ url_for('submit_justification') }}" method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="entry_date" id="just_entry_date">
-                        <div class="mb-3">
-                            <label class="form-label">Data: <span id="display_just_date" class="fw-bold"></span></label>
-                        </div>
-                        <div class="mb-3">
-                            <label for="justification" class="form-label">Sua Justificativa</label>
-                            <textarea class="form-control" name="justification" id="justification_text" rows="4" required placeholder="Explique o motivo do atraso ou falta..."></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Enviar Justificativa</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal de Confirmação -->
     <div class="modal fade" id="confirmPontoModal" tabindex="-1">
         <div class="modal-dialog">
