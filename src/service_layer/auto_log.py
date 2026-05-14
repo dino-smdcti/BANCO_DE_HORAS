@@ -7,14 +7,11 @@ def generate_automatic_logs(uow, user):
 
     today = date.today()
     
-    # Track last execution date in a hidden metadata column or a simple check
-    # For simplicity, we'll store a 'last_auto_log_date' in user.profile or add it to User/Profile if possible.
-    # Since we can't easily modify the DB schema now, we'll check against a system setting or a file.
-    # Actually, a simpler way: if we have today's 'system log entry', skip.
-    # But let's check the database for the latest auto-log date.
-    
-    last_run = getattr(user, 'last_auto_log_date', None)
-    if last_run == today:
+    # Use a persistent 'auto-log-run' marker log entry to track daily execution
+    # Look for a log with specific location marker for today
+    auto_log_marker = "Sistema: Gerador Automático Executado"
+    already_run = any(p.entry_date == today and auto_log_marker in p.location_data for p in user.time_entries)
+    if already_run:
         return
 
     # Get start analysis date
@@ -45,8 +42,18 @@ def generate_automatic_logs(uow, user):
                 )
                 user.time_entries.append(new_ponto)
                 uow.session.add(new_ponto)
+                existing_log_dates.add(current)
         
         current += timedelta(days=1)
     
-    user.last_auto_log_date = today
+    # Mark as run today
+    marker_ponto = DailyPonto(
+        user_id=user.user_id,
+        entry_date=today,
+        status=PontoStatus.ON_TIME,
+        location_data=auto_log_marker,
+        notes="Processamento automático diário concluído."
+    )
+    user.time_entries.append(marker_ponto)
+    uow.session.add(marker_ponto)
     uow.commit()
