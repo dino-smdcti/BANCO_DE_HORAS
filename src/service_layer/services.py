@@ -228,14 +228,13 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         uow.commit()
         return msg
 
-def submit_correction_request(uow: AbstractUnitOfWork, user_id: int, ponto_date: date, stage: str, proposed_time: time, justification: str):
+def submit_correction_request(uow: AbstractUnitOfWork, user_id: int, ponto_date: date, stage: str, proposed_time: time):
     with uow:
         req = CorrectionRequest(
             user_id=user_id,
             ponto_date=ponto_date,
             stage=stage,
-            proposed_time=proposed_time,
-            justification=justification
+            proposed_time=proposed_time
         )
         uow.session.add(req)
         uow.commit()
@@ -303,7 +302,6 @@ def set_work_schedule(
             ensure_manager(uow, manager_id)
         
         if user.work_schedule:
-            print(f"DEBUG: Updating existing schedule for user {employee_id}")
             user.work_schedule.expected_arrival = arrival
             user.work_schedule.expected_lunch_start = lunch_start
             user.work_schedule.expected_lunch_end = lunch_end
@@ -312,7 +310,6 @@ def set_work_schedule(
             user.work_schedule.has_lunch_break = has_lunch_break
             uow.session.add(user.work_schedule)
         else:
-            print(f"DEBUG: Creating new schedule for user {employee_id}")
             schedule = WorkSchedule(
                 user_id=employee_id,
                 expected_arrival=arrival,
@@ -325,16 +322,7 @@ def set_work_schedule(
             user.work_schedule = schedule
             uow.session.add(schedule)
         
-        try:
-            print("DEBUG: Attempting session flush...")
-            uow.session.flush()
-            print("DEBUG: Flush successful. Committing...")
-            uow.commit()
-            print("DEBUG: Commit successful.")
-        except Exception as e:
-            print(f"ERROR: Database persistence failed: {str(e)}")
-            uow.session.rollback()
-            raise e
+        uow.commit()
 
 def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date: date):
     with uow:
@@ -361,33 +349,6 @@ def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date:
                 emp.time_entries.append(ponto)
         uow.commit()
 
-def review_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date, approved: bool, email_sender=None):
-    with uow:
-        manager = ensure_manager(uow, manager_id)
-        ensure_not_self(uow, manager_id, employee_id)
-        user = uow.users.get_user_by_id(employee_id)
-        if not user:
-            raise ValueError("Employee not found.")
-        
-        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
-        if not ponto or not ponto.has_anomaly:
-            raise ValueError("No anomaly found for this date to justify.")
-        
-        manager_name = manager.profile.full_name or manager.email
-        if approved:
-            ponto.status = PontoStatus.JUSTIFIED
-            ponto.location_data += f" | Justificativa APROVADA por Gestor: {manager_name}"
-            msg = f"Sua justificativa para o dia {entry_date} foi APROVADA pelo gestor {manager_name}."
-        else:
-            ponto.status = PontoStatus.REJECTED
-            ponto.location_data += f" | Justificativa REJEITADA por Gestor: {manager_name}"
-            msg = f"Sua justificativa para o dia {entry_date} foi REJEITADA pelo gestor {manager_name}."
-        
-        add_notification(uow, employee_id, msg, email_sender=email_sender)
-        uow.commit()
-        uow.record_action(manager_id, "REVIEW_JUSTIFICATION", target_id=employee_id, details=f"Date: {entry_date}, Approved: {approved}")
-        uow.commit()
-
 def manual_ponto_correction(
     uow: AbstractUnitOfWork, 
     manager_id: int, 
@@ -398,7 +359,7 @@ def manual_ponto_correction(
     lunch_end: Optional[time],
     departure: Optional[time],
     email_sender=None
-):
+) -> bool:
     with uow:
         manager = ensure_manager(uow, manager_id)
         ensure_not_self(uow, manager_id, employee_id)
@@ -408,13 +369,18 @@ def manual_ponto_correction(
         ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
         
         if not ponto:
+            if not any([arrival, lunch_start, lunch_end, departure]): return False
             ponto = DailyPonto(user_id=employee_id, entry_date=entry_date)
             user.time_entries.append(ponto)
         
-        ponto.arrival = arrival
-        ponto.lunch_start = lunch_start
-        ponto.lunch_end = lunch_end
-        ponto.departure = departure
+        changed = False
+        if ponto.arrival != arrival: ponto.arrival = arrival; changed = True
+        if ponto.lunch_start != lunch_start: ponto.lunch_start = lunch_start; changed = True
+        if ponto.lunch_end != lunch_end: ponto.lunch_end = lunch_end; changed = True
+        if ponto.departure != departure: ponto.departure = departure; changed = True
+        
+        if not changed: return False
+
         ponto.status = PontoStatus.CORRECTED
         manager_name = manager.profile.full_name or manager.email
         ponto.location_data += f" | Corrigido manualmente por Gestor: {manager_name}"
@@ -423,6 +389,7 @@ def manual_ponto_correction(
         uow.commit()
         uow.record_action(manager_id, "MANUAL_CORRECTION", target_id=employee_id, details=f"Date: {entry_date}")
         uow.commit()
+        return True
 
 def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
     with uow:
@@ -438,7 +405,6 @@ def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
                 "Almoço (Vol)": p.lunch_end.strftime("%H:%M:%S") if p.lunch_end else "-",
                 "Fim": p.departure.strftime("%H:%M:%S") if p.departure else "-",
                 "Status": p.status.value,
-                "Justificativa": p.justification or "-",
                 "Notas": p.notes or "-",
                 "Minutos Trabalhados": p.worked_minutes,
                 "Localização": p.location_data
@@ -587,41 +553,6 @@ def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: in
             uow.commit()
             uow.record_action(manager_id, "DELETE_JOURNEY_TYPE", target_id=journey_id, details=f"Deleted: {name}")
             uow.commit()
-
-def submit_justification(uow: AbstractUnitOfWork, user_id: int, entry_date: date, justification: str):
-    with uow:
-        user = uow.users.get_user_by_id(user_id)
-        if not user:
-            raise ValueError("User not found.")
-        
-        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
-        if not ponto:
-             ponto = DailyPonto(user_id=user_id, entry_date=entry_date, status=PontoStatus.MISSING)
-             user.time_entries.append(ponto)
-        
-        ponto.justification = justification
-        uow.commit()
-        uow.record_action(user_id, "SUBMIT_JUSTIFICATION", target_id=user_id, details=f"Date: {entry_date}")
-        uow.commit()
-
-def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date):
-    with uow:
-        manager = ensure_manager(uow, manager_id)
-        user = uow.users.get_user_by_id(employee_id)
-        if not user:
-            raise ValueError("Employee not found.")
-        
-        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
-        if not ponto:
-            raise ValueError(f"No record found for date {entry_date}.")
-        if not ponto.has_anomaly:
-            raise ValueError(f"No anomaly (late/missing) found for date {entry_date}. Status: {ponto.status.value}")
-            
-        ponto.status = PontoStatus.DISMISSED.value
-        ponto.location_data += f" | Justificativa dispensada por: {manager.profile.full_name or manager.email}"
-        uow.commit()
-        uow.record_action(manager_id, "DISMISS_JUSTIFICATION", target_id=employee_id, details=f"Date: {entry_date}")
-        uow.commit()
 
 def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: int, entry_date: date, stage: str, approved: bool):
     with uow:
