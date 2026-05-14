@@ -58,6 +58,11 @@
                     </div>
 
                     <hr>
+                    <div class="mb-3">
+                        <label class="form-label">Data de Início da Análise</label>
+                        <input type="date" name="start_analysis_date" class="form-control" value="{{ user.profile.start_analysis_date.strftime('%Y-%m-%d') if user.profile.start_analysis_date else '2026-01-01' }}" {% if current_user.role != 'admin' %}readonly{% endif %}>
+                    </div>
+
                     <div class="d-grid gap-2">
                         <button type="submit" class="btn btn-primary text-white">Salvar Alterações</button>
                         <a href="{{ url_for('dashboard') }}" class="btn btn-light">Voltar</a>

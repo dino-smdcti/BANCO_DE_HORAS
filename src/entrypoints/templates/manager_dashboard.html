@@ -114,37 +114,8 @@
     </div>
 </div>
 
+
 {% if current_user.role == 'admin' %}
-<div class="card shadow border-danger mb-4">
-    <div class="card-header bg-danger text-white">
-        <h5 class="mb-0">Configurações de Análise</h5>
-    </div>
-    <div class="card-body">
-        <p class="text-danger">Sistema calculando saldos desde: <strong>{{ analysis_date.strftime('%d/%m/%Y') }}</strong></p>
-        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#editAnalysisDateModal">Alterar Data</button>
-    </div>
-</div>
-
-<!-- Edit Analysis Date Modal -->
-<div class="modal fade" id="editAnalysisDateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form action="{{ url_for('update_analysis_date') }}" method="POST" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Alterar Data de Início de Análise</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="small text-muted">Atenção: A alteração desta data impactará o cálculo de saldo de todos os usuários do sistema.</p>
-                <input type="date" name="start_date" class="form-control" value="{{ analysis_date.strftime('%Y-%m-%d') }}" required>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-danger" onclick="return confirm('Tem certeza que deseja alterar a data de início da análise? Esta ação pode alterar o saldo retroativo de todos os funcionários.')">Confirmar Alteração</button>
-            </div>
-        </form>
-    </div>
-</div>
-{% endif %}
-
 <!-- Holiday Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
     <div class="modal-dialog">
@@ -173,4 +144,5 @@
         </form>
     </div>
 </div>
+{% endif %}
 {% endblock %}

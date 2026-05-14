@@ -416,6 +416,9 @@ def profile():
                         request.form.get("secretariat"),
                         request.form.get("full_name")
                     )
+                    # Update analysis date
+                    analysis_date = datetime.strptime(request.form.get("start_analysis_date"), "%Y-%m-%d").date()
+                    user.profile.start_analysis_date = analysis_date
                 
                 flash("Perfil atualizado!", "success")
                 return redirect(url_for("dashboard"))

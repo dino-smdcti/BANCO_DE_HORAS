@@ -267,7 +267,9 @@ function openReviewModal(entryDate, stage, stageLabel) {
     form.onsubmit = function(e) {
         e.preventDefault();
         const action = e.submitter.value;
-        const url = `{{ url_for('review_badge', employee_id=employee.user_id, entry_date='DATE_PLACEHOLDER', stage='STAGE_PLACEHOLDER', action='ACTION_PLACEHOLDER') }}`
+        const employeeId = '{{ employee.user_id }}';
+        let url = `{{ url_for('review_badge', employee_id=0, entry_date='DATE_PLACEHOLDER', stage='STAGE_PLACEHOLDER', action='ACTION_PLACEHOLDER') }}`
+            .replace('/0/', '/' + employeeId + '/')
             .replace('DATE_PLACEHOLDER', entryDate)
             .replace('STAGE_PLACEHOLDER', stage)
             .replace('ACTION_PLACEHOLDER', action);
