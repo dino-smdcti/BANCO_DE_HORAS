@@ -345,9 +345,11 @@ def manual_ponto_correction(
         
         if not ponto:
             if not any([arrival, lunch_start, lunch_end, departure]): return False
-            ponto = DailyPonto(user_id=employee_id, entry_date=entry_date)
-            user.time_entries.append(ponto)
-        
+            if not ponto:
+                has_lunch = user.work_schedule.has_lunch_break if user.work_schedule else True
+                ponto = DailyPonto(user_id=employee_id, entry_date=entry_date, has_lunch_break=has_lunch)
+                user.time_entries.append(ponto)
+
         changed = False
         if ponto.arrival != arrival: ponto.arrival = arrival; changed = True
         if ponto.lunch_start != lunch_start: ponto.lunch_start = lunch_start; changed = True

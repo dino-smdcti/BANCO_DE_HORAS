@@ -646,6 +646,10 @@ def management_panel():
             uow.session.refresh(e)
             
         pending_anomalies = [p for e in employees for p in e.time_entries if p.has_anomaly]
+        pending_anomalies = [
+            {"emp": e, "ponto": p} for e in employees 
+            for p in e.time_entries if p.has_anomaly
+        ]
         dismissed_justs = [
             {"emp": e, "ponto": p} for e in employees 
             for p in e.time_entries if p.status == PontoStatus.DISMISSED
@@ -668,6 +672,7 @@ def management_panel():
                              employees=employees, 
                              today=date.today(),
                              analysis_date=analysis_date,
+                             pending_anomalies=pending_anomalies,
                              dismissed_justs=dismissed_justs,
                              pending_corrections=corrections_display)
 
