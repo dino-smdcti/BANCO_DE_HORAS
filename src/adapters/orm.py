@@ -151,6 +151,7 @@ def start_mappers():
                 users.c.position,
                 users.c.secretariat,
                 users.c.full_name,
+                users.c.start_analysis_date,
             ),
             "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date, cascade="all, delete-orphan"),
             "vacations": relationship(Vacation, backref="user", cascade="all, delete-orphan"),
