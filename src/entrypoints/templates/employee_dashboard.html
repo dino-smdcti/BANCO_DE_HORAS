@@ -220,8 +220,7 @@
                     <div class="card-body text-center">
                         <h6 class="text-muted text-uppercase small">Saldo do dia</h6>
                         {% set total_worked = worked_hoje if worked_hoje is defined else 0 %}
-                        {% set total_target = expected_daily if expected_daily is defined else 0 %}
-                        <h4 class="mb-1 text-muted small">{{ total_worked // 60 }}h {{ total_worked % 60 }}m / {{ total_target // 60 }}h {{ total_target % 60 }}m</h4>
+                        <h4 class="mb-1 text-muted small">({{ total_worked // 60 }}h {{ total_worked % 60 }}m)</h4>
                         <h3 class="fw-bold {{ 'text-success' if saldo_dia >= 0 else 'text-danger' }}">
                             {{ '+' if saldo_dia >= 0 else '-' }}{{ (saldo_dia|abs // 60) }}h {{ (saldo_dia|abs % 60) }}m
                         </h3>
