@@ -637,7 +637,9 @@ def management_panel():
     uow = SqlAlchemyUnitOfWork()
     with uow:
         employees = services.get_all_employees(uow, requester_id=int(current_user.id))
+        from src.service_layer.auto_log import generate_automatic_logs
         for e in employees:
+            generate_automatic_logs(uow, e)
             uow.session.refresh(e)
             
         pending_anomalies = [p for e in employees for p in e.time_entries if p.has_anomaly]
