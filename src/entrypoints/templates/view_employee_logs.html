@@ -85,7 +85,7 @@
                         <tr class="{% if p.has_anomaly and p.status.value not in ['Justificado', 'Dispensado'] %}table-warning{% elif p.status.value == 'Corrigido' %}table-success{% endif %}">
                             <td>
                                 {% if p.notes %}
-                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="{{ p.notes }}" onclick="alert('Nota: {{ p.notes|replace("\'", "\\\'")|replace("\n", " ") }}')">
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" onclick="openViewNoteModal('{{ p.entry_date }}', '{{ p.notes|replace("\'", "\\\'")|replace("\n", " ") }}')">
                                         <i class="bi bi-sticky-fill fs-5"></i>
                                     </button>
                                 {% else %}
@@ -220,7 +220,37 @@
     </div>
 </div>
 
+<!-- View Note Modal -->
+<div class="modal fade" id="viewNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nota do Ponto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Data: <span id="display_note_view_date" class="fw-bold"></span></label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nota do Funcionário</label>
+                    <textarea id="note_view_text" class="form-control" rows="5" readonly></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+function openViewNoteModal(entryDate, noteText) {
+    document.getElementById('display_note_view_date').innerText = entryDate;
+    document.getElementById('note_view_text').value = noteText;
+    new bootstrap.Modal(document.getElementById('viewNoteModal')).show();
+}
+
 function openReviewModal(entryDate, stage, stageLabel) {
     const info = document.getElementById('reviewBadgeInfo');
     info.innerHTML = `Data: <strong>${entryDate}</strong><br>Anomalia: <strong>${stageLabel}</strong>`;
