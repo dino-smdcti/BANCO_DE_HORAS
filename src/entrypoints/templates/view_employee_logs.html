@@ -183,7 +183,9 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{{ url_for('delete_ponto', employee_id=employee.user_id, entry_date=p.entry_date) }}" method="POST" class="btn btn-sm btn-danger btn-compact" onclick="return confirm('Excluir?');">Excluir</a>
+                                    <form action="{{ url_for('delete_ponto', employee_id=employee.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger btn-compact" onclick="return confirm('Excluir?');">Excluir</button>
+                                    </form>
                                 </td>
                             </tr>
                         {% else %}

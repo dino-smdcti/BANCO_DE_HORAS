@@ -19,6 +19,7 @@ def generate_automatic_logs(uow, user):
     start_date = settings.start_analysis_date if settings else date(2026, 1, 1)
 
     # Get all existing log dates for the user
+    # Ensure to include logs currently added in the same unit of work
     existing_log_dates = {p.entry_date for p in user.time_entries}
 
     current = start_date
@@ -42,6 +43,7 @@ def generate_automatic_logs(uow, user):
                 )
                 user.time_entries.append(new_ponto)
                 uow.session.add(new_ponto)
+                # Important: update the set to prevent duplicates in this loop!
                 existing_log_dates.add(current)
         
         current += timedelta(days=1)
