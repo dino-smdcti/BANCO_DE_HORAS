@@ -91,7 +91,6 @@ correction_requests = Table(
     Column("ponto_date", Date, nullable=False),
     Column("stage", String(50), nullable=False),
     Column("proposed_time", Time, nullable=False),
-    Column("justification", String(500), nullable=False),
     Column("status", String(20), default="pending"),
     Column("created_at", DateTime, default=datetime.now),
 )
