@@ -231,7 +231,7 @@
                 <div class="card shadow border-primary">
                     <div class="card-body text-center">
                         <h6 class="text-muted text-uppercase small">Saldo total</h6>
-                        <p class="small text-muted mb-1" style="font-size: 0.6rem;">(Apenas dias completos)</p>
+                        <p class="small text-muted mb-1" style="font-size: 0.6rem;">(dias completos)</p>
                         <h3 class="fw-bold {{ 'text-success' if saldo_total >= 0 else 'text-danger' }}">
                             {{ '+' if saldo_total >= 0 else '-' }}{{ (saldo_total|abs // 60) }}h {{ (saldo_total|abs % 60) }}m
                         </h3>
