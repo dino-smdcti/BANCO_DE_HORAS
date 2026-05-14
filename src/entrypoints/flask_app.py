@@ -651,16 +651,13 @@ def management_panel():
                 "user_name": user.profile.full_name or user.email,
                 "date": c.ponto_date,
                 "stage": c.stage,
-                "time": c.proposed_time,
-                "justification": c.justification
+                "time": c.proposed_time
             })
 
         return render_template("manager_dashboard.html", 
                              employees=employees, 
                              today=date.today(),
                              analysis_date=analysis_date,
-                             pending_justs={"found": len(pending_justs) > 0, "entries": pending_justs},
-                             dismissed_justs=dismissed_justs,
                              pending_corrections=corrections_display)
 
 @app.route("/admin/update-analysis-date", methods=["POST"])
@@ -692,10 +689,9 @@ def submit_correction():
         ponto_date = datetime.strptime(request.form.get("ponto_date"), "%Y-%m-%d").date()
         stage = request.form.get("stage")
         proposed_time = datetime.strptime(request.form.get("proposed_time"), "%H:%M").time()
-        justification = request.form.get("justification")
         
         uow = SqlAlchemyUnitOfWork()
-        services.submit_correction_request(uow, current_user.id, ponto_date, stage, proposed_time, justification)
+        services.submit_correction_request(uow, current_user.id, ponto_date, stage, proposed_time)
         flash("Pedido de correção enviado para análise.", "success")
     except Exception as e:
         flash(f"Erro ao enviar correção: {str(e)}", "danger")
