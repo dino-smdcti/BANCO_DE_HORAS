@@ -65,18 +65,40 @@
 </div>
 
 <div class="card shadow border-warning mb-4">
-    <div class="card-header bg-warning text-dark">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Registros com Anomalias</h5>
     </div>
-    <div class="card-body p-0">
+    <div class="card-body">
+        <form method="GET" class="row g-3 mb-3">
+            <div class="col-md-4">
+                <select name="emp_filter" class="form-select form-select-sm">
+                    <option value="">Todos os Funcionários</option>
+                    {% for e in employees %}
+                        <option value="{{ e.user_id }}" {% if request.args.get('emp_filter') == e.user_id|string %}selected{% endif %}>
+                            {{ e.profile.full_name or e.email }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="date" name="date_filter" class="form-control form-control-sm" value="{{ request.args.get('date_filter', '') }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+            </div>
+        </form>
+
         <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead>
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
                     <tr>
                         <th>Funcionário</th>
                         <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Ações</th>
+                        <th>Chegada</th>
+                        <th>Almoço (Sai)</th>
+                        <th>Almoço (Vol)</th>
+                        <th>Fim</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -84,16 +106,18 @@
                         <tr>
                             <td>{{ item.emp.profile.full_name or item.emp.email }}</td>
                             <td>{{ item.ponto.entry_date.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ item.ponto.arrival.strftime('%H:%M:%S') if item.ponto.arrival else '-' }}</td>
+                            <td>{{ item.ponto.lunch_start.strftime('%H:%M:%S') if item.ponto.lunch_start else '-' }}</td>
+                            <td>{{ item.ponto.lunch_end.strftime('%H:%M:%S') if item.ponto.lunch_end else '-' }}</td>
+                            <td>{{ item.ponto.departure.strftime('%H:%M:%S') if item.ponto.departure else '-' }}</td>
                             <td>
-                                <span class="badge bg-danger">Anomalia</span>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('view_employee_logs', employee_id=item.emp.user_id) }}" class="btn btn-sm btn-outline-warning">Revisar</a>
+                                <span class="badge bg-danger">{{ item.ponto.status_label }}</span>
+                                <a href="{{ url_for('view_employee_logs', employee_id=item.emp.user_id) }}" class="btn btn-sm btn-link p-0 ms-2">Revisar</a>
                             </td>
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="4" class="text-center py-3 text-muted small">Nenhuma anomalia encontrada.</td>
+                            <td colspan="7" class="text-center py-3 text-muted small">Nenhuma anomalia encontrada.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

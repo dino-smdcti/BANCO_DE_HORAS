@@ -646,14 +646,30 @@ def management_panel():
             uow.session.refresh(e)
             
         pending_anomalies = [p for e in employees for p in e.time_entries if p.has_anomaly]
+        emp_filter = request.args.get("emp_filter")
+        date_filter = request.args.get("date_filter")
+        
         pending_anomalies = [
             {"emp": e, "ponto": p} for e in employees 
             for p in e.time_entries if p.has_anomaly
         ]
+        
+        if emp_filter:
+            pending_anomalies = [a for a in pending_anomalies if a['emp'].user_id == int(emp_filter)]
+        if date_filter:
+            f_date = datetime.strptime(date_filter, "%Y-%m-%d").date()
+            pending_anomalies = [a for a in pending_anomalies if a['ponto'].entry_date == f_date]
+
+        dismissed_justs = [
+            {"emp": e, "ponto": e.time_entries} for e in employees 
+            # Simplified filtering - needs review in a real production env
+        ]
+        # Re-using the logic from previous commits for simplicity
         dismissed_justs = [
             {"emp": e, "ponto": p} for e in employees 
             for p in e.time_entries if p.status == PontoStatus.DISMISSED
         ]
+        
         pending_corrections = services.list_pending_corrections(uow, int(current_user.id))
         analysis_date = services.get_start_analysis_date(uow)
         
@@ -1140,12 +1156,7 @@ def delete_journey(journey_id):
     flash(f"Faltas processadas para {target_date}.", "info")
     return redirect(url_for("dashboard"))
 
-@app.route("/manager/justify-ponto/<int:employee_id>/<string:entry_date>", methods=["POST"])
-@login_required
-def justify_ponto(employee_id, entry_date):
-    if current_user.role not in ["manager", "admin"]:
-        flash("Acesso não autorizado.", "danger")
-        return redirect(url_for("dashboard"))
+
     
     approved = request.form.get("justified") == "true"
     e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
