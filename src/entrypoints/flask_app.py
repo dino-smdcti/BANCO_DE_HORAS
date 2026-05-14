@@ -792,6 +792,92 @@ def view_employee_logs(employee_id):
         recent_entries = sorted(employee.time_entries, key=lambda x: x.entry_date, reverse=True)
         return render_template("view_employee_logs.html", employee=employee, recent_entries=recent_entries)
 
+@app.route("/manager/bulk-fix-ponto/<int:employee_id>", methods=["POST"])
+@login_required
+def bulk_fix_ponto(employee_id):
+    if current_user.role not in ["manager", "admin"]:
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("dashboard"))
+
+    uow = SqlAlchemyUnitOfWork()
+    dates = request.form.getlist("dates")
+    
+    def parse_time(val):
+        if not val: return None
+        for fmt in ("%H:%M:%S", "%H:%M"):
+            try:
+                return datetime.strptime(val, fmt).time()
+            except ValueError:
+                continue
+        return None
+
+    try:
+        for entry_date_str in dates:
+            entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
+            arrival = parse_time(request.form.get(f"arrival_{entry_date_str}"))
+            lunch_start = parse_time(request.form.get(f"lunch_start_{entry_date_str}"))
+            lunch_end = parse_time(request.form.get(f"lunch_end_{entry_date_str}"))
+            departure = parse_time(request.form.get(f"departure_{entry_date_str}"))
+
+            services.manual_ponto_correction(
+                uow,
+                current_user.id,
+                employee_id,
+                entry_date,
+                arrival,
+                lunch_start,
+                lunch_end,
+                departure
+            )
+        flash("Registros atualizados com sucesso.", "success")
+    except Exception as e:
+        flash(f"Erro ao processar correções: {str(e)}", "danger")
+
+    return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
+@app.route("/manager/bulk-fix-ponto/<int:employee_id>", methods=["POST"])
+@login_required
+def bulk_fix_ponto(employee_id):
+    if current_user.role not in ["manager", "admin"]:
+        flash("Acesso não autorizado.", "danger")
+        return redirect(url_for("dashboard"))
+
+    uow = SqlAlchemyUnitOfWork()
+    dates = request.form.getlist("dates")
+    
+    def parse_time(val):
+        if not val: return None
+        for fmt in ("%H:%M:%S", "%H:%M"):
+            try:
+                return datetime.strptime(val, fmt).time()
+            except ValueError:
+                continue
+        return None
+
+    try:
+        for entry_date_str in dates:
+            entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
+            arrival = parse_time(request.form.get(f"arrival_{entry_date_str}"))
+            lunch_start = parse_time(request.form.get(f"lunch_start_{entry_date_str}"))
+            lunch_end = parse_time(request.form.get(f"lunch_end_{entry_date_str}"))
+            departure = parse_time(request.form.get(f"departure_{entry_date_str}"))
+
+            services.manual_ponto_correction(
+                uow,
+                current_user.id,
+                employee_id,
+                entry_date,
+                arrival,
+                lunch_start,
+                lunch_end,
+                departure
+            )
+        flash("Registros atualizados com sucesso.", "success")
+    except Exception as e:
+        flash(f"Erro ao processar correções: {str(e)}", "danger")
+
+    return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
 @app.route("/manager/fix-ponto/<int:employee_id>", methods=["GET", "POST"])
 @login_required
 def fix_ponto(employee_id):
