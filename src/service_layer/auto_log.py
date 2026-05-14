@@ -1,8 +1,9 @@
 from datetime import date, timedelta
-from src.domain.model import DailyPonto, PontoStatus, Vacation, Holiday, CompanySettings, User
+from src.domain.model import DailyPonto, PontoStatus, Vacation, Holiday, CompanySettings, User, UserRole
 
 def generate_automatic_logs(uow, user):
-    if not user.work_schedule:
+    # Only generate logs for employees
+    if user.role != UserRole.EMPLOYEE or not user.work_schedule:
         return
 
     today = date.today()
