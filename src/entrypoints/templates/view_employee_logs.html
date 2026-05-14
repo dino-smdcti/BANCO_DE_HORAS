@@ -173,6 +173,7 @@
                                     {% if p.status.value == 'No Horário' %}bg-success
                                     {% elif p.status.value in ['Atrasado', 'Faltante'] %}bg-danger
                                     {% elif p.status.value == 'Corrigido' %}bg-warning text-dark
+                                    {% elif p.status_label == 'Desconhecido' %}bg-secondary
                                     {% else %}bg-secondary{% endif %}">
                                     {{ p.status_label }}
                                 </span>
