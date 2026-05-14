@@ -126,12 +126,13 @@ class DailyPonto:
 
     @property
     def worked_minutes(self) -> int:
-        # New calculation rule: [LunchStart - Arrival] + [Departure - LunchEnd]
         if self.has_lunch_break:
+            # Traditional split-shift calculation
             return self._delta(self.arrival, self.lunch_start) + self._delta(self.lunch_end, self.departure)
         
         # If no lunch break, continuous block from arrival to departure
-        return self._delta(self.arrival, self.departure)
+        # Ensure we only return positive values
+        return max(0, self._delta(self.arrival, self.departure))
 
     def get_approved_bonus_minutes(self, schedule: WorkSchedule) -> int:
         bonus = 0
