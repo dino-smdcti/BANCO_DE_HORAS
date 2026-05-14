@@ -97,19 +97,71 @@
                                 <input type="hidden" name="entry_date" value="{{ p.entry_date }}">
                                 <td>
                                     <input type="text" name="arrival" value="{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                    {% if p.arrival_late %}<div class="mt-1"><span class="badge bg-danger">Atraso</span></div>{% endif %}
+                                    {% if p.arrival_late %}
+                                        <div class="mt-1">
+                                            {% if p.arrival_late_approved %}
+                                                <span class="badge bg-success" title="Atraso Aprovado">
+                                                    <i class="bi bi-check-circle"></i> Atraso
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'arrival', 'Atraso na Chegada')" style="cursor: pointer;"{% endif %}>
+                                                    Atraso
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_start" value="{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                    {% if p.lunch_start_late %}<div class="mt-1"><span class="badge bg-danger">Anomalia</span></div>{% endif %}
+                                    {% if p.lunch_start_late %}
+                                        <div class="mt-1">
+                                            {% if p.lunch_start_late_approved %}
+                                                <span class="badge bg-success" title="Anomalia Aprovada">
+                                                    <i class="bi bi-check-circle"></i> Anomalia
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_start', 'Anomalia no Almoço (Saída)')" style="cursor: pointer;"{% endif %}>
+                                                    Anomalia
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_end" value="{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                    {% if p.lunch_end_late %}<div class="mt-1"><span class="badge bg-danger">Atraso</span></div>{% endif %}
+                                    {% if p.lunch_end_late %}
+                                        <div class="mt-1">
+                                            {% if p.lunch_end_late_approved %}
+                                                <span class="badge bg-success" title="Atraso Aprovado">
+                                                    <i class="bi bi-check-circle"></i> Atraso
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_end', 'Atraso no Almoço (Volta)')" style="cursor: pointer;"{% endif %}>
+                                                    Atraso
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="departure" value="{{ p.departure.strftime('%H:%M:%S') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                    {% if p.departure_early %}<div class="mt-1"><span class="badge bg-danger">Saída Cedo</span></div>{% endif %}
+                                    {% if p.departure_early %}
+                                        <div class="mt-1">
+                                            {% if p.departure_early_approved %}
+                                                <span class="badge bg-success" title="Saída Cedo Aprovada">
+                                                    <i class="bi bi-check-circle"></i> Saída Cedo
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'departure', 'Saída Antecipada')" style="cursor: pointer;"{% endif %}>
+                                                    Saída Cedo
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
                                 </td>
                             <td>
                                 <small class="text-muted">{{ p.location_data[:20] }}{{ '...' if p.location_data|length > 20 else '' }}</small>
@@ -145,3 +197,49 @@
 </div>
 {% endblock %}
 
+{% block scripts %}
+<!-- Review Anomaly Modal -->
+<div class="modal fade" id="reviewBadgeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Revisar Anomalia Individual</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="reviewBadgeInfo"></p>
+                <p>Aprovar esta anomalia removerá a penalidade no banco de horas para este estágio específico.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="reviewBadgeForm" method="POST">
+                    <button type="submit" name="action" value="reject" class="btn btn-outline-danger">Manter Penalidade</button>
+                    <button type="submit" name="action" value="approve" class="btn btn-success">Aprovar (Remover Penalidade)</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openReviewModal(entryDate, stage, stageLabel) {
+    const info = document.getElementById('reviewBadgeInfo');
+    info.innerHTML = `Data: <strong>${entryDate}</strong><br>Anomalia: <strong>${stageLabel}</strong>`;
+    
+    const form = document.getElementById('reviewBadgeForm');
+    // We'll update the action URL dynamically
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        const action = e.submitter.value;
+        const url = `{{ url_for('review_badge', employee_id=employee.user_id, entry_date='DATE_PLACEHOLDER', stage='STAGE_PLACEHOLDER', action='ACTION_PLACEHOLDER') }}`
+            .replace('DATE_PLACEHOLDER', entryDate)
+            .replace('STAGE_PLACEHOLDER', stage)
+            .replace('ACTION_PLACEHOLDER', action);
+        
+        form.action = url;
+        form.submit();
+    };
+    
+    new bootstrap.Modal(document.getElementById('reviewBadgeModal')).show();
+}
+</script>
+{% endblock %}

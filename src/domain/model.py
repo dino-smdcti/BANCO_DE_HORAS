@@ -86,6 +86,11 @@ class DailyPonto:
     lunch_end_late: bool = False
     departure_early: bool = False
 
+    arrival_late_approved: bool = False
+    lunch_start_late_approved: bool = False
+    lunch_end_late_approved: bool = False
+    departure_early_approved: bool = False
+
     def get_placeholder(self, field: str, schedule: Optional[WorkSchedule]) -> Optional[time]:
         if not schedule: return None
         if field == "lunch_start" and not self.lunch_start: return schedule.expected_lunch_start
@@ -95,7 +100,15 @@ class DailyPonto:
 
     @property
     def has_anomaly(self) -> bool:
-        return any([self.arrival_late, self.lunch_start_late, self.lunch_end_late, self.departure_early, self.status == PontoStatus.MISSING])
+        # If an anomaly was approved, we don't count it as a pending anomaly for review
+        # but we still want to know it happened.
+        return any([
+            self.arrival_late and not self.arrival_late_approved,
+            self.lunch_start_late and not self.lunch_start_late_approved,
+            self.lunch_end_late and not self.lunch_end_late_approved,
+            self.departure_early and not self.departure_early_approved,
+            self.status == PontoStatus.MISSING
+        ])
 
     @property
     def current_stage(self) -> str:
@@ -106,20 +119,41 @@ class DailyPonto:
         if not self.departure: return "Fim Jornada"
         return "Jornada Completa"
 
+    def _delta(self, t1, t2):
+        if not t1 or not t2: return 0
+        d1 = datetime.combine(date.min, t1)
+        d2 = datetime.combine(date.min, t2)
+        return int((d2 - d1).total_seconds() / 60)
+
     @property
     def worked_minutes(self) -> int:
-        def delta(t1, t2):
-            if not t1 or not t2: return 0
-            d1 = datetime.combine(date.min, t1)
-            d2 = datetime.combine(date.min, t2)
-            return int((d2 - d1).total_seconds() / 60)
-        
         # New calculation rule: [LunchStart - Arrival] + [Departure - LunchEnd]
         if self.has_lunch_break:
-            return delta(self.arrival, self.lunch_start) + delta(self.lunch_end, self.departure)
+            return self._delta(self.arrival, self.lunch_start) + self._delta(self.lunch_end, self.departure)
         
         # If no lunch break, continuous block from arrival to departure
-        return delta(self.arrival, self.departure)
+        return self._delta(self.arrival, self.departure)
+
+    def get_approved_bonus_minutes(self, schedule: WorkSchedule) -> int:
+        bonus = 0
+        if self.arrival_late_approved and self.arrival:
+            # How many minutes did they lose?
+            lost = self._delta(schedule.expected_arrival, self.arrival)
+            if lost > 0: bonus += lost
+        
+        if self.lunch_start_late_approved and self.lunch_start:
+            lost = self._delta(self.lunch_start, schedule.expected_lunch_start)
+            if lost > 0: bonus += lost
+
+        if self.lunch_end_late_approved and self.lunch_end:
+            lost = self._delta(schedule.expected_lunch_end, self.lunch_end)
+            if lost > 0: bonus += lost
+
+        if self.departure_early_approved and self.departure:
+            lost = self._delta(self.departure, schedule.expected_departure)
+            if lost > 0: bonus += lost
+            
+        return bonus
 
     def get_predicted_worked_minutes(self, schedule: WorkSchedule) -> int:
         def delta(t1, t2):
@@ -232,7 +266,8 @@ class User:
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
             else:
-                balance += (p.worked_minutes - target_minutes)
+                day_worked = p.worked_minutes + p.get_approved_bonus_minutes(self.work_schedule)
+                balance += (day_worked - target_minutes)
         return balance
 
     @property
@@ -257,4 +292,5 @@ class User:
         p = next((p for p in self.time_entries if p.entry_date == today), None)
         if not p or not p.is_complete: return 0
         
-        return p.worked_minutes - target_minutes
+        day_worked = p.worked_minutes + p.get_approved_bonus_minutes(self.work_schedule)
+        return day_worked - target_minutes

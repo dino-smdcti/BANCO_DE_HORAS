@@ -49,7 +49,15 @@
                             <td>
                                 {{ p.arrival.strftime('%H:%M:%S') if p.arrival else ('FALTA' if p.status.value == 'Faltante' else '-') }}
                                 {% if p.status.value != 'Corrigido' and p.arrival_late %}
-                                    <div class="mt-1"><span class="badge bg-danger">Atraso</span></div>
+                                    <div class="mt-1">
+                                        {% if p.arrival_late_approved %}
+                                            <span class="badge bg-success" title="Atraso Aprovado">
+                                                <i class="bi bi-check-circle"></i> Atraso
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Atraso</span>
+                                        {% endif %}
+                                    </div>
                                 {% endif %}
                             </td>
 
@@ -57,7 +65,15 @@
                             <td>
                                 {{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '-' }}
                                 {% if p.status.value != 'Corrigido' and p.lunch_start_late %}
-                                    <div class="mt-1"><span class="badge bg-danger">Anomalia</span></div>
+                                    <div class="mt-1">
+                                        {% if p.lunch_start_late_approved %}
+                                            <span class="badge bg-success" title="Anomalia Aprovada">
+                                                <i class="bi bi-check-circle"></i> Anomalia
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Anomalia</span>
+                                        {% endif %}
+                                    </div>
                                 {% endif %}
                             </td>
 
@@ -65,7 +81,15 @@
                             <td>
                                 {{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '-' }}
                                 {% if p.status.value != 'Corrigido' and p.lunch_end_late %}
-                                    <div class="mt-1"><span class="badge bg-danger">Atraso</span></div>
+                                    <div class="mt-1">
+                                        {% if p.lunch_end_late_approved %}
+                                            <span class="badge bg-success" title="Atraso Aprovado">
+                                                <i class="bi bi-check-circle"></i> Atraso
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Atraso</span>
+                                        {% endif %}
+                                    </div>
                                 {% endif %}
                             </td>
 
@@ -73,7 +97,15 @@
                             <td>
                                 {{ p.departure.strftime('%H:%M:%S') if p.departure else '-' }}
                                 {% if p.status.value != 'Corrigido' and p.departure_early %}
-                                    <div class="mt-1"><span class="badge bg-danger">Saída Cedo</span></div>
+                                    <div class="mt-1">
+                                        {% if p.departure_early_approved %}
+                                            <span class="badge bg-success" title="Saída Cedo Aprovada">
+                                                <i class="bi bi-check-circle"></i> Saída Cedo
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Saída Cedo</span>
+                                        {% endif %}
+                                    </div>
                                 {% endif %}
                             </td>
                                     <td class="fw-bold text-primary">{{ p.worked_minutes // 60 }}h {{ p.worked_minutes % 60 }}m</td>

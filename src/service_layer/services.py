@@ -648,3 +648,29 @@ def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id:
         uow.record_action(manager_id, "DISMISS_JUSTIFICATION", target_id=employee_id, details=f"Date: {entry_date}")
         uow.commit()
 
+def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: int, entry_date: date, stage: str, approved: bool):
+    with uow:
+        admin = uow.users.get_user_by_id(admin_id)
+        if not admin or admin.role != UserRole.ADMIN:
+            raise PermissionError("Apenas o Administrador pode aprovar anomalias individuais.")
+        
+        user = uow.users.get_user_by_id(employee_id)
+        if not user: raise ValueError("Employee not found.")
+        
+        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
+        if not ponto: raise ValueError("Registro não encontrado.")
+        
+        if stage == "arrival": ponto.arrival_late_approved = approved
+        elif stage == "lunch_start": ponto.lunch_start_late_approved = approved
+        elif stage == "lunch_end": ponto.lunch_end_late_approved = approved
+        elif stage == "departure": ponto.departure_early_approved = approved
+        
+        # If all anomalies are approved, we might want to set the status to ON_TIME or JUSTIFIED?
+        # User said "in case of approval, there should be no penalty".
+        # The balance logic now accounts for this.
+        
+        uow.commit()
+        action = "APPROVE" if approved else "UNAPPROVE"
+        uow.record_action(admin_id, f"{action}_ANOMALY_BADGE", target_id=employee_id, details=f"Date: {entry_date}, Stage: {stage}")
+        uow.commit()
+

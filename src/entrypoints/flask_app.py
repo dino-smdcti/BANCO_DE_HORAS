@@ -1210,6 +1210,24 @@ def delete_ponto(employee_id, entry_date):
     flash("Registro de ponto excluído.", "warning")
     return redirect(url_for("view_employee_logs", employee_id=employee_id))
 
+@app.route("/manager/review-badge/<int:employee_id>/<string:entry_date>/<string:stage>/<string:action>", methods=["POST"])
+@login_required
+def review_badge(employee_id, entry_date, stage, action):
+    if current_user.role != "admin":
+        flash("Apenas o Administrador pode realizar esta ação.", "danger")
+        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
+    approved = (action == "approve")
+    e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+    uow = SqlAlchemyUnitOfWork()
+    try:
+        services.review_anomaly_badge(uow, int(current_user.id), employee_id, e_date, stage, approved)
+        flash("Badge de anomalia atualizado com sucesso.", "success")
+    except Exception as e:
+        flash(str(e), "danger")
+    
+    return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
 @app.route("/logout")
 @login_required
 def logout():

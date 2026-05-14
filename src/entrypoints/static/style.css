@@ -83,6 +83,13 @@ html, body {
     font-size: 0.85rem;
 }
 
+.badge {
+    padding: 0.35em 0.5em;
+    white-space: normal;
+    display: inline-block;
+    width: fit-content;
+}
+
 .btn-grab-attention {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     color: var(--white);
