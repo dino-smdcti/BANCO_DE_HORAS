@@ -439,6 +439,7 @@ def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
                 "Fim": p.departure.strftime("%H:%M:%S") if p.departure else "-",
                 "Status": p.status.value,
                 "Justificativa": p.justification or "-",
+                "Notas": p.notes or "-",
                 "Minutos Trabalhados": p.worked_minutes,
                 "Localização": p.location_data
             })

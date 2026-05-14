@@ -68,6 +68,7 @@
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th>Nota</th>
                         <th>Data</th>
                         <th>Chegada</th>
                         <th>Almoço (Sai)</th>
@@ -82,7 +83,15 @@
                 <tbody>
                     {% for p in recent_entries %}
                         <tr class="{% if p.has_anomaly and p.status.value not in ['Justificado', 'Dispensado'] %}table-warning{% elif p.status.value == 'Corrigido' %}table-success{% endif %}">
-                        <tr class="{% if p.has_anomaly and p.status.value not in ['Justificado', 'Dispensado'] %}table-warning{% elif p.status.value == 'Corrigido' %}table-success{% endif %}">
+                            <td>
+                                {% if p.notes %}
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="{{ p.notes }}" onclick="alert('Nota: {{ p.notes|replace("\'", "\\\'")|replace("\n", " ") }}')">
+                                        <i class="bi bi-sticky-fill fs-5"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
                             <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
                             <form action="{{ url_for('fix_ponto', employee_id=employee.user_id) }}" method="POST">
                                 <input type="hidden" name="entry_date" value="{{ p.entry_date }}">
@@ -103,13 +112,19 @@
                                     {% if p.departure_early %}<div class="mt-1"><span class="badge bg-danger">Saída Cedo</span></div>{% endif %}
                                 </td>
                             <td>
-                                <!-- Status/Details remain static -->
+                                <small class="text-muted">{{ p.location_data[:20] }}{{ '...' if p.location_data|length > 20 else '' }}</small>
                             </td>
                             <td>
-                                <!-- Status Badge -->
+                                <span class="badge {% if p.status.value == 'No Horário' %}bg-success{% elif p.status.value == 'Faltante' %}bg-danger{% else %}bg-info{% endif %}">
+                                    {{ p.status_label }}
+                                </span>
                             </td>
                             <td>
-                                <!-- Justification -->
+                                {% if p.justification %}
+                                    <small class="text-muted italic">"{{ p.justification[:30] }}{{ '...' if p.justification|length > 30 else '' }}"</small>
+                                {% else %}
+                                    -
+                                {% endif %}
                             </td>
                             <td>
                                 <button type="submit" class="btn btn-sm btn-warning btn-compact">Corrigir</button>
@@ -120,9 +135,8 @@
                             </td>
                             </form>
                         </tr>
-                        </tr>
                     {% else %}
-                        <tr><td colspan="7" class="text-center py-4 text-muted">Nenhum registro encontrado.</td></tr>
+                        <tr><td colspan="10" class="text-center py-4 text-muted">Nenhum registro encontrado.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
