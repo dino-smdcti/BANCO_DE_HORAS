@@ -17,15 +17,24 @@ def generate_automatic_logs(uow, user):
         return
 
     # Use user-specific start analysis date
-    start_date = user.profile.start_analysis_date
+    start_date = user.profile.start_analysis_date or date(2026, 5, 11)
 
     # Get all existing log dates from DB
     existing_log_dates = {p.entry_date for p in user.time_entries}
 
     current = start_date
     while current < today:
+        # Strictly ensure we don't process dates before the defined start date
+        if current < start_date:
+            current += timedelta(days=1)
+            continue
+            
+        # Check if weekday
         if current.weekday() < 5:
+            # Check for holiday
             is_holiday = uow.session.query(Holiday).filter_by(holiday_date=current).first() is not None
+            
+            # Check for vacation
             on_vacation = any(v.start_date <= current <= v.end_date for v in user.vacations)
             
             if not is_holiday and not on_vacation and current not in existing_log_dates:
