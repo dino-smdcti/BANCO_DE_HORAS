@@ -47,7 +47,9 @@
                             <td>{{ item.ponto.justification }}</td>
                             <td>
                                 {% if item.ponto.notes %}
-                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" onclick="openViewNoteModal('{{ item.ponto.entry_date }}', '{{ item.ponto.notes|replace("\'", "\\\'")|replace("\n", " ") }}')">
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" 
+                                            onclick="openViewNoteModal('{{ item.ponto.entry_date }}', this.getAttribute('data-note'))"
+                                            data-note="{{ item.ponto.notes }}">
                                         <i class="bi bi-sticky-fill fs-6"></i>
                                         <small>{{ item.ponto.notes[:10] }}{{ '...' if item.ponto.notes|length > 10 else '' }}</small>
                                     </button>

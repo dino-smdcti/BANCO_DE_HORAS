@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -102,7 +102,9 @@
                                     </td>
                                     <td>
                                         {% if p.notes %}
-                                            <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" onclick="openViewNoteModal('{{ p.entry_date }}', '{{ p.notes|replace("\'", "\\\'")|replace("\n", " ") }}')">
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" 
+                                                    onclick="openViewNoteModal('{{ p.entry_date }}', this.getAttribute('data-note'))"
+                                                    data-note="{{ p.notes }}">
                                                 <i class="bi bi-sticky-fill fs-6"></i>
                                                 <small>{{ p.notes[:10] }}{{ '...' if p.notes|length > 10 else '' }}</small>
                                             </button>
@@ -261,30 +263,6 @@
         </form>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_modals %}
-<!-- Missing Registros Modal -->
-<div class="modal fade" id="missingModal" tabindex="-1">
-    <div class="modal-diaRegistro">
-        <form action="{{ url_for('generate_missing') }}" method="POST" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Processar Faltas do Dia</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>O sistema criará registros de falta para todos os funcionários que não registraram ponto na data selecionada.</p>
-                <div class="mb-3">
-                    <label class="form-label">Data de Verificação</label>
-                    <input type="date" name="target_date" class="form-control" value="{{ today }}" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">Processar</button>
-            </div>
-        </form>
-    </div>
-</div>
 
 <div class="card shadow border-secondary mt-4">
     <div class="card-header bg-secondary text-white">
@@ -309,7 +287,9 @@
                             <td><small class="text-muted">"{{ item.ponto.justification }}"</small></td>
                             <td>
                                 {% if item.ponto.notes %}
-                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" onclick="openViewNoteModal('{{ item.ponto.entry_date }}', '{{ item.ponto.notes|replace("\'", "\\\'")|replace("\n", " ") }}')">
+                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" 
+                                            onclick="openViewNoteModal('{{ item.ponto.entry_date }}', this.getAttribute('data-note'))"
+                                            data-note="{{ item.ponto.notes }}">
                                         <i class="bi bi-sticky-fill fs-6"></i>
                                         <small>{{ item.ponto.notes[:10] }}{{ '...' if item.ponto.notes|length > 10 else '' }}</small>
                                     </button>
@@ -326,6 +306,30 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_modals %}
+<!-- Missing Registros Modal -->
+<div class="modal fade" id="missingModal" tabindex="-1">
+    <div class="modal-diaRegistro">
+        <form action="{{ url_for('generate_missing') }}" method="POST" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Processar Faltas do Dia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>O sistema criará registros de falta para todos os funcionários que não registraram ponto na data selecionada.</p>
+                <div class="mb-3">
+                    <label class="form-label">Data de Verificação</label>
+                    <input type="date" name="target_date" class="form-control" value="{{ today }}" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Processar</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -363,4 +367,3 @@ function openViewNoteModal(entryDate, noteText) {
 }
 </script>
 {% endblock %}
-
