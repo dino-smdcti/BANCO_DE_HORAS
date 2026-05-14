@@ -64,94 +64,6 @@
     </div>
 </div>
 
-<div class="card shadow border-warning mb-4">
-    <div class="card-header bg-warning text-dark">
-        <h5 class="mb-0">Justificativas Pendentes de Revisão</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Funcionário</th>
-                        <th>Data</th>
-                        <th>Tipo de Anomalia</th>
-                        <th>Justificativa</th>
-                        <th>Nota</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set pending_justs_found = namespace(found=false) %}
-                    {% for emp in employees %}
-                        {% for p in emp.time_entries %}
-                            {% if p.justification and p.status.value not in ['Justificado', 'Rejeitado'] %}
-                                {% set pending_justs_found.found = true %}
-                                <tr>
-                                    <td>{{ emp.profile.full_name or emp.email }}</td>
-                                    <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
-                                    <td>
-                                        {% if p.status.value == 'Faltante' %}
-                                            <span class="badge bg-danger">Falta</span>
-                                        {% else %}
-                                            <span class="badge bg-warning text-dark">Atraso/Saída Antecipada</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <i class="small text-muted">"{{ p.justification }}"</i>
-                                    </td>
-                                    <td>
-                                        {% if p.notes %}
-                                            <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" 
-                                                    onclick="openViewNoteModal('{{ p.entry_date }}', this.getAttribute('data-note'))"
-                                                    data-note="{{ p.notes }}">
-                                                <i class="bi bi-sticky-fill fs-6"></i>
-                                                <small>{{ p.notes[:10] }}{{ '...' if p.notes|length > 10 else '' }}</small>
-                                            </button>
-                                        {% else %}
-                                            <span class="text-muted small">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="text-nowrap">
-                                        {% if current_user.id != emp.user_id or current_user.role == 'admin' %}
-                                            <div class="btn-group btn-group-sm">
-                                                <form action="{{ url_for('justify_ponto', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
-                                                    <input type="hidden" name="justified" value="true">
-                                                    <button type="submit" class="btn btn-success" title="Aprovar">
-                                                        <i class="bi bi-check-lg"></i>
-                                                    </button>
-                                                </form>
-                                                <form action="{{ url_for('justify_ponto', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
-                                                    <input type="hidden" name="justified" value="false">
-                                                    <button type="submit" class="btn btn-outline-danger" title="Rejeitar">
-                                                        <i class="bi bi-x-lg"></i>
-                                                    </button>
-                                                </form>
-                                                <form action="{{ url_for('archive_justification', employee_id=emp.user_id, entry_date=p.entry_date.strftime('%Y-%m-%d')) }}" method="POST" class="d-inline">
-                                                    <button type="submit" class="btn btn-outline-secondary" title="Arquivar">
-                                                        <i class="bi bi-archive-fill"></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        {% else %}
-                                            <span class="badge bg-light text-dark">Aguardando Admin</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endif %}
-                        {% endfor %}
-                    {% endfor %}
-                    {% if not pending_justs_found.found %}
-                        <tr>
-                            <td colspan="5" class="text-center py-3 text-muted">Nenhuma justificativa pendente.</td>
-                        </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
 <div class="card shadow border-danger mb-4">
     <div class="card-header bg-danger text-white">
         <h5 class="mb-0">Correções Retroativas Pendentes</h5>
@@ -165,7 +77,6 @@
                         <th>Data</th>
                         <th>Estágio</th>
                         <th>Horário Proposto</th>
-                        <th>Justificativa</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -183,7 +94,6 @@
                                 {% endif %}
                             </td>
                             <td><span class="badge bg-dark">{{ c.time.strftime('%H:%M') }}</span></td>
-                            <td><small>"{{ c.justification }}"</small></td>
                             <td>
                                 <form action="{{ url_for('review_correction', request_id=c.id, action='Aprovar') }}" method="POST" class="d-inline">
                                     <button type="submit" class="btn btn-xs btn-success py-0" style="font-size: 0.7rem;">Aprovar</button>
@@ -195,7 +105,7 @@
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="6" class="text-center py-3 text-muted small">Nenhuma solicitação de correção pendente.</td>
+                            <td colspan="5" class="text-center py-3 text-muted small">Nenhuma solicitação de correção pendente.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -217,7 +127,7 @@
 
 <!-- Edit Analysis Date Modal -->
 <div class="modal fade" id="editAnalysisDateModal" tabindex="-1">
-    <div class="modal-diaRegistro">
+    <div class="modal-dialog">
         <form action="{{ url_for('update_analysis_date') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Alterar Data de Início de Análise</h5>
@@ -237,7 +147,7 @@
 
 <!-- Holiday Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
-    <div class="modal-diaRegistro">
+    <div class="modal-dialog">
         <form action="{{ url_for('add_holiday') }}" method="POST" class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Cadastrar Feriado / Ponto Facultativo</h5>
@@ -263,107 +173,4 @@
         </form>
     </div>
 </div>
-
-<div class="card shadow border-secondary mt-4">
-    <div class="card-header bg-secondary text-white">
-        <h5 class="mb-0">Justificativas Dispensadas</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Funcionário</th>
-                        <th>Data</th>
-                        <th>Justificativa</th>
-                        <th>Nota</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in dismissed_justs %}
-                        <tr>
-                            <td>{{ item.emp.profile.full_name or item.emp.email }}</td>
-                            <td>{{ item.ponto.entry_date.strftime('%d/%m/%Y') }}</td>
-                            <td><small class="text-muted">"{{ item.ponto.justification }}"</small></td>
-                            <td>
-                                {% if item.ponto.notes %}
-                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" 
-                                            onclick="openViewNoteModal('{{ item.ponto.entry_date }}', this.getAttribute('data-note'))"
-                                            data-note="{{ item.ponto.notes }}">
-                                        <i class="bi bi-sticky-fill fs-6"></i>
-                                        <small>{{ item.ponto.notes[:10] }}{{ '...' if item.ponto.notes|length > 10 else '' }}</small>
-                                    </button>
-                                {% else %}
-                                    <span class="text-muted small">-</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center py-3 text-muted small">Nenhuma justificativa dispensada.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_modals %}
-<!-- Missing Registros Modal -->
-<div class="modal fade" id="missingModal" tabindex="-1">
-    <div class="modal-diaRegistro">
-        <form action="{{ url_for('generate_missing') }}" method="POST" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Processar Faltas do Dia</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>O sistema criará registros de falta para todos os funcionários que não registraram ponto na data selecionada.</p>
-                <div class="mb-3">
-                    <label class="form-label">Data de Verificação</label>
-                    <input type="date" name="target_date" class="form-control" value="{{ today }}" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">Processar</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- View Note Modal -->
-<div class="modal fade" id="viewNoteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nota do Ponto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Data: <span id="display_note_view_date" class="fw-bold"></span></label>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Nota do Funcionário</label>
-                    <textarea id="note_view_text" class="form-control" rows="5" readonly></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function openViewNoteModal(entryDate, noteText) {
-    document.getElementById('display_note_view_date').innerText = entryDate;
-    document.getElementById('note_view_text').value = noteText;
-    new bootstrap.Modal(document.getElementById('viewNoteModal')).show();
-}
-</script>
 {% endblock %}
