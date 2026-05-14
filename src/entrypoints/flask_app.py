@@ -622,17 +622,6 @@ def archive_justification_action(employee_id, entry_date):
     flash("Justificativa arquivada com sucesso.", "info")
     return redirect(url_for("management_panel"))
 
-@app.route("/manager/clear-anomaly/<int:employee_id>/<string:entry_date>", methods=["POST"])
-@login_required
-@manager_required
-@handle_errors
-def clear_anomaly(employee_id, entry_date):
-    e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
-    uow = SqlAlchemyUnitOfWork()
-    services.clear_ponto_anomaly(uow, current_user.id, employee_id, e_date)
-    flash("Anomalia removida com sucesso.", "success")
-    return redirect(url_for("view_employee_logs", employee_id=employee_id))
-
 @app.route("/management")
 @login_required
 def management_panel():

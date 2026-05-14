@@ -1,4 +1,4 @@
-﻿from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta
 from typing import Optional, List, Dict
 from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest
 from src.service_layer.unit_of_work import AbstractUnitOfWork
@@ -31,7 +31,7 @@ def mark_notifications_as_read(uow: AbstractUnitOfWork, user_id: int):
     with uow:
         user = uow.users.get_user_by_id(user_id)
         if user:
-            # Deleta as notificaçãµes lidas permanentemente
+            # Deleta as notificações lidas permanentemente
             for n in user.notifications:
                 uow.session.delete(n)
             uow.commit()
@@ -604,31 +604,6 @@ def submit_justification(uow: AbstractUnitOfWork, user_id: int, entry_date: date
         uow.record_action(user_id, "SUBMIT_JUSTIFICATION", target_id=user_id, details=f"Date: {entry_date}")
         uow.commit()
 
-def clear_ponto_anomaly(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date):
-    with uow:
-        manager = ensure_manager(uow, manager_id)
-        user = uow.users.get_user_by_id(employee_id)
-        if not user:
-            raise ValueError("Employee not found.")
-        
-        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
-        if not ponto:
-            raise ValueError("Registro de ponto não encontrado.")
-            
-        # Limpar flags
-        ponto.arrival_late = False
-        ponto.lunch_start_late = False
-        ponto.lunch_end_late = False
-        ponto.departure_early = False
-        
-        if ponto.status in [PontoStatus.LATE]:
-            ponto.status = PontoStatus.ON_TIME
-            
-        ponto.location_data += f" | Anomalia limpa por: {manager.profile.full_name or manager.email}"
-        uow.commit()
-        uow.record_action(manager_id, "CLEAR_ANOMALY", target_id=employee_id, details=f"Date: {entry_date}")
-        uow.commit()
-
 def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date):
     with uow:
         manager = ensure_manager(uow, manager_id)
@@ -665,12 +640,7 @@ def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: in
         elif stage == "lunch_end": ponto.lunch_end_late_approved = approved
         elif stage == "departure": ponto.departure_early_approved = approved
         
-        # If all anomalies are approved, we might want to set the status to ON_TIME or JUSTIFIED?
-        # User said "in case of approval, there should be no penalty".
-        # The balance logic now accounts for this.
-        
         uow.commit()
         action = "APPROVE" if approved else "UNAPPROVE"
         uow.record_action(admin_id, f"{action}_ANOMALY_BADGE", target_id=employee_id, details=f"Date: {entry_date}, Stage: {stage}")
         uow.commit()
-
