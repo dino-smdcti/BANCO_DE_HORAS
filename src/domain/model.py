@@ -189,7 +189,6 @@ class CorrectionRequest:
     ponto_date: date
     stage: str
     proposed_time: time
-    justification: str
     status: str = "pending"
     created_at: datetime = datetime.now()
     request_id: Optional[int] = None
