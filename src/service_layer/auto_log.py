@@ -1,37 +1,40 @@
 from datetime import date, timedelta
-from src.domain.model import DailyPonto, PontoStatus, Vacation, Holiday
+from src.domain.model import DailyPonto, PontoStatus, Vacation, Holiday, CompanySettings
 
 def generate_automatic_logs(uow, user):
     if not user.work_schedule:
         return
 
+    # Get start analysis date
+    settings = uow.session.query(CompanySettings).first()
+    start_date = settings.start_analysis_date if settings else date(2026, 1, 1)
     today = date.today()
-    # Check if today is a weekday (0=Mon, 6=Sun)
-    if today.weekday() >= 5:
-        return
 
-    # Check for holiday
-    is_holiday = uow.session.query(Holiday).filter_by(holiday_date=today).first() is not None
-    if is_holiday:
-        return
+    # Get all existing log dates for the user
+    existing_log_dates = {p.entry_date for p in user.time_entries}
 
-    # Check for vacation
-    on_vacation = any(v.start_date <= today <= v.end_date for v in user.vacations)
-    if on_vacation:
-        return
-
-    # Skip if an entry for today already exists
-    if any(p.entry_date == today for p in user.time_entries):
-        return
-
-    # Create empty entry
-    new_ponto = DailyPonto(
-        user_id=user.user_id,
-        entry_date=today,
-        status=PontoStatus.MISSING,
-        location_data="Sistema: Falta automática (dia útil)",
-        notes="Ausência sem registro de ponto."
-    )
-    user.time_entries.append(new_ponto)
-    uow.session.add(new_ponto)
+    current = start_date
+    while current < today:
+        # Check if weekday
+        if current.weekday() < 5:
+            # Check for holiday
+            is_holiday = uow.session.query(Holiday).filter_by(holiday_date=current).first() is not None
+            
+            # Check for vacation
+            on_vacation = any(v.start_date <= current <= v.end_date for v in user.vacations)
+            
+            if not is_holiday and not on_vacation and current not in existing_log_dates:
+                # Create missing entry
+                new_ponto = DailyPonto(
+                    user_id=user.user_id,
+                    entry_date=current,
+                    status=PontoStatus.MISSING,
+                    location_data="Sistema: Falta automática (retroativa)",
+                    notes="Ausência sem registro de ponto."
+                )
+                user.time_entries.append(new_ponto)
+                uow.session.add(new_ponto)
+        
+        current += timedelta(days=1)
+    
     uow.commit()
