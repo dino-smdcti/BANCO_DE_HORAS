@@ -45,14 +45,17 @@ def generate_automatic_logs(uow, user):
         
         current += timedelta(days=1)
     
-    # Mark as run today
-    marker_ponto = DailyPonto(
-        user_id=user.user_id,
-        entry_date=today,
-        status=PontoStatus.ON_TIME,
-        location_data=auto_log_marker,
-        notes="Processamento automático diário concluído."
-    )
-    user.time_entries.append(marker_ponto)
-    uow.session.add(marker_ponto)
+    # Mark as run today if not already marked
+    marker_ponto = next((p for p in user.time_entries if p.entry_date == today and auto_log_marker in p.location_data), None)
+    if not marker_ponto:
+        marker_ponto = DailyPonto(
+            user_id=user.user_id,
+            entry_date=today,
+            status=PontoStatus.ON_TIME,
+            location_data=auto_log_marker,
+            notes="Processamento automático diário concluído."
+        )
+        user.time_entries.append(marker_ponto)
+        uow.session.add(marker_ponto)
+    
     uow.commit()

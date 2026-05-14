@@ -671,26 +671,25 @@ def management_panel():
                              dismissed_justs=dismissed_justs,
                              pending_corrections=corrections_display)
 
-@app.route("/admin/update-analysis-date", methods=["POST"])
+@app.route("/admin/update-user-analysis-date/<int:employee_id>", methods=["POST"])
 @login_required
-def update_analysis_date():
-    if current_user.role != "admin":
+def update_user_analysis_date(employee_id):
+    if current_user.role not in ["manager", "admin"]:
         flash("Acesso restrito.", "danger")
-        return redirect(url_for("management_panel"))
+        return redirect(url_for("dashboard"))
     
-    start_date = datetime.strptime(request.form.get("start_date"), "%Y-%m-%d").date()
+    start_date = datetime.strptime(request.form.get("start_analysis_date"), "%Y-%m-%d").date()
     uow = SqlAlchemyUnitOfWork()
     with uow:
-        settings = uow.session.query(CompanySettings).first()
-        if settings:
-            settings.start_analysis_date = start_date
+        employee = uow.users.get_user_by_id(employee_id)
+        if employee:
+            employee.profile.start_analysis_date = start_date
+            uow.commit()
+            flash(f"Data de início de análise de {employee.profile.full_name or employee.email} atualizada.", "success")
         else:
-            settings = CompanySettings(lat=0, lon=0, start_analysis_date=start_date)
-            uow.session.add(settings)
-        uow.commit()
+            flash("Funcionário não encontrado.", "danger")
     
-    flash("Data de início de análise atualizada.", "success")
-    return redirect(url_for("management_panel"))
+    return redirect(url_for("view_employee_logs", employee_id=employee_id))
 
 
 @app.route("/submit-correction", methods=["POST"])
@@ -799,6 +798,7 @@ def view_employee_logs(employee_id):
             flash("Funcionário não encontrado.", "danger")
             return redirect(url_for("dashboard"))
         
+        uow.session.refresh(employee)
         recent_entries = sorted(employee.time_entries, key=lambda x: x.entry_date, reverse=True)
         return render_template("view_employee_logs.html", employee=employee, recent_entries=recent_entries)
 
@@ -1122,12 +1122,7 @@ def delete_journey(journey_id):
     flash("Tipo de Jornada excluído.", "warning")
     return redirect(url_for("manage_journeys"))
 
-@app.route("/manager/generate-missing", methods=["POST"])
-@login_required
-def generate_missing():
-    if current_user.role not in ["manager", "admin"]:
-        flash("Acesso não autorizado.", "danger")
-        return redirect(url_for("dashboard"))
+
     
     target_date_str = request.form.get("target_date")
     if not target_date_str:

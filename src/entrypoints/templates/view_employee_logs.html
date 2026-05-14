@@ -200,6 +200,25 @@
         </div>
     </form>
 </div>
+
+<div class="card shadow border-danger mb-4">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">Configurações de Análise</h5>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('update_user_analysis_date', employee_id=employee.user_id) }}" method="POST" class="row g-3 align-items-center">
+            <div class="col-auto">
+                <label class="form-label mb-0 text-muted">Data de início da análise:</label>
+            </div>
+            <div class="col-auto">
+                <input type="date" name="start_analysis_date" class="form-control-plaintext text-danger fw-bold" value="{{ employee.profile.start_analysis_date.strftime('%Y-%m-%d') if employee.profile.start_analysis_date else '2026-05-11' }}" required>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-outline-danger">Atualizar</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_modals %}

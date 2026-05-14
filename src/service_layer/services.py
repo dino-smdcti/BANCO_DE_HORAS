@@ -324,31 +324,6 @@ def set_work_schedule(
         
         uow.commit()
 
-def generate_missing_logs(uow: AbstractUnitOfWork, manager_id: int, target_date: date):
-    with uow:
-        ensure_manager(uow, manager_id)
-        employees = uow.users.list_employees()
-        
-        for emp in employees:
-            ponto = next((p for p in emp.time_entries if p.entry_date == target_date), None)
-            if not ponto:
-                # Check if user has vacation on this date
-                on_vacation = any(v.start_date <= target_date <= v.end_date for v in emp.vacations)
-                if on_vacation:
-                    continue
-                
-                # Create missing log
-                ponto = DailyPonto(
-                    user_id=emp.user_id,
-                    entry_date=target_date,
-                    status=PontoStatus.MISSING,
-                    location_data="Sistema: Falta automática gerada",
-                    # Explicitly mark as a full day absence for balance logic
-                    notes="Ausência sem registro de ponto."
-                )
-                emp.time_entries.append(ponto)
-        uow.commit()
-
 def manual_ponto_correction(
     uow: AbstractUnitOfWork, 
     manager_id: int, 
