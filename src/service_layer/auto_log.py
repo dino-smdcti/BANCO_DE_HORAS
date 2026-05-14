@@ -24,12 +24,7 @@ def generate_automatic_logs(uow, user):
 
     current = start_date
     while current < today:
-        # Strictly ensure we don't process dates before the defined start date
-        if current < start_date:
-            current += timedelta(days=1)
-            continue
-            
-        # Check if weekday
+        # Check if weekday (0=Mon, 4=Fri)
         if current.weekday() < 5:
             # Check for holiday
             is_holiday = uow.session.query(Holiday).filter_by(holiday_date=current).first() is not None
