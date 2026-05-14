@@ -197,7 +197,7 @@
 </div>
 {% endblock %}
 
-{% block scripts %}
+{% block extra_modals %}
 <!-- Review Anomaly Modal -->
 <div class="modal fade" id="reviewBadgeModal" tabindex="-1">
     <div class="modal-dialog">
@@ -243,7 +243,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
 function openViewNoteModal(entryDate, noteText) {
     document.getElementById('display_note_view_date').innerText = entryDate;
