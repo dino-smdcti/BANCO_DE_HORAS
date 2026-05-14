@@ -651,7 +651,7 @@ def management_panel():
         
         pending_anomalies = [
             {"emp": e, "ponto": p} for e in employees 
-            for p in e.time_entries if p.has_anomaly
+            for p in e.time_entries if p.has_anomaly and p.status != PontoStatus.CORRECTED
         ]
         
         if emp_filter:
