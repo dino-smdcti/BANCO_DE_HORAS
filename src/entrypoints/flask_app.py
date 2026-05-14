@@ -635,7 +635,7 @@ def management_panel():
         for e in employees:
             uow.session.refresh(e)
             
-        pending_justs = [p for e in employees for p in e.time_entries if p.has_anomaly and not p.justification]
+        pending_anomalies = [p for e in employees for p in e.time_entries if p.has_anomaly]
         dismissed_justs = [
             {"emp": e, "ponto": p} for e in employees 
             for p in e.time_entries if p.status == PontoStatus.DISMISSED
@@ -658,6 +658,7 @@ def management_panel():
                              employees=employees, 
                              today=date.today(),
                              analysis_date=analysis_date,
+                             dismissed_justs=dismissed_justs,
                              pending_corrections=corrections_display)
 
 @app.route("/admin/update-analysis-date", methods=["POST"])
