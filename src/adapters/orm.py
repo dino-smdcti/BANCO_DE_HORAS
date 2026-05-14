@@ -71,7 +71,6 @@ daily_pontos = Table(
     Column("departure", Time, nullable=True),
     Column("location_data", String(1000), nullable=True),
     Column("status", SQLEnum(PontoStatus), default=PontoStatus.ON_TIME),
-    Column("justification", String(500), nullable=True),
     Column("notes", String(1000), nullable=True),
     Column("has_lunch_break", Boolean, default=True),
     Column("arrival_late", Boolean, default=False),

@@ -76,7 +76,6 @@ class DailyPonto:
     departure: Optional[time] = None
     location_data: str = ""
     status: PontoStatus = PontoStatus.ON_TIME
-    justification: Optional[str] = None
     notes: Optional[str] = None
     has_lunch_break: bool = True
     ponto_id: Optional[int] = None
