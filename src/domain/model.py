@@ -257,13 +257,11 @@ class User:
         for p in self.time_entries:
             if p.entry_date >= today: continue
             
-            # Skip incomplete days unless they are explicitly marked as MISSING or REJECTED
-            if not p.is_complete and p.status not in [PontoStatus.MISSING, PontoStatus.REJECTED]:
-                continue
-
+            # Logic: If it's a MISSING log, it's a full penalty day.
+            # If it's a CORRECTED or regular log, it calculates based on worked minutes.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
-            else:
+            elif p.is_complete or p.status == PontoStatus.CORRECTED:
                 day_worked = p.worked_minutes + p.get_approved_bonus_minutes(self.work_schedule)
                 balance += (day_worked - target_minutes)
         return balance
