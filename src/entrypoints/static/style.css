@@ -84,10 +84,12 @@ html, body {
 }
 
 .badge {
-    padding: 0.35em 0.5em;
+    padding: 0.2em 0.4em;
+    font-size: 0.85rem;
     white-space: normal;
     display: inline-block;
     width: fit-content;
+    line-height: 1.1;
 }
 
 .btn-grab-attention {
