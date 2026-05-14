@@ -225,6 +225,10 @@ class User:
         for p in self.time_entries:
             if p.entry_date >= today: continue
             
+            # Skip incomplete days unless they are explicitly marked as MISSING or REJECTED
+            if not p.is_complete and p.status not in [PontoStatus.MISSING, PontoStatus.REJECTED]:
+                continue
+
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
             else:
