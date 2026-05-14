@@ -33,7 +33,9 @@
             <button type="submit" class="btn btn-sm btn-danger btn-compact" onclick="return confirm('Deseja realmente excluir este funcionário?');">Remover Funcionário</button>
         </form>
         
-        <a href="{{ url_for('management_panel') }}" class="text-muted small text-decoration-none ms-auto" style="font-size: 0.8rem;">&laquo; Voltar</a>
+        <button type="submit" form="bulkFixForm" class="btn btn-sm btn-primary ms-auto">Salvar todas as mudanças</button>
+        
+        <a href="{{ url_for('management_panel') }}" class="text-muted small text-decoration-none ms-2" style="font-size: 0.8rem;">&laquo; Voltar</a>
     </div>
 </div>
 
@@ -76,7 +78,6 @@
                         <th>Fim de Jornada</th>
                         <th>Localização</th>
                         <th>Status</th>
-                        <th>Justificativa</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
