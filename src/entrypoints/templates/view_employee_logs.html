@@ -171,7 +171,7 @@
                                 <small class="text-muted">{{ p.location_data[:20] }}{{ '...' if p.location_data|length > 20 else '' }}</small>
                             </td>
                             <td>
-                                <span class="badge 
+                                <span class="badge
                                     {% if p.status.value == 'No Horário' %}bg-success
                                     {% elif p.status.value in ['Atrasado', 'Faltante'] %}bg-danger
                                     {% elif p.status.value == 'Corrigido' %}bg-warning text-dark
