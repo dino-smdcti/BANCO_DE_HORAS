@@ -25,7 +25,13 @@ ALTER TABLE journey_types ALTER COLUMN expected_lunch_end DROP NOT NULL;
 ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS has_lunch_break BOOLEAN DEFAULT TRUE;
 ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS notes TEXT;
 
--- 5. Correction Requests Table
+-- 6. Add approval flags for individual anomalies
+ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS arrival_late_approved BOOLEAN DEFAULT FALSE;
+ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_late_approved BOOLEAN DEFAULT FALSE;
+ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_end_late_approved BOOLEAN DEFAULT FALSE;
+ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS departure_early_approved BOOLEAN DEFAULT FALSE;
+
+-- 7. Correction Requests Table
 CREATE TABLE IF NOT EXISTS correction_requests (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
