@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 <div class="d-flex flex-column mb-4">
@@ -33,9 +33,7 @@
             <button type="submit" class="btn btn-sm btn-danger btn-compact" onclick="return confirm('Deseja realmente excluir este funcionário?');">Remover Funcionário</button>
         </form>
         
-        <button type="submit" form="bulkFixForm" class="btn btn-sm btn-primary ms-auto">Salvar todas as mudanças</button>
-        
-        <a href="{{ url_for('management_panel') }}" class="text-muted small text-decoration-none ms-2" style="font-size: 0.8rem;">&laquo; Voltar</a>
+        <a href="{{ url_for('management_panel') }}" class="text-muted small text-decoration-none ms-auto" style="font-size: 0.8rem;">&laquo; Voltar</a>
     </div>
 </div>
 
@@ -65,132 +63,140 @@
 </div>
 
 <div class="card shadow mb-4">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Nota</th>
-                        <th>Data</th>
-                        <th>Chegada</th>
-                        <th>Almoço (Sai)</th>
-                        <th>Almoço (Vol)</th>
-                        <th>Fim de Jornada</th>
-                        <th>Localização</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in recent_entries %}
-                        <tr class="{% if p.has_anomaly and p.status.value not in ['Justificado', 'Dispensado'] %}table-warning{% elif p.status.value == 'Corrigido' %}table-success{% endif %}">
-                            <td>
-                                {% if p.notes %}
-                                    <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" 
-                                            onclick="openViewNoteModal('{{ p.entry_date }}', this.getAttribute('data-note'))"
-                                            data-note="{{ p.notes }}">
-                                        <i class="bi bi-sticky-fill fs-5"></i>
-                                    </button>
-                                {% else %}
-                                    <span class="text-muted">-</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {{ p.entry_date.strftime('%d/%m/%Y') }}
-                                <input type="hidden" name="dates" value="{{ p.entry_date }}">
-                            </td>
-                            <td>
-                                <input type="text" name="arrival_{{ p.entry_date }}" value="{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                {% if p.arrival_late %}
-                                    <div class="mt-1">
-                                        {% if p.arrival_late_approved %}
-                                            <span class="badge bg-success" title="Atraso Aprovado">
-                                                <i class="bi bi-check-circle"></i> Atraso
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                  {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'arrival', 'Atraso na Chegada')" style="cursor: pointer;"{% endif %}>
-                                                Atraso
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <input type="text" name="lunch_start_{{ p.entry_date }}" value="{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                {% if p.lunch_start_late %}
-                                    <div class="mt-1">
-                                        {% if p.lunch_start_late_approved %}
-                                            <span class="badge bg-success" title="Anomalia Aprovada">
-                                                <i class="bi bi-check-circle"></i> Anomalia
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                  {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_start', 'Anomalia no Almoço (Saída)')" style="cursor: pointer;"{% endif %}>
-                                                Anomalia
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <input type="text" name="lunch_end_{{ p.entry_date }}" value="{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                {% if p.lunch_end_late %}
-                                    <div class="mt-1">
-                                        {% if p.lunch_end_late_approved %}
-                                            <span class="badge bg-success" title="Atraso Aprovado">
-                                                <i class="bi bi-check-circle"></i> Atraso
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                  {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_end', 'Atraso no Almoço (Volta)')" style="cursor: pointer;"{% endif %}>
-                                                Atraso
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <input type="text" name="departure_{{ p.entry_date }}" value="{{ p.departure.strftime('%H:%M:%S') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                {% if p.departure_early %}
-                                    <div class="mt-1">
-                                        {% if p.departure_early_approved %}
-                                            <span class="badge bg-success" title="Saída Cedo Aprovada">
-                                                <i class="bi bi-check-circle"></i> Saída Cedo
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                  {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'departure', 'Saída Antecipada')" style="cursor: pointer;"{% endif %}>
-                                                Saída Cedo
-                                            </span>
-                                        {% endif %}
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <small class="text-muted">{{ p.location_data[:20] }}{{ '...' if p.location_data|length > 20 else '' }}</small>
-                            </td>
-                            <td>
-                                <span class="badge
-                                    {% if p.status.value == 'No Horário' %}bg-success
-                                    {% elif p.status.value in ['Atrasado', 'Faltante'] %}bg-danger
-                                    {% elif p.status.value == 'Corrigido' %}bg-warning text-dark
-                                    {% elif p.status_label == 'Desconhecido' %}bg-secondary
-                                    {% else %}bg-secondary{% endif %}">
-                                    {{ p.status_label }}
-                                </span>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('delete_ponto', employee_id=employee.user_id, entry_date=p.entry_date) }}" method="POST" class="btn btn-sm btn-danger btn-compact" onclick="return confirm('Excluir?');">Excluir</a>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr><td colspan="10" class="text-center py-4 text-muted">Nenhum registro encontrado.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <form id="bulkFixForm" action="{{ url_for('bulk_fix_ponto', employee_id=employee.user_id) }}" method="POST">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Registros de Ponto</h5>
         </div>
-    </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nota</th>
+                            <th>Data</th>
+                            <th>Chegada</th>
+                            <th>Almoço (Sai)</th>
+                            <th>Almoço (Vol)</th>
+                            <th>Fim de Jornada</th>
+                            <th>Localização</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in recent_entries %}
+                            <tr class="{% if p.has_anomaly and p.status.value not in ['Justificado', 'Dispensado'] %}table-warning{% elif p.status.value == 'Corrigido' %}table-success{% endif %}">
+                                <td>
+                                    {% if p.notes %}
+                                        <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" 
+                                                onclick="openViewNoteModal('{{ p.entry_date }}', this.getAttribute('data-note'))"
+                                                data-note="{{ p.notes }}">
+                                            <i class="bi bi-sticky-fill fs-5"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ p.entry_date.strftime('%d/%m/%Y') }}
+                                    <input type="hidden" name="dates" value="{{ p.entry_date }}">
+                                </td>
+                                <td>
+                                    <input type="text" name="arrival_{{ p.entry_date }}" value="{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.arrival_late %}
+                                        <div class="mt-1">
+                                            {% if p.arrival_late_approved %}
+                                                <span class="badge bg-success" title="Atraso Aprovado">
+                                                    <i class="bi bi-check-circle"></i> Atraso
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'arrival', 'Atraso na Chegada')" style="cursor: pointer;"{% endif %}>
+                                                    Atraso
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <input type="text" name="lunch_start_{{ p.entry_date }}" value="{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.lunch_start_late %}
+                                        <div class="mt-1">
+                                            {% if p.lunch_start_late_approved %}
+                                                <span class="badge bg-success" title="Anomalia Aprovada">
+                                                    <i class="bi bi-check-circle"></i> Anomalia
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_start', 'Anomalia no Almoço (Saída)')" style="cursor: pointer;"{% endif %}>
+                                                    Anomalia
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <input type="text" name="lunch_end_{{ p.entry_date }}" value="{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.lunch_end_late %}
+                                        <div class="mt-1">
+                                            {% if p.lunch_end_late_approved %}
+                                                <span class="badge bg-success" title="Atraso Aprovado">
+                                                    <i class="bi bi-check-circle"></i> Atraso
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_end', 'Atraso no Almoço (Volta)')" style="cursor: pointer;"{% endif %}>
+                                                    Atraso
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <input type="text" name="departure_{{ p.entry_date }}" value="{{ p.departure.strftime('%H:%M:%S') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.departure_early %}
+                                        <div class="mt-1">
+                                            {% if p.departure_early_approved %}
+                                                <span class="badge bg-success" title="Saída Cedo Aprovada">
+                                                    <i class="bi bi-check-circle"></i> Saída Cedo
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'departure', 'Saída Antecipada')" style="cursor: pointer;"{% endif %}>
+                                                Saída Cedo
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ p.location_data[:20] }}{{ '...' if p.location_data|length > 20 else '' }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if p.status.value == 'No Horário' %}bg-success
+                                        {% elif p.status.value in ['Atrasado', 'Faltante'] %}bg-danger
+                                        {% elif p.status.value == 'Corrigido' %}bg-warning text-dark
+                                        {% elif p.status_label == 'Desconhecido' %}bg-secondary
+                                        {% else %}bg-secondary{% endif %}">
+                                        {{ p.status_label }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('delete_ponto', employee_id=employee.user_id, entry_date=p.entry_date) }}" method="POST" class="btn btn-sm btn-danger btn-compact" onclick="return confirm('Excluir?');">Excluir</a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="9" class="text-center py-4 text-muted">Nenhum registro encontrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white text-end">
+            <button type="submit" class="btn btn-sm btn-primary">Salvar todas as mudanças</button>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
