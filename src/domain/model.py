@@ -201,6 +201,7 @@ class UserProfile:
     position: Optional[str] = None
     secretariat: Optional[str] = None
     full_name: Optional[str] = None
+    start_analysis_date: date = date(2026, 1, 1)
 
     def is_complete(self) -> bool:
         return all([self.registration_number, self.cpf, self.department, self.position, self.secretariat, self.full_name])

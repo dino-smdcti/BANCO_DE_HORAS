@@ -57,6 +57,7 @@ users = Table(
     Column("secretariat", String(100), nullable=True),
     Column("full_name", String(255), nullable=True),
     Column("email_notifications_enabled", Boolean, default=False),
+    Column("start_analysis_date", Date, default=date(2026, 1, 1)),
 )
 
 daily_pontos = Table(

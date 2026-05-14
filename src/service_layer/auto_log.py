@@ -8,18 +8,15 @@ def generate_automatic_logs(uow, user):
     today = date.today()
     
     # Use a persistent 'auto-log-run' marker log entry to track daily execution
-    # Look for a log with specific location marker for today
     auto_log_marker = "Sistema: Gerador Automático Executado"
     already_run = any(p.entry_date == today and auto_log_marker in p.location_data for p in user.time_entries)
     if already_run:
         return
 
-    # Get start analysis date
-    settings = uow.session.query(CompanySettings).first()
-    start_date = settings.start_analysis_date if settings else date(2026, 1, 1)
+    # Use user-specific start analysis date
+    start_date = user.profile.start_analysis_date
 
     # Get all existing log dates for the user
-    # Ensure to include logs currently added in the same unit of work
     existing_log_dates = {p.entry_date for p in user.time_entries}
 
     current = start_date
@@ -43,7 +40,6 @@ def generate_automatic_logs(uow, user):
                 )
                 user.time_entries.append(new_ponto)
                 uow.session.add(new_ponto)
-                # Important: update the set to prevent duplicates in this loop!
                 existing_log_dates.add(current)
         
         current += timedelta(days=1)
