@@ -64,6 +64,44 @@
     </div>
 </div>
 
+<div class="card shadow border-warning mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">Registros com Anomalias</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Funcionário</th>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in pending_anomalies %}
+                        <tr>
+                            <td>{{ item.emp.profile.full_name or item.emp.email }}</td>
+                            <td>{{ item.ponto.entry_date.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <span class="badge bg-danger">Anomalia</span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('view_employee_logs', employee_id=item.emp.user_id) }}" class="btn btn-sm btn-outline-warning">Revisar</a>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted small">Nenhuma anomalia encontrada.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <div class="card shadow border-danger mb-4">
     <div class="card-header bg-danger text-white">
         <h5 class="mb-0">Correções Retroativas Pendentes</h5>
