@@ -33,6 +33,11 @@ def check_daily_auto_log():
     if LAST_DAILY_AUTO_LOG_DATE != today:
         uow = SqlAlchemyUnitOfWork()
         with uow:
+            # 1. Process absences for yesterday
+            from src.service_layer.absence_processor import process_daily_absences
+            process_daily_absences(uow)
+            
+            # 2. Create placeholders for today
             employees = uow.users.list_employees()
             from src.service_layer.auto_log import generate_automatic_logs
             for e in employees:
