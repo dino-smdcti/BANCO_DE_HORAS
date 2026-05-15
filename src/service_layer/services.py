@@ -162,7 +162,9 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
         now_time = brazil_time.time()
 
         ponto = next((p for p in user.time_entries if p.entry_date == today), None)
-        
+        if ponto and ponto.location_data is None:
+            ponto.location_data = ""
+
         if not stage:
             if not ponto: stage = "arrival"
             elif ponto.has_lunch_break and not ponto.lunch_start: stage = "lunch_start"
@@ -260,6 +262,9 @@ def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_
             if not ponto:
                 ponto = DailyPonto(user_id=req.user_id, entry_date=req.ponto_date)
                 user.time_entries.append(ponto)
+            
+            if ponto.location_data is None:
+                ponto.location_data = ""
             
             if req.stage == "arrival": ponto.arrival = req.proposed_time
             elif req.stage == "lunch_start": ponto.lunch_start = req.proposed_time
@@ -382,6 +387,8 @@ def manual_ponto_correction(
         if not changed: return False
 
         ponto.status = PontoStatus.CORRECTED
+        if ponto.location_data is None:
+            ponto.location_data = ""
         manager_name = manager.profile.full_name or manager.email
         ponto.location_data += f" | Corrigido manualmente por Gestor: {manager_name}"
         

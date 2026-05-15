@@ -235,6 +235,14 @@ class User:
         return self.profile.is_complete()
 
     @property
+    def is_manager(self) -> bool:
+        return self.role in [UserRole.MANAGER, UserRole.ADMIN]
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == UserRole.ADMIN
+
+    @property
     def unread_notifications_count(self) -> int:
         return sum(1 for n in self.notifications if not n.is_read)
 

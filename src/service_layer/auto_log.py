@@ -6,7 +6,6 @@ def generate_automatic_logs(uow, user):
         return
 
     today = date.today()
-    auto_log_marker = "Sistema: Gerador Automático Executado"
     
     # Process only weekdays (Mon-Fri)
     if today.weekday() >= 5:
@@ -17,43 +16,23 @@ def generate_automatic_logs(uow, user):
     on_vacation = any(v.start_date <= today <= v.end_date for v in user.vacations)
     
     if is_holiday or on_vacation:
-        # Still mark as run even if no log needed, to avoid re-checking
-        _mark_as_run(uow, user, today, auto_log_marker)
         return
 
     # Check for existing logs today (if they have logs, we don't need to do anything)
     if any(p.entry_date == today for p in user.time_entries):
         return
 
-    # Create missing entry for past dates only
-    if today < date.today():
-        try:
-            new_ponto = DailyPonto(
-                user_id=user.user_id,
-                entry_date=today,
-                status=PontoStatus.MISSING,
-                location_data=f"Sistema: Falta automática | {auto_log_marker}",
-                notes="Ausência sem registro de ponto."
-            )
-            user.time_entries.append(new_ponto)
-            uow.session.add(new_ponto)
-            uow.commit()
-        except Exception:
-            uow.session.rollback()
-    # For today, do nothing. Do not create any 'marker' or 'missing' records.
-
-
-def _mark_as_run(uow, user, today, marker):
+    # Create empty placeholder for today
     try:
-        marker_ponto = DailyPonto(
+        new_ponto = DailyPonto(
             user_id=user.user_id,
             entry_date=today,
             status=PontoStatus.ON_TIME,
-            location_data=marker,
-            notes="Processamento automático diário concluído."
+            location_data="",
+            notes=None
         )
-        user.time_entries.append(marker_ponto)
-        uow.session.add(marker_ponto)
+        user.time_entries.append(new_ponto)
+        uow.session.add(new_ponto)
         uow.commit()
     except Exception:
         uow.session.rollback()
