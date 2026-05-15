@@ -22,6 +22,23 @@ load_dotenv()
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
+# Global control variable for date check
+LAST_DAILY_AUTO_LOG_DATE = None
+
+@app.before_request
+def check_daily_auto_log():
+    global LAST_DAILY_AUTO_LOG_DATE
+    today = date.today()
+    
+    if LAST_DAILY_AUTO_LOG_DATE != today:
+        uow = SqlAlchemyUnitOfWork()
+        with uow:
+            employees = uow.users.list_employees()
+            from src.service_layer.auto_log import generate_automatic_logs
+            for e in employees:
+                generate_automatic_logs(uow, e)
+        LAST_DAILY_AUTO_LOG_DATE = today
+
 database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
 if not database_url:
     if os.environ.get("VERCEL"):
