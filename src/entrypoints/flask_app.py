@@ -22,28 +22,6 @@ load_dotenv()
 app = Flask(__name__, template_folder='templates')
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
-# Global control variable for date check
-LAST_DAILY_AUTO_LOG_DATE = None
-
-@app.before_request
-def check_daily_auto_log():
-    global LAST_DAILY_AUTO_LOG_DATE
-    today = date.today()
-    
-    if LAST_DAILY_AUTO_LOG_DATE != today:
-        uow = SqlAlchemyUnitOfWork()
-        with uow:
-            # 1. Process absences for yesterday
-            from src.service_layer.absence_processor import process_daily_absences
-            process_daily_absences(uow)
-            
-            # 2. Create placeholders for today
-            employees = uow.users.list_employees()
-            from src.service_layer.auto_log import generate_automatic_logs
-            for e in employees:
-                generate_automatic_logs(uow, e)
-        LAST_DAILY_AUTO_LOG_DATE = today
-
 database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
 if not database_url:
     if os.environ.get("VERCEL"):
@@ -543,9 +521,6 @@ def dashboard():
              return redirect(url_for("logout"))
              
         today_date = date.today()
-        # Ensure auto-log exists for weekday
-        from src.service_layer.auto_log import generate_automatic_logs
-        generate_automatic_logs(uow, user)
         uow.session.refresh(user)
         
         ponto_hoje = next((p for p in user.time_entries if p.entry_date == today_date), None)
@@ -662,9 +637,7 @@ def management_panel():
     uow = SqlAlchemyUnitOfWork()
     with uow:
         employees = services.get_all_employees(uow, requester_id=int(current_user.id))
-        from src.service_layer.auto_log import generate_automatic_logs
         for e in employees:
-            generate_automatic_logs(uow, e)
             uow.session.refresh(e)
             
         pending_anomalies = [p for e in employees for p in e.time_entries if p.has_anomaly]
