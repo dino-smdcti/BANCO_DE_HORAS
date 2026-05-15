@@ -115,6 +115,20 @@ html, body {
     100% { box-shadow: 0 0 0 0 rgba(111, 207, 151, 0); }
 }
 
-.btn, .form-control, .form-select {
-    white-space: nowrap;
+/* Mobile responsive adjustments */
+@media (max-width: 576px) {
+    .navbar-nav .nav-link {
+        font-size: 0.9rem;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    
+    .navbar-nav .nav-link span:not(.badge) {
+        display: none;
+    }
+
+    .navbar-nav .nav-link i {
+        margin-right: 0 !important;
+    }
 }
+

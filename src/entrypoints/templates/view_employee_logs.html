@@ -170,7 +170,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <small class="text-muted">{{ p.location_data[:20] }}{{ '...' if p.location_data|length > 20 else '' }}</small>
+                                    <small class="text-muted">{{ (p.location_data or '')[:20] }}{{ '...' if (p.location_data or '')|length > 20 else '' }}</small>
                                 </td>
                                 <td>
                                     <span class="badge 

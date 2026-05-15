@@ -266,6 +266,29 @@ def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_
             elif req.stage == "lunch_end": ponto.lunch_end = req.proposed_time
             elif req.stage == "departure": ponto.departure = req.proposed_time
             
+            # Re-evaluate anomalies after correction
+            if user.work_schedule:
+                # Arrival
+                if ponto.arrival:
+                    limit = (datetime.combine(req.ponto_date, user.work_schedule.expected_arrival) +
+                             timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
+                    ponto.arrival_late = ponto.arrival > limit
+                # Lunch Start
+                if ponto.lunch_start and user.work_schedule.expected_lunch_start:
+                    limit = (datetime.combine(req.ponto_date, user.work_schedule.expected_lunch_start) -
+                             timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
+                    ponto.lunch_start_late = ponto.lunch_start < limit
+                # Lunch End
+                if ponto.lunch_end and user.work_schedule.expected_lunch_end:
+                    limit = (datetime.combine(req.ponto_date, user.work_schedule.expected_lunch_end) +
+                             timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
+                    ponto.lunch_end_late = ponto.lunch_end > limit
+                # Departure
+                if ponto.departure and user.work_schedule.expected_departure:
+                    limit = (datetime.combine(req.ponto_date, user.work_schedule.expected_departure) -
+                             timedelta(minutes=user.work_schedule.tolerance_minutes)).time()
+                    ponto.departure_early = ponto.departure < limit
+
             ponto.status = PontoStatus.CORRECTED
             ponto.location_data += f" | Corrigido via solicitação aprovada por gestor {manager_id}"
             

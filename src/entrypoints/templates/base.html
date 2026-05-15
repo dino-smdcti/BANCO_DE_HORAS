@@ -32,14 +32,14 @@
                     {% if current_user.is_authenticated %}
                         {% if current_user.role in ['manager', 'admin'] %}
                             <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
-                                <i class="bi bi-people"></i> Gestão
+                                <i class="bi bi-people"></i> <span>Gestão</span>
                             </a>
                         {% endif %}
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
-                            <i class="bi bi-calendar-check"></i> Ponto
+                            <i class="bi bi-calendar-check"></i> <span>Ponto</span>
                         </a>
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('profile') }}">
-                            <i class="bi bi-person-gear"></i> Dados
+                            <i class="bi bi-person-gear"></i> <span>Dados</span>
                         </a>
                     {% endif %}
                 </div>
@@ -55,11 +55,11 @@
                             </a>
                         </div>
                         <a class="nav-link d-flex align-items-center gap-1 bg-danger text-white rounded px-2" href="{{ url_for('logout') }}">
-                            <i class="bi bi-box-arrow-right"></i> Sair
+                            <i class="bi bi-box-arrow-right"></i> <span>Sair</span>
                         </a>
                     {% else %}
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('login') }}">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
+                            <i class="bi bi-box-arrow-in-right"></i> <span>Login</span>
                         </a>
                     {% endif %}
                 </div>

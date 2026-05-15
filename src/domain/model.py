@@ -90,6 +90,11 @@ class DailyPonto:
     lunch_end_late_approved: bool = False
     departure_early_approved: bool = False
 
+    arrival_late_excused: bool = False
+    lunch_start_late_excused: bool = False
+    lunch_end_late_excused: bool = False
+    departure_early_excused: bool = False
+
     def get_placeholder(self, field: str, schedule: Optional[WorkSchedule]) -> Optional[time]:
         if not schedule: return None
         if field == "lunch_start" and not self.lunch_start: return schedule.expected_lunch_start
@@ -137,35 +142,29 @@ class DailyPonto:
         return max(0, self._delta(self.arrival, self.departure))
 
     def get_approved_bonus_minutes(self, schedule: WorkSchedule) -> int:
-        bonus = 0
-        if self.arrival_late_approved and self.arrival:
-            # How many minutes did they lose?
-            lost = self._delta(schedule.expected_arrival, self.arrival)
-            if lost > 0: bonus += lost
+        # Bonuses should represent extra time worked, not compensation for late arrival.
+        # Late arrivals are not "bonus", they are "authorized absence". 
+        # Authorized absences should simply ignore the penalty, not provide a positive bonus.
         
-        if self.lunch_start_late_approved and self.lunch_start:
-            lost = self._delta(self.lunch_start, schedule.expected_lunch_start)
-            if lost > 0: bonus += lost
+        # If the user worked overtime (more than target), that could be a bonus.
+        # But this function seems to be used to *offset* the 'target_minutes' penalty.
+        # If I just return 0 here, 'late arrival approved' will still mean (day_worked - target_minutes)
+        # where day_worked is lower than target.
+        # The goal is likely: if late is approved, don't penalize.
+        return 0
 
-        if self.lunch_end_late_approved and self.lunch_end:
-            lost = self._delta(schedule.expected_lunch_end, self.lunch_end)
-            if lost > 0: bonus += lost
-
-        if self.departure_early_approved and self.departure:
-            lost = self._delta(self.departure, schedule.expected_departure)
-            if lost > 0: bonus += lost
-            
-        return bonus
-
-    def get_predicted_worked_minutes(self, schedule: WorkSchedule) -> int:
+    def get_predicted_worked_minutes(self, schedule: WorkSchedule, use_expected: bool = True) -> int:
         def delta(t1, t2):
             if not t1 or not t2: return 0
             return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
 
-        arr = self.arrival or schedule.expected_arrival
-        ls = self.lunch_start or schedule.expected_lunch_start
-        le = self.lunch_end or schedule.expected_lunch_end
-        dep = self.departure or schedule.expected_departure
+        if use_expected:
+            arr, ls, le, dep = schedule.expected_arrival, schedule.expected_lunch_start, schedule.expected_lunch_end, schedule.expected_departure
+        else:
+            arr = self.arrival or schedule.expected_arrival
+            ls = self.lunch_start or schedule.expected_lunch_start
+            le = self.lunch_end or schedule.expected_lunch_end
+            dep = self.departure or schedule.expected_departure
 
         if not self.has_lunch_break:
             return delta(arr, dep)
@@ -258,15 +257,28 @@ class User:
 
         balance = 0
         today = date.today()
+        
+        # We need to consider all days up to today.
         for p in self.time_entries:
             if p.entry_date >= today: continue
             
+            # Skip weekends (Saturday=5, Sunday=6)
+            if p.entry_date.weekday() in [5, 6]: continue
+
             # If the log is missing, penalty.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
-            # If log exists (even if not 'complete' but has some hours, or corrected), use worked minutes.
             else:
-                day_worked = p.worked_minutes + p.get_approved_bonus_minutes(self.work_schedule)
+                # If there are approved OR excused anomalies, use predicted worked minutes based on schedule
+                excused_conditions = [
+                    p.arrival_late_approved, p.lunch_start_late_approved, p.lunch_end_late_approved, p.departure_early_approved,
+                    p.arrival_late_excused, p.lunch_start_late_excused, p.lunch_end_late_excused, p.departure_early_excused
+                ]
+                if any(excused_conditions):
+                     day_worked = p.get_predicted_worked_minutes(self.work_schedule)
+                else:
+                     day_worked = p.worked_minutes
+                
                 balance += (day_worked - target_minutes)
         return balance
 

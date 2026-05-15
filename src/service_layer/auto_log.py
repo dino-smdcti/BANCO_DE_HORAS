@@ -8,10 +8,6 @@ def generate_automatic_logs(uow, user):
     today = date.today()
     auto_log_marker = "Sistema: Gerador Automático Executado"
     
-    # Check if process already ran today for this user
-    if any(p.entry_date == today and auto_log_marker in p.location_data for p in user.time_entries):
-        return
-    
     # Process only weekdays (Mon-Fri)
     if today.weekday() >= 5:
         return
@@ -25,26 +21,27 @@ def generate_automatic_logs(uow, user):
         _mark_as_run(uow, user, today, auto_log_marker)
         return
 
-    # Check for existing logs today
+    # Check for existing logs today (if they have logs, we don't need to do anything)
     if any(p.entry_date == today for p in user.time_entries):
-        # Already has logs, just mark as run
-        _mark_as_run(uow, user, today, auto_log_marker)
         return
 
-    # Create missing entry for today
-    try:
-        new_ponto = DailyPonto(
-            user_id=user.user_id,
-            entry_date=today,
-            status=PontoStatus.MISSING,
-            location_data=f"Sistema: Falta automática | {auto_log_marker}",
-            notes="Ausência sem registro de ponto."
-        )
-        user.time_entries.append(new_ponto)
-        uow.session.add(new_ponto)
-        uow.commit()
-    except Exception:
-        uow.session.rollback()
+    # Create missing entry for past dates only
+    if today < date.today():
+        try:
+            new_ponto = DailyPonto(
+                user_id=user.user_id,
+                entry_date=today,
+                status=PontoStatus.MISSING,
+                location_data=f"Sistema: Falta automática | {auto_log_marker}",
+                notes="Ausência sem registro de ponto."
+            )
+            user.time_entries.append(new_ponto)
+            uow.session.add(new_ponto)
+            uow.commit()
+        except Exception:
+            uow.session.rollback()
+    # For today, do nothing. Do not create any 'marker' or 'missing' records.
+
 
 def _mark_as_run(uow, user, today, marker):
     try:
