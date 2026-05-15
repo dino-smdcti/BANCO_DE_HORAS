@@ -554,7 +554,7 @@ def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: in
             uow.record_action(manager_id, "DELETE_JOURNEY_TYPE", target_id=journey_id, details=f"Deleted: {name}")
             uow.commit()
 
-def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: int, entry_date: date, stage: str, approved: bool):
+def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: int, entry_date: date, stage: str, action: str):
     with uow:
         admin = uow.users.get_user_by_id(admin_id)
         if not admin or admin.role != UserRole.ADMIN:
@@ -566,12 +566,19 @@ def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: in
         ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
         if not ponto: raise ValueError("Registro não encontrado.")
         
-        if stage == "arrival": ponto.arrival_late_approved = approved
-        elif stage == "lunch_start": ponto.lunch_start_late_approved = approved
-        elif stage == "lunch_end": ponto.lunch_end_late_approved = approved
-        elif stage == "departure": ponto.departure_early_approved = approved
+        if stage == "arrival": 
+            if action == "approve": ponto.arrival_late_approved = True
+            elif action == "excuse": ponto.arrival_late_excused = True
+        elif stage == "lunch_start": 
+            if action == "approve": ponto.lunch_start_late_approved = True
+            elif action == "excuse": ponto.lunch_start_late_excused = True
+        elif stage == "lunch_end": 
+            if action == "approve": ponto.lunch_end_late_approved = True
+            elif action == "excuse": ponto.lunch_end_late_excused = True
+        elif stage == "departure": 
+            if action == "approve": ponto.departure_early_approved = True
+            elif action == "excuse": ponto.departure_early_excused = True
         
         uow.commit()
-        action = "APPROVE" if approved else "UNAPPROVE"
-        uow.record_action(admin_id, f"{action}_ANOMALY_BADGE", target_id=employee_id, details=f"Date: {entry_date}, Stage: {stage}")
+        uow.record_action(admin_id, f"{action.upper()}_ANOMALY", target_id=employee_id, details=f"Date: {entry_date}, Stage: {stage}")
         uow.commit()

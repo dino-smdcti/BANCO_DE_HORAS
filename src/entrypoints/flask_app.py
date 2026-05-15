@@ -1260,17 +1260,15 @@ def review_badge(employee_id, entry_date, stage, action):
         flash("Apenas o Administrador pode realizar esta ação.", "danger")
         return redirect(url_for("view_employee_logs", employee_id=employee_id))
 
-    approved = (action == "approve")
     e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
     uow = SqlAlchemyUnitOfWork()
     try:
-        services.review_anomaly_badge(uow, int(current_user.id), employee_id, e_date, stage, approved)
+        services.review_anomaly_badge(uow, int(current_user.id), employee_id, e_date, stage, action)
         flash("Badge de anomalia atualizado com sucesso.", "success")
     except Exception as e:
         flash(str(e), "danger")
-    
-    return redirect(url_for("view_employee_logs", employee_id=employee_id))
 
+    return redirect(url_for("view_employee_logs", employee_id=employee_id))
 @app.route("/logout")
 @login_required
 def logout():
