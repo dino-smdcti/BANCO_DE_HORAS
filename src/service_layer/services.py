@@ -271,6 +271,12 @@ def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_
             elif req.stage == "lunch_end": ponto.lunch_end = req.proposed_time
             elif req.stage == "departure": ponto.departure = req.proposed_time
             
+            # Correction by manager implies review
+            ponto.arrival_late_reviewed = True
+            ponto.lunch_start_late_reviewed = True
+            ponto.lunch_end_late_reviewed = True
+            ponto.departure_early_reviewed = True
+            
             # Re-evaluate anomalies after correction
             if user.work_schedule:
                 # Arrival
@@ -387,6 +393,13 @@ def manual_ponto_correction(
         if not changed: return False
 
         ponto.status = PontoStatus.CORRECTED
+        
+        # Manual correction by manager implies review
+        ponto.arrival_late_reviewed = True
+        ponto.lunch_start_late_reviewed = True
+        ponto.lunch_end_late_reviewed = True
+        ponto.departure_early_reviewed = True
+
         if ponto.location_data is None:
             ponto.location_data = ""
         manager_name = manager.profile.full_name or manager.email

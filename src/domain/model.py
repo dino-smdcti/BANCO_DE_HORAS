@@ -109,12 +109,12 @@ class DailyPonto:
 
     @property
     def has_anomaly(self) -> bool:
-        # If an anomaly was reviewed, we don't count it as a pending anomaly for review
+        # An anomaly is pending if it exists and hasn't been reviewed, approved, or excused.
         return any([
-            self.arrival_late and not self.arrival_late_reviewed,
-            self.lunch_start_late and not self.lunch_start_late_reviewed,
-            self.lunch_end_late and not self.lunch_end_late_reviewed,
-            self.departure_early and not self.departure_early_reviewed,
+            self.arrival_late and not (self.arrival_late_reviewed or self.arrival_late_approved or self.arrival_late_excused),
+            self.lunch_start_late and not (self.lunch_start_late_reviewed or self.lunch_start_late_approved or self.lunch_start_late_excused),
+            self.lunch_end_late and not (self.lunch_end_late_reviewed or self.lunch_end_late_approved or self.lunch_end_late_excused),
+            self.departure_early and not (self.departure_early_reviewed or self.departure_early_approved or self.departure_early_excused),
             self.status == PontoStatus.MISSING
         ])
 
