@@ -116,7 +116,7 @@ import sys
 def send_email(to_email, subject, body_html):
     # API-based email sending via Brevo (Transactional API v3)
     api_key = os.environ.get("BREVO_API_KEY")
-    # Tenta BREVO_SENDER primeiro, depois MAIL_USERNAME
+    # Priority: BREVO_SENDER -> MAIL_USERNAME
     sender_email = os.environ.get("BREVO_SENDER") or os.environ.get("MAIL_USERNAME")
     
     if not api_key:
@@ -140,13 +140,14 @@ def send_email(to_email, subject, body_html):
         "htmlContent": body_html
     }
 
-    print(f"DEBUG: Attempting to send email to {to_email} via Brevo...", file=sys.stderr)
+    print(f"DEBUG: Attempting to send email to {to_email} via Brevo from {sender_email}...", file=sys.stderr)
 
     try:
         req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
         with urllib.request.urlopen(req) as response:
             status = response.status
-            print(f"DEBUG: Brevo Response Status: {status}", file=sys.stderr)
+            resp_body = response.read().decode("utf-8")
+            print(f"DEBUG: Brevo Response Status: {status} - {resp_body}", file=sys.stderr)
             return status in [200, 201]
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8")
