@@ -581,7 +581,8 @@ def dashboard():
                              saldo_dia=saldo_dia,
                              expected_daily=expected_daily,
                              saldo_total=saldo_total,
-                             worked_hoje=worked_hoje)
+                             worked_hoje=worked_hoje,
+                             ponto_hoje=ponto_hoje)
 
 @app.route("/manager/archive-justification/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
