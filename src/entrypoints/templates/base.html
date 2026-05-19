@@ -27,7 +27,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <!-- Left-aligned: Navigation -->
+                <!-- Combined Navigation for Desktop/Mobile -->
                 <div class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
                         {% if current_user.role in ['manager', 'admin'] %}
@@ -43,18 +43,18 @@
                         </a>
                     {% endif %}
                 </div>
-                <!-- Right-aligned: Notifications & Logout -->
-                <div class="navbar-nav">
+                
+                <div class="navbar-nav d-flex flex-row align-items-center gap-2 mt-2 mt-lg-0">
                     {% if current_user.is_authenticated %}
-                        <div class="nav-item dropdown d-flex align-items-center me-2">
-                            <a class="nav-link position-relative p-1" href="#" id="notifDropdown" role="button" data-bs-toggle="modal" data-bs-target="#notifModal" onclick="markReadTrigger()">
+                        <div class="nav-item">
+                            <a class="nav-link position-relative p-1 text-white" href="#" id="notifDropdown" role="button" data-bs-toggle="modal" data-bs-target="#notifModal" onclick="markReadTrigger()">
                                 <i class="bi bi-bell fs-5"></i>
                                 <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ 'd-none' if not (user_notifs_count > 0) }}">
                                     {{ user_notifs_count }}
                                 </span>
                             </a>
                         </div>
-                        <a class="nav-link d-flex align-items-center gap-1 bg-danger text-white rounded px-2" href="{{ url_for('logout') }}">
+                        <a class="nav-link d-flex align-items-center gap-1 bg-danger text-white rounded px-3 py-2" href="{{ url_for('logout') }}">
                             <i class="bi bi-box-arrow-right"></i> <span>Sair</span>
                         </a>
                     {% else %}

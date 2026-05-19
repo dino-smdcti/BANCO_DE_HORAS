@@ -61,16 +61,75 @@ function showConfirmModal(modalId, nextStage, scheduledTime) {
     const btnConfirm = document.getElementById('btnConfirmPonto');
     const clockForm = document.getElementById('clockForm');
     
-    // Add dynamic input for time if we want to allow editing, 
-    // for now just display current time as default/placeholder
+    // Smart Detection Elements
+    const smartAlert = document.getElementById('smartStageAlert');
+    const suggestedLabel = document.getElementById('suggestedStageLabel');
+    const stageOverride = document.getElementById('stageOverrideSection');
+    const stageSelect = document.getElementById('stageSelect');
+    const displayStage = document.getElementById('displayStage');
+    const pontoBtn = document.getElementById('pontoBtn');
+
+    // Reset Smart UI
+    smartAlert.classList.add('d-none');
+    stageOverride.classList.add('d-none');
+    stageSelect.removeAttribute('name'); // Only send if shown
+    displayStage.innerText = nextStage;
+
     const now = new Date();
     const formattedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    timeSpan.innerHTML = `
-        <div class="input-group">
-            <span class="input-group-text bg-light text-muted">Sugestão: ${scheduledTime || '--:--'}</span>
-            <input type="text" class="form-control" value="${formattedTime}" disabled>
-        </div>
-    `;
+    timeSpan.innerText = formattedTime;
+
+    // Nearest Stage Detection Logic
+    if (pontoBtn) {
+        const arrival = pontoBtn.getAttribute('data-arrival');
+        const lStart = pontoBtn.getAttribute('data-lunch-start');
+        const lEnd = pontoBtn.getAttribute('data-lunch-end');
+        const departure = pontoBtn.getAttribute('data-departure');
+
+        const stages = [
+            { id: 'arrival', label: 'Chegada', time: arrival },
+            { id: 'lunch_start', label: 'Saída Almoço', time: lStart },
+            { id: 'lunch_end', label: 'Volta Almoço', time: lEnd },
+            { id: 'departure', label: 'Fim Jornada', time: departure }
+        ].filter(s => s.time);
+
+        if (stages.length > 0) {
+            let nearest = null;
+            let minDiff = Infinity;
+
+            stages.forEach(s => {
+                const [sh, sm] = s.time.split(':').map(Number);
+                const sDate = new Date();
+                sDate.setHours(sh, sm, 0, 0);
+                const diff = Math.abs(now - sDate);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    nearest = s;
+                }
+            });
+
+            // Map current_stage name to ID for comparison
+            const nextStageIdMap = {
+                'Chegada': 'arrival',
+                'Saída Almoço': 'lunch_start',
+                'Retorno Almoço': 'lunch_end',
+                'Fim Jornada': 'departure'
+            };
+
+            if (nearest && nextStageIdMap[nextStage] !== nearest.id) {
+                smartAlert.classList.remove('d-none');
+                suggestedLabel.innerText = nearest.label;
+                stageOverride.classList.remove('d-none');
+                stageSelect.setAttribute('name', 'stage');
+                stageSelect.value = nearest.id;
+                
+                // Update display when select changes
+                stageSelect.onchange = function() {
+                    displayStage.innerText = stageSelect.options[stageSelect.selectedIndex].text;
+                };
+            }
+        }
+    }
     
     // Reset state
     btnConfirm.disabled = true;
