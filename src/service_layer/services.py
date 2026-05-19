@@ -456,16 +456,19 @@ def delete_ponto_entry(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
         user = uow.users.get_user_by_id(employee_id)
         if not user:
             raise ValueError("Employee not found.")
-        
-        ponto = next((p for p in user.time_entries if p.entry_date == entry_date), None)
-        if ponto:
-            user.time_entries.remove(ponto)
-            uow.session.delete(ponto)
+
+        # Find all matching entries for this date
+        matching_pontos = [p for p in user.time_entries if p.entry_date == entry_date]
+
+        if matching_pontos:
+            for ponto in matching_pontos:
+                user.time_entries.remove(ponto)
+                uow.session.delete(ponto)
+            
             uow.commit()
             manager_name = manager.profile.full_name or manager.email
-            uow.record_action(manager_id, "DELETE_PONTO", target_id=employee_id, details=f"Deleted entry for {entry_date} by {manager_name}")
+            uow.record_action(manager_id, "DELETE_PONTO", target_id=employee_id, details=f"Deleted {len(matching_pontos)} entry/ies for {entry_date} by {manager_name}")
             uow.commit()
-
 def add_holiday(uow: AbstractUnitOfWork, manager_id: int, holiday_date: date, description: str, is_mandatory: bool = True):
     with uow:
         ensure_manager(uow, manager_id)
