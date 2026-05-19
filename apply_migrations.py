@@ -39,7 +39,13 @@ migrations = [
     "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS arrival_late_excused BOOLEAN DEFAULT FALSE;",
     "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_late_excused BOOLEAN DEFAULT FALSE;",
     "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_end_late_excused BOOLEAN DEFAULT FALSE;",
-    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS departure_early_excused BOOLEAN DEFAULT FALSE;"
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS departure_early_excused BOOLEAN DEFAULT FALSE;",
+
+    # Support individual anomaly review status
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS arrival_late_reviewed BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_late_reviewed BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_end_late_reviewed BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS departure_early_reviewed BOOLEAN DEFAULT FALSE;"
 ]
 
 print(f"Connecting to database...")
