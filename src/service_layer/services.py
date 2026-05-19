@@ -574,15 +574,19 @@ def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: in
         if not ponto: raise ValueError("Registro não encontrado.")
         
         if stage == "arrival": 
+            ponto.arrival_late_reviewed = True
             if action == "approve": ponto.arrival_late_approved = True
             elif action == "excuse": ponto.arrival_late_excused = True
         elif stage == "lunch_start": 
+            ponto.lunch_start_late_reviewed = True
             if action == "approve": ponto.lunch_start_late_approved = True
             elif action == "excuse": ponto.lunch_start_late_excused = True
         elif stage == "lunch_end": 
+            ponto.lunch_end_late_reviewed = True
             if action == "approve": ponto.lunch_end_late_approved = True
             elif action == "excuse": ponto.lunch_end_late_excused = True
         elif stage == "departure": 
+            ponto.departure_early_reviewed = True
             if action == "approve": ponto.departure_early_approved = True
             elif action == "excuse": ponto.departure_early_excused = True
         

@@ -109,6 +109,14 @@
                                                 <span class="badge bg-success" title="Atraso Aprovado">
                                                     <i class="bi bi-check-circle"></i> Atraso
                                                 </span>
+                                            {% elif p.arrival_late_excused %}
+                                                <span class="badge bg-info text-white" title="Atraso Abonado">
+                                                    <i class="bi bi-file-earmark-check"></i> Licença
+                                                </span>
+                                            {% elif p.arrival_late_reviewed %}
+                                                <span class="badge bg-danger opacity-75" title="Atraso Mantido (Revisado)">
+                                                    Atraso
+                                                </span>
                                             {% else %}
                                                 <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
                                                       {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'arrival', 'Atraso na Chegada')" style="cursor: pointer;"{% endif %}>
@@ -125,6 +133,14 @@
                                             {% if p.lunch_start_late_approved %}
                                                 <span class="badge bg-success" title="Anomalia Aprovada">
                                                     <i class="bi bi-check-circle"></i> Anomalia
+                                                </span>
+                                            {% elif p.lunch_start_late_excused %}
+                                                <span class="badge bg-info text-white" title="Anomalia Abonada">
+                                                    <i class="bi bi-file-earmark-check"></i> Licença
+                                                </span>
+                                            {% elif p.lunch_start_late_reviewed %}
+                                                <span class="badge bg-danger opacity-75" title="Anomalia Mantida (Revisada)">
+                                                    Anomalia
                                                 </span>
                                             {% else %}
                                                 <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
@@ -143,6 +159,14 @@
                                                 <span class="badge bg-success" title="Atraso Aprovado">
                                                     <i class="bi bi-check-circle"></i> Atraso
                                                 </span>
+                                            {% elif p.lunch_end_late_excused %}
+                                                <span class="badge bg-info text-white" title="Atraso Abonado">
+                                                    <i class="bi bi-file-earmark-check"></i> Licença
+                                                </span>
+                                            {% elif p.lunch_end_late_reviewed %}
+                                                <span class="badge bg-danger opacity-75" title="Atraso Mantido (Revisado)">
+                                                    Atraso
+                                                </span>
                                             {% else %}
                                                 <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
                                                       {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_end', 'Atraso no Almoço (Volta)')" style="cursor: pointer;"{% endif %}>
@@ -159,6 +183,14 @@
                                             {% if p.departure_early_approved %}
                                                 <span class="badge bg-success" title="Saída Cedo Aprovada">
                                                     <i class="bi bi-check-circle"></i> Saída Cedo
+                                                </span>
+                                            {% elif p.departure_early_excused %}
+                                                <span class="badge bg-info text-white" title="Saída Cedo Abonada">
+                                                    <i class="bi bi-file-earmark-check"></i> Licença
+                                                </span>
+                                            {% elif p.departure_early_reviewed %}
+                                                <span class="badge bg-danger opacity-75" title="Saída Cedo Mantida (Revisada)">
+                                                    Saída Cedo
                                                 </span>
                                             {% else %}
                                                 <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 

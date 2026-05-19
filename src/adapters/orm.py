@@ -86,6 +86,10 @@ daily_pontos = Table(
     Column("lunch_start_late_excused", Boolean, default=False),
     Column("lunch_end_late_excused", Boolean, default=False),
     Column("departure_early_excused", Boolean, default=False),
+    Column("arrival_late_reviewed", Boolean, default=False),
+    Column("lunch_start_late_reviewed", Boolean, default=False),
+    Column("lunch_end_late_reviewed", Boolean, default=False),
+    Column("departure_early_reviewed", Boolean, default=False),
 )
 
 correction_requests = Table(

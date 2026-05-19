@@ -95,6 +95,11 @@ class DailyPonto:
     lunch_end_late_excused: bool = False
     departure_early_excused: bool = False
 
+    arrival_late_reviewed: bool = False
+    lunch_start_late_reviewed: bool = False
+    lunch_end_late_reviewed: bool = False
+    departure_early_reviewed: bool = False
+
     def get_placeholder(self, field: str, schedule: Optional[WorkSchedule]) -> Optional[time]:
         if not schedule: return None
         if field == "lunch_start" and not self.lunch_start: return schedule.expected_lunch_start
@@ -104,13 +109,12 @@ class DailyPonto:
 
     @property
     def has_anomaly(self) -> bool:
-        # If an anomaly was approved, we don't count it as a pending anomaly for review
-        # but we still want to know it happened.
+        # If an anomaly was reviewed, we don't count it as a pending anomaly for review
         return any([
-            self.arrival_late and not self.arrival_late_approved,
-            self.lunch_start_late and not self.lunch_start_late_approved,
-            self.lunch_end_late and not self.lunch_end_late_approved,
-            self.departure_early and not self.departure_early_approved,
+            self.arrival_late and not self.arrival_late_reviewed,
+            self.lunch_start_late and not self.lunch_start_late_reviewed,
+            self.lunch_end_late and not self.lunch_end_late_reviewed,
+            self.departure_early and not self.departure_early_reviewed,
             self.status == PontoStatus.MISSING
         ])
 
