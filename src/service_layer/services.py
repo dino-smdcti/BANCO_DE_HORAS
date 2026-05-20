@@ -72,12 +72,15 @@ def update_user_profile(
     department: str,
     position: str,
     secretariat: str,
-    full_name: str
+    full_name: str,
+    start_analysis_date: Optional[date] = None
 ) -> None:
     with uow:
         user = uow.users.get_user_by_id(user_id)
         if not user:
             raise ValueError("User not found.")
+        
+        analysis_date = start_analysis_date or (user.profile.start_analysis_date if user.profile else None) or date(2026, 1, 1)
         
         new_profile = UserProfile(
             registration_number=registration_number,
@@ -85,7 +88,8 @@ def update_user_profile(
             department=department,
             position=position,
             secretariat=secretariat,
-            full_name=full_name
+            full_name=full_name,
+            start_analysis_date=analysis_date
         )
         user.profile = new_profile
         uow.commit()
@@ -496,6 +500,17 @@ def delete_user(uow: AbstractUnitOfWork, manager_id: int, user_id: int):
         ensure_manager(uow, manager_id)
         user = uow.users.get_user_by_id(user_id)
         if user:
+            # Preserve employee name in audit logs before nullifying user_id
+            employee_name = user.profile.full_name if user.profile and user.profile.full_name else user.email
+            # Update existing audit log entries to include employee name in details
+            audit_entries = uow.session.query(AuditLog).filter_by(user_id=user_id).all()
+            for audit in audit_entries:
+                existing = audit.details or ""
+                audit.details = f"{existing} (User: {employee_name})" if existing else f"User: {employee_name}"
+            uow.session.flush()
+            # Nullify user_id in audit logs for this user (to avoid FK constraints)
+            uow.session.query(AuditLog).filter_by(user_id=user_id).update({AuditLog.user_id: None})
+            
             email = user.email
             uow.session.delete(user)
             uow.commit()

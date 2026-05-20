@@ -274,12 +274,18 @@ class User:
         for p in self.time_entries:
             if p.entry_date >= today: continue
             
+            # Skip entries before start_analysis_date
+            if self.profile and self.profile.start_analysis_date and p.entry_date < self.profile.start_analysis_date:
+                continue
+            
             # Skip weekends (Saturday=5, Sunday=6)
             if p.entry_date.weekday() in [5, 6]: continue
 
             # If the log is missing, penalty.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
                 balance -= target_minutes
+            elif not p.is_complete:
+                continue
             else:
                 # If there are approved OR excused anomalies, use predicted worked minutes based on schedule
                 excused_conditions = [

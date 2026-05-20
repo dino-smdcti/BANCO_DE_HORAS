@@ -116,19 +116,36 @@ html, body {
 }
 
 /* Mobile responsive adjustments */
-@media (max-width: 576px) {
-    .navbar-nav .nav-link {
-        font-size: 0.9rem;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-    }
-    
-    .navbar-nav .nav-link span:not(.badge) {
-        display: none;
+@media (max-width: 991.98px) {
+    /* The always-visible actions row (bell + Sair) */
+    .navbar-actions {
+        flex-shrink: 0;
     }
 
-    .navbar-nav .nav-link i {
-        margin-right: 0 !important;
+    .navbar-actions .btn {
+        font-size: 0.85rem;
+        padding: 0.35rem 0.75rem !important;
+    }
+
+    .navbar-actions .nav-link {
+        padding: 0.35rem !important;
+    }
+
+    /* Collapsible nav links - stack nicely with spacing */
+    .navbar-collapse .navbar-nav .nav-link {
+        font-size: 1rem;
+        padding: 0.6rem 0.75rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .navbar-collapse .navbar-nav .nav-link:last-child {
+        border-bottom: none;
+    }
+
+    .navbar-collapse .navbar-nav .nav-link i {
+        font-size: 1.15rem;
+        min-width: 1.5rem;
+        text-align: center;
     }
 }
 

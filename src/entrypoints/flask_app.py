@@ -1,10 +1,10 @@
-﻿from flask import Flask, render_template, redirect, url_for, flash, request, send_file, send_from_directory
+from flask import Flask, render_template, redirect, url_for, flash, request, send_file, send_from_directory
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from src.adapters.orm import start_mappers, metadata
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
 from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm, WorkScheduleForm, JourneyTypeForm
-from src.domain.model import User, PontoStatus, JourneyType, AuditLog, CompanySettings
+from src.domain.model import User, PontoStatus, JourneyType, AuditLog, CompanySettings, UserProfile
 from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy import create_engine
 from datetime import datetime, date
@@ -407,6 +407,7 @@ def profile():
                 
                 # If Admin, update professional profile as well
                 if current_user.role == "admin":
+                    analysis_date = datetime.strptime(request.form.get("start_analysis_date"), "%Y-%m-%d").date()
                     services.update_user_profile(
                         uow,
                         current_user.id,
@@ -415,11 +416,9 @@ def profile():
                         request.form.get("department"),
                         request.form.get("position"),
                         request.form.get("secretariat"),
-                        request.form.get("full_name")
+                        request.form.get("full_name"),
+                        start_analysis_date=analysis_date
                     )
-                    # Update analysis date
-                    analysis_date = datetime.strptime(request.form.get("start_analysis_date"), "%Y-%m-%d").date()
-                    user.profile.start_analysis_date = analysis_date
                 
                 flash("Perfil atualizado!", "success")
                 return redirect(url_for("dashboard"))
@@ -701,7 +700,15 @@ def update_user_analysis_date(employee_id):
     with uow:
         employee = uow.users.get_user_by_id(employee_id)
         if employee:
-            employee.profile.start_analysis_date = start_date
+            employee.profile = UserProfile(
+                registration_number=employee.profile.registration_number,
+                cpf=employee.profile.cpf,
+                department=employee.profile.department,
+                position=employee.profile.position,
+                secretariat=employee.profile.secretariat,
+                full_name=employee.profile.full_name,
+                start_analysis_date=start_date
+            )
             uow.commit()
             flash(f"Data de início de análise de {employee.profile.full_name or employee.email} atualizada.", "success")
         else:

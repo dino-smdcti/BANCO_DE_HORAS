@@ -22,15 +22,21 @@ class TestExhaustiveBalance(unittest.TestCase):
 
         for name, has_lunch, arrival, departure, worked, target, expected_bal in scenarios:
             # Setup
+            if "6h" in name:
+                expected_arr = time(7, 0)
+                expected_dep = time(13, 0)
+            else:
+                expected_arr = time(8, 0)
+                expected_dep = time(17, 0)
             lunch_start, lunch_end = (time(12,0), time(13,0)) if has_lunch else (None, None)
-            sched = WorkSchedule(user_id=1, expected_arrival=arrival, 
+            sched = WorkSchedule(user_id=1, expected_arrival=expected_arr, 
                                  expected_lunch_start=lunch_start, expected_lunch_end=lunch_end, 
-                                 expected_departure=departure, has_lunch_break=has_lunch)
+                                 expected_departure=expected_dep, has_lunch_break=has_lunch)
             
             user = User(email=f"{name}@test.com", password_hash="!", role="employee", work_schedule=sched)
             
             # Create Ponto
-            ponto = DailyPonto(user_id=1, entry_date=date(2026, 5, 2), status=PontoStatus.ON_TIME)
+            ponto = DailyPonto(user_id=1, entry_date=date(2026, 5, 4), status=PontoStatus.ON_TIME)
             ponto.arrival = arrival
             ponto.departure = departure
             ponto.lunch_start = lunch_start
