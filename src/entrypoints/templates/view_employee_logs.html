@@ -158,7 +158,12 @@
                                         {% if p.status.value == 'No Horário' %}bg-success
                                         {% elif p.status.value in ['Atrasado', 'Faltante'] %}bg-danger
                                         {% elif p.status.value == 'Corrigido' %}bg-warning text-dark
-                                        {% else %}bg-secondary{% endif %}">
+                                        {% else %}bg-secondary{% endif %}
+                                        {% if p.has_anomaly %}clickable-badge{% endif %}"
+                                        {% if p.has_anomaly %}
+                                        onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'arrival', '{{ p.status.value }}')"
+                                        style="cursor: pointer;"
+                                        {% endif %}>
                                         {{ p.status_label }}
                                     </span>
                                 </td>
@@ -196,6 +201,28 @@
 {% endblock %}
 
 {% block extra_modals %}
+<!-- Review Anomaly Modal -->
+<div class="modal fade" id="reviewBadgeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Revisar Anomalia Individual</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="reviewBadgeInfo"></p>
+                <p>Aprovar esta anomalia removerá a penalidade no banco de horas para este estágio específico.</p>
+            </div>
+            <div class="modal-footer">
+                <form id="reviewBadgeForm" method="POST">
+                    <button type="submit" name="action" value="reject" class="btn btn-danger">Manter</button>
+                    <button type="submit" name="action" value="excuse" class="btn btn-success">Abonar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="viewNoteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -312,6 +339,27 @@ function openManagerNoteModal(entryDate, noteText) {
     const modalEl = document.getElementById('editManagerNoteModal');
     document.getElementById('manager_note_entry_date').value = entryDate;
     document.getElementById('manager_note_edit_text').value = noteText;
+    new bootstrap.Modal(modalEl).show();
+}
+
+function openReviewModal(employeeId, entryDate, stage, status) {
+    const modalEl = document.getElementById('reviewBadgeModal');
+    const infoText = `Revisar anomalia de ${entryDate} (${status})`;
+    document.getElementById('reviewBadgeInfo').innerText = infoText;
+    
+    const form = document.getElementById('reviewBadgeForm');
+    form.onsubmit = function(e) {
+        e.preventDefault();
+        const action = e.submitter.value;
+        let url = `{{ url_for('review_badge', employee_id=0, entry_date='DATE_PLACEHOLDER', stage='STAGE_PLACEHOLDER', action='ACTION_PLACEHOLDER') }}`
+            .replace('/0/', '/' + employeeId + '/')
+            .replace('DATE_PLACEHOLDER', entryDate)
+            .replace('STAGE_PLACEHOLDER', stage)
+            .replace('ACTION_PLACEHOLDER', action);
+        
+        form.action = url;
+        form.submit();
+    };
     new bootstrap.Modal(modalEl).show();
 }
 
