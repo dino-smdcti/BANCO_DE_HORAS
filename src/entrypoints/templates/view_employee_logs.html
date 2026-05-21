@@ -141,14 +141,16 @@
                                     <input type="text" name="departure_{{ p.entry_date }}" value="{{ p.departure.strftime('%H:%M:%S') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
                                 </td>
                                 <td>
-                                    {% if p.location_data %}
+                                    {% if p.location_data and p.location_data.strip() and p.location_data != 'None' %}
                                         <button type="button" class="btn btn-sm btn-link p-0 text-info" 
                                                 onclick="openLocationModal('{{ p.entry_date }}', `{{ p.location_data or '' }}`)"
                                                 title="Ver Localização">
                                             <i class="bi bi-geo-alt fs-5"></i>
                                         </button>
                                     {% else %}
-                                        <span class="text-muted">-</span>
+                                        <button type="button" class="btn btn-sm btn-link p-0 text-danger" title="Sem localização" disabled>
+                                            <i class="bi bi-x-circle fs-5"></i>
+                                        </button>
                                     {% endif %}
                                 </td>
                                 <td>

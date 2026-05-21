@@ -888,26 +888,25 @@ def bulk_fix_ponto(employee_id):
                 departure = parse_time(request.form.get(f"departure_{emp_id}_{entry_date_str}"))
 
                 services.manual_ponto_correction(
-                    uow, current_user.id, emp_id, entry_date, 
-                    arrival, lunch_start, lunch_end, departure
+                    uow, current_user.id, emp_id, entry_date,
+                    arrival, lunch_start, lunch_end, departure,
+                    manager_notes=request.form.get(f"manager_notes_{entry_date_str}")
                 )
-        else:
-            # Fallback to single employee from route param
-            for entry_date_str in dates:
+                else:
+                # Fallback to single employee from route param
+                for entry_date_str in dates:
                 entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
                 arrival = parse_time(request.form.get(f"arrival_{entry_date_str}"))
                 lunch_start = parse_time(request.form.get(f"lunch_start_{entry_date_str}"))
                 lunch_end = parse_time(request.form.get(f"lunch_end_{entry_date_str}"))
                 departure = parse_time(request.form.get(f"departure_{entry_date_str}"))
                 manager_notes = request.form.get(f"manager_notes_{entry_date_str}")
-                print(f"DEBUG: Processing entry {entry_date_str}, manager_notes: {manager_notes}")
 
                 services.manual_ponto_correction(
                     uow, current_user.id, employee_id, entry_date,
                     arrival, lunch_start, lunch_end, departure,
                     manager_notes=manager_notes
                 )
-
         flash("Registros atualizados com sucesso.", "success")
     except Exception as e:
         flash(f"Erro ao processar correções: {str(e)}", "danger")
