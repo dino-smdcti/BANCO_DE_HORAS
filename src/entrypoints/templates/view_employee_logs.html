@@ -154,18 +154,20 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge 
-                                        {% if p.status.value == 'No Horário' %}bg-success
-                                        {% elif p.status.value in ['Atrasado', 'Faltante'] %}bg-danger
-                                        {% elif p.status.value == 'Corrigido' %}bg-warning text-dark
-                                        {% else %}bg-secondary{% endif %}
-                                        {% if p.has_anomaly %}clickable-badge{% endif %}"
-                                        {% if p.has_anomaly %}
-                                        onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'arrival', '{{ p.status.value }}')"
-                                        style="cursor: pointer;"
-                                        {% endif %}>
-                                        {{ p.status_label }}
-                                    </span>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <span class="badge {{ 'bg-success' if p.status.value == 'No Horário' else ('bg-warning text-dark' if p.status.value == 'Corrigido' else 'bg-secondary') }}">
+                                            {{ p.status_label }}
+                                        </span>
+                                        {% for stage, has_anomaly in [('arrival', p.arrival_late), ('lunch_start', p.lunch_start_late), ('lunch_end', p.lunch_end_late), ('departure', p.departure_early)] %}
+                                            {% if has_anomaly %}
+                                            <span class="badge bg-danger clickable-badge"
+                                                  onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', '{{ stage }}', 'Anomalia')"
+                                                  style="cursor: pointer;">
+                                                ! {{ stage|replace('arrival', 'Chegada')|replace('lunch_start', 'Saída Almoço')|replace('lunch_end', 'Volta Almoço')|replace('departure', 'Fim') }}
+                                            </span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
                                 </td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-danger btn-compact" 
