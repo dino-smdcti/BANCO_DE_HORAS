@@ -399,13 +399,20 @@ def manual_ponto_correction(
                 user.time_entries.append(ponto)
 
         changed = False
-        if ponto.arrival != arrival: ponto.arrival = arrival; changed = True
-        if ponto.lunch_start != lunch_start: ponto.lunch_start = lunch_start; changed = True
-        if ponto.lunch_end != lunch_end: ponto.lunch_end = lunch_end; changed = True
-        if ponto.departure != departure: ponto.departure = departure; changed = True
-        if manager_notes is not None: ponto.manager_notes = manager_notes; changed = True
+        if arrival is not None and ponto.arrival != arrival:
+            ponto.arrival = arrival; changed = True
+        if lunch_start is not None and ponto.lunch_start != lunch_start:
+            ponto.lunch_start = lunch_start; changed = True
+        if lunch_end is not None and ponto.lunch_end != lunch_end:
+            ponto.lunch_end = lunch_end; changed = True
+        if departure is not None and ponto.departure != departure:
+            ponto.departure = departure; changed = True
+        if manager_notes is not None and ponto.manager_notes != manager_notes:
+            ponto.manager_notes = manager_notes
+            changed = True
         
-        if not changed: return False
+        if not changed: 
+            return False
 
         ponto.status = PontoStatus.CORRECTED
         
@@ -421,6 +428,7 @@ def manual_ponto_correction(
         ponto.location_data += f" | Corrigido manualmente por Gestor: {manager_name}"
         
         add_notification(uow, employee_id, f"Seu ponto de {entry_date} foi corrigido manualmente pelo gestor {manager_name}.", email_sender=email_sender)
+        uow.session.flush()
         uow.commit()
         uow.record_action(manager_id, "MANUAL_CORRECTION", target_id=employee_id, details=f"Data: {entry_date}")
         uow.commit()

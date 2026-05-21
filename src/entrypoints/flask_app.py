@@ -892,9 +892,9 @@ def bulk_fix_ponto(employee_id):
                     arrival, lunch_start, lunch_end, departure,
                     manager_notes=request.form.get(f"manager_notes_{entry_date_str}")
                 )
-                else:
-                # Fallback to single employee from route param
-                for entry_date_str in dates:
+        else:
+            # Fallback to single employee from route param
+            for entry_date_str in dates:
                 entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
                 arrival = parse_time(request.form.get(f"arrival_{entry_date_str}"))
                 lunch_start = parse_time(request.form.get(f"lunch_start_{entry_date_str}"))
