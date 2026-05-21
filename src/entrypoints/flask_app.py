@@ -610,7 +610,6 @@ def archive_justification(employee_id, entry_date):
 @manager_required
 @handle_errors
 def archived_justifications():
-    # ... (rest of implementation) ...
     employee_id = request.args.get("employee_id")
     date_str = request.args.get("date")
     uow = SqlAlchemyUnitOfWork()
@@ -626,6 +625,12 @@ def archived_justifications():
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             archived = [a for a in archived if a['ponto'].entry_date == target_date]
         return render_template("archived_justifications.html", archived_justs=archived, employees=employees, selected_emp=int(employee_id) if employee_id else None, selected_date=date_str)
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for("index"))
 
 @app.route("/manager/archive-justification-action/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
@@ -895,6 +900,7 @@ def bulk_fix_ponto(employee_id):
                 lunch_end = parse_time(request.form.get(f"lunch_end_{entry_date_str}"))
                 departure = parse_time(request.form.get(f"departure_{entry_date_str}"))
                 manager_notes = request.form.get(f"manager_notes_{entry_date_str}")
+                print(f"DEBUG: Processing entry {entry_date_str}, manager_notes: {manager_notes}")
 
                 services.manual_ponto_correction(
                     uow, current_user.id, employee_id, entry_date,
@@ -1338,10 +1344,20 @@ def review_badge(employee_id, entry_date, stage, action):
         flash(str(e), "danger")
 
     return redirect(url_for("view_employee_logs", employee_id=employee_id))
-@app.route("/logout")
+@app.route("/manager/save-manager-note", methods=["POST"])
 @login_required
-def logout():
-    logout_user()
-    return redirect(url_for("index"))
+@manager_required
+@handle_errors
+def save_manager_note():
+    employee_id = int(request.form.get("employee_id"))
+    entry_date = datetime.strptime(request.form.get("entry_date"), "%Y-%m-%d").date()
+    note_text = request.form.get("note_text")
+    
+    uow = SqlAlchemyUnitOfWork()
+    services.manual_ponto_correction(
+        uow, current_user.id, employee_id, entry_date,
+        None, None, None, None, manager_notes=note_text
+    )
+    return {"status": "success"}
 
 

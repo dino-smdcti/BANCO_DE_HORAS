@@ -380,6 +380,7 @@ def manual_ponto_correction(
     lunch_start: Optional[time],
     lunch_end: Optional[time],
     departure: Optional[time],
+    manager_notes: Optional[str] = None,
     email_sender=None
 ) -> bool:
     with uow:
@@ -402,6 +403,7 @@ def manual_ponto_correction(
         if ponto.lunch_start != lunch_start: ponto.lunch_start = lunch_start; changed = True
         if ponto.lunch_end != lunch_end: ponto.lunch_end = lunch_end; changed = True
         if ponto.departure != departure: ponto.departure = departure; changed = True
+        if manager_notes is not None: ponto.manager_notes = manager_notes; changed = True
         
         if not changed: return False
 

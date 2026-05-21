@@ -111,6 +111,7 @@
                                             title="Notas do Gestor">
                                         <i class="bi {{ 'bi-exclamation-triangle-fill' if p.manager_notes else 'bi-plus-circle' }} fs-5"></i>
                                     </button>
+                                    <input type="hidden" name="manager_notes_{{ p.entry_date }}" value="{{ p.manager_notes or '' }}">
                                 </td>
                                 <td>
                                     {% if p.notes %}
@@ -301,11 +302,24 @@ function openManagerNoteModal(entryDate, noteText) {
 function saveManagerNote() {
     const entryDate = document.getElementById('manager_note_entry_date').value;
     const noteText = document.getElementById('manager_note_edit_text').value;
-    const inputField = document.querySelector(`input[name="manager_notes_${entryDate}"]`);
-    if (inputField) {
-        inputField.value = noteText;
-        bootstrap.Modal.getInstance(document.getElementById('editManagerNoteModal')).hide();
-    }
+    const employeeId = '{{ employee.user_id }}';
+    
+    fetch("{{ url_for('save_manager_note') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `employee_id=${employeeId}&entry_date=${entryDate}&note_text=${encodeURIComponent(noteText)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            bootstrap.Modal.getInstance(document.getElementById('editManagerNoteModal')).hide();
+            window.location.reload(); // Refresh to reflect changes
+        } else {
+            alert("Erro ao salvar nota.");
+        }
+    });
 }
 </script>
 {% endblock %}
