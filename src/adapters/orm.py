@@ -1,6 +1,6 @@
 from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float
 from sqlalchemy.orm import registry, relationship, composite
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType
 from datetime import datetime, date
 
 metadata = MetaData()
@@ -28,6 +28,8 @@ journey_types = Table(
     Column("expected_departure", Time, nullable=False),
     Column("tolerance_minutes", Integer, default=15),
     Column("has_lunch_break", Boolean, default=True),
+    Column("schedule_type", SQLEnum(ScheduleType), default=ScheduleType.STANDARD),
+
 )
 
 work_schedules = Table(
@@ -41,6 +43,9 @@ work_schedules = Table(
     Column("expected_departure", Time, nullable=False),
     Column("tolerance_minutes", Integer, default=15),
     Column("has_lunch_break", Boolean, default=True),
+    Column("schedule_type", SQLEnum(ScheduleType), default=ScheduleType.STANDARD),
+
+    Column("rotation_start_date", Date, nullable=True),
 )
 
 users = Table(
@@ -73,6 +78,7 @@ daily_pontos = Table(
     Column("location_data", String(1000), nullable=True),
     Column("status", SQLEnum(PontoStatus), default=PontoStatus.ON_TIME),
     Column("notes", String(1000), nullable=True),
+    Column("manager_notes", String(1000), nullable=True),
     Column("has_lunch_break", Boolean, default=True),
     Column("arrival_late", Boolean, default=False),
     Column("lunch_start_late", Boolean, default=False),

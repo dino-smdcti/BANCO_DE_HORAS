@@ -56,6 +56,11 @@
                                 <i class="bi bi-people"></i> <span>Gestão</span>
                             </a>
                         {% endif %}
+                        {% if current_user.role == 'admin' %}
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('audit_logs') }}">
+                                <i class="bi bi-shield-lock"></i> <span>Auditoria</span>
+                            </a>
+                        {% endif %}
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
                             <i class="bi bi-calendar-check"></i> <span>Ponto</span>
                         </a>
@@ -113,7 +118,9 @@
     <script src="{{ url_for('static', filename='main.js') }}?v={{ range(1, 1000000) | random }}"></script>
     <script>
         function markReadTrigger() { markRead("{{ url_for('mark_notifications_read') }}"); }
-        function showConfirmModalTrigger(nextStage, scheduledTime) { showConfirmModal('confirmPontoModal', nextStage, scheduledTime); }
+        function showConfirmModalTrigger(nextStage, scheduledTime, hasLunchBreak, lastClockTime, userRole) { 
+            showConfirmModal('confirmPontoModal', nextStage, scheduledTime, hasLunchBreak, lastClockTime, userRole); 
+        }
     </script>
     {% block scripts %}{% endblock %}
 </body>

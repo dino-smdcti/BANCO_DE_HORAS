@@ -70,6 +70,43 @@ html, body {
     border-color: var(--accent);
 }
 
+.btn-accent {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--white) !important;
+}
+
+.btn-accent:hover {
+    background-color: var(--secondary);
+    border-color: var(--secondary);
+    color: var(--white) !important;
+}
+
+.btn-accent:disabled {
+    background-color: var(--accent);
+    opacity: 0.6;
+}
+
+/* Stage Toggle Buttons */
+.stage-btn-group .btn {
+    border-color: #ddd;
+    color: #666;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+    transition: all 0.2s;
+}
+
+.stage-btn-group .btn:hover {
+    background-color: #f8f9fa;
+}
+
+.stage-btn-group .btn.active {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
+    font-weight: bold;
+}
+
 .btn-success { background-color: var(--success); border-color: var(--success); }
 .btn-warning { background-color: var(--warning); border-color: var(--warning); }
 .btn-danger { background-color: var(--danger); border-color: var(--danger); }

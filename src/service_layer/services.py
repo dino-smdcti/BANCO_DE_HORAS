@@ -60,7 +60,7 @@ def register_user(
         uow.commit()
         
         actor_id = int(registered_by_id) if registered_by_id else user.user_id
-        uow.record_action(actor_id, "USER_REGISTERED", target_id=user.user_id, details=f"Role: {role}")
+        uow.record_action(actor_id, "USER_REGISTERED", target_id=user.user_id, details=f"Nível: {role}")
         uow.commit()
         return True
 
@@ -93,7 +93,7 @@ def update_user_profile(
         )
         user.profile = new_profile
         uow.commit()
-        uow.record_action(user_id, "UPDATE_PROFILE", target_id=user_id, details=f"Registration: {registration_number}, Dept: {department}")
+        uow.record_action(user_id, "UPDATE_PROFILE", target_id=user_id, details=f"Matrícula: {registration_number}, Depto: {department}")
         uow.commit()
 
 def update_credentials(uow: AbstractUnitOfWork, user_id: int, email: str, password: Optional[str] = None, email_notifications_enabled: bool = False):
@@ -121,7 +121,7 @@ def promote_to_manager(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
         if employee:
             employee.role = UserRole.MANAGER
             uow.commit()
-            uow.record_action(manager_id, "PROMOTE_USER", target_id=employee_id, details="Promoted to Manager")
+            uow.record_action(manager_id, "PROMOTE_USER", target_id=employee_id, details="Promovido a Diretor")
             uow.commit()
 
 def demote_to_employee(uow: AbstractUnitOfWork, manager_id: int, employee_id: int):
@@ -131,7 +131,7 @@ def demote_to_employee(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
         if employee:
             employee.role = UserRole.EMPLOYEE
             uow.commit()
-            uow.record_action(manager_id, "DEMOTE_USER", target_id=employee_id, details="Demoted to Employee")
+            uow.record_action(manager_id, "DEMOTE_USER", target_id=employee_id, details="Rebaixado a Funcionário")
             uow.commit()
 
 import math
@@ -244,7 +244,7 @@ def submit_correction_request(uow: AbstractUnitOfWork, user_id: int, ponto_date:
         )
         uow.session.add(req)
         uow.commit()
-        uow.record_action(user_id, "SUBMIT_CORRECTION_REQUEST", target_id=None, details=f"Date: {ponto_date}, Stage: {stage}")
+        uow.record_action(user_id, "SUBMIT_CORRECTION_REQUEST", target_id=None, details=f"Data: {ponto_date}, Estágio: {stage}")
         uow.commit()
 
 def list_pending_corrections(uow: AbstractUnitOfWork, manager_id: int) -> List[CorrectionRequest]:
@@ -313,7 +313,7 @@ def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_
             add_notification(uow, req.user_id, f"Sua solicitação de correção para {req.ponto_date} foi REJEITADA.")
         
         uow.commit()
-        uow.record_action(manager_id, "REVIEW_CORRECTION_REQUEST", target_id=req.user_id, details=f"ReqID: {request_id}, Approved: {approved}")
+        uow.record_action(manager_id, "REVIEW_CORRECTION_REQUEST", target_id=req.user_id, details=f"ID Pedido: {request_id}, Aprovado: {approved}")
         uow.commit()
 
 def set_work_schedule(
@@ -325,7 +325,9 @@ def set_work_schedule(
     lunch_end: Optional[time],
     departure: time,
     tolerance: int = 15,
-    has_lunch_break: bool = True
+    has_lunch_break: bool = True,
+    schedule_type: str = "standard",
+    rotation_start_date: Optional[date] = None
 ):
     with uow:
         user = uow.users.get_user_by_id(employee_id)
@@ -339,6 +341,9 @@ def set_work_schedule(
         else:
             ensure_manager(uow, manager_id)
         
+        from src.domain.model import ScheduleType
+        s_type = ScheduleType(schedule_type.lower())
+
         if user.work_schedule:
             user.work_schedule.expected_arrival = arrival
             user.work_schedule.expected_lunch_start = lunch_start
@@ -346,6 +351,8 @@ def set_work_schedule(
             user.work_schedule.expected_departure = departure
             user.work_schedule.tolerance_minutes = tolerance
             user.work_schedule.has_lunch_break = has_lunch_break
+            user.work_schedule.schedule_type = s_type
+            user.work_schedule.rotation_start_date = rotation_start_date
             uow.session.add(user.work_schedule)
         else:
             schedule = WorkSchedule(
@@ -355,7 +362,9 @@ def set_work_schedule(
                 expected_lunch_end=lunch_end,
                 expected_departure=departure,
                 tolerance_minutes=tolerance,
-                has_lunch_break=has_lunch_break
+                has_lunch_break=has_lunch_break,
+                schedule_type=s_type,
+                rotation_start_date=rotation_start_date
             )
             user.work_schedule = schedule
             uow.session.add(schedule)
@@ -411,36 +420,138 @@ def manual_ponto_correction(
         
         add_notification(uow, employee_id, f"Seu ponto de {entry_date} foi corrigido manualmente pelo gestor {manager_name}.", email_sender=email_sender)
         uow.commit()
-        uow.record_action(manager_id, "MANUAL_CORRECTION", target_id=employee_id, details=f"Date: {entry_date}")
+        uow.record_action(manager_id, "MANUAL_CORRECTION", target_id=employee_id, details=f"Data: {entry_date}")
         uow.commit()
         return True
 
-def generate_excel_report(uow: AbstractUnitOfWork, user_id: int) -> io.BytesIO:
+def generate_excel_report(uow: AbstractUnitOfWork, user_id: int, start_date: Optional[date] = None, end_date: Optional[date] = None) -> io.BytesIO:
+    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+    from openpyxl.utils import get_column_letter
+
     with uow:
         user = uow.users.get_user_by_id(user_id)
         if not user:
-            raise ValueError("User not found.")
-        data = []
-        for p in user.time_entries:
-            data.append({
-                "Data": p.entry_date.strftime("%d/%m/%Y"),
-                "Chegada": p.arrival.strftime("%H:%M:%S") if p.arrival else "-",
-                "Almoço (Sai)": p.lunch_start.strftime("%H:%M:%S") if p.lunch_start else "-",
-                "Almoço (Vol)": p.lunch_end.strftime("%H:%M:%S") if p.lunch_end else "-",
-                "Fim": p.departure.strftime("%H:%M:%S") if p.departure else "-",
-                "Status": p.status.value,
-                "Notas": p.notes or "-",
-                "Minutos Trabalhados": p.worked_minutes,
-                "Localização": p.location_data
-            })
+            raise ValueError("Usuário não encontrado.")
+
+        # Filter and Sort entries
+        entries = user.time_entries
+        if start_date:
+            entries = [p for p in entries if p.entry_date >= start_date]
+        if end_date:
+            entries = [p for p in entries if p.entry_date <= end_date]
         
-        df = pd.DataFrame(data)
+        entries = sorted(entries, key=lambda x: x.entry_date, reverse=False)
+
+        # Header Info
+        full_name = user.profile.full_name or "Não informado"
+        registration = user.profile.registration_number or "-"
+        cpf = user.profile.cpf or "-"
+        department = user.profile.department or "-"
+        position = user.profile.position or "-"
+
+        # Period String
+        period_str = "Todo o período"
+        if start_date and end_date:
+            period_str = f"{start_date.strftime('%d/%m/%Y')} até {end_date.strftime('%d/%m/%Y')}"
+        elif start_date:
+            period_str = f"A partir de {start_date.strftime('%d/%m/%Y')}"
+        elif end_date:
+            period_str = f"Até {end_date.strftime('%d/%m/%Y')}"
+
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            df.to_excel(writer, index=False, sheet_name="Banco de Horas")
+            # Create a simple DataFrame for the core data
+            data = []
+            for p in entries:
+                data.append({
+                    "Data": p.entry_date.strftime("%d/%m/%Y"),
+                    "Chegada": p.arrival.strftime("%H:%M:%S") if p.arrival else "-",
+                    "Saída Almoço": p.lunch_start.strftime("%H:%M:%S") if p.lunch_start else "-",
+                    "Volta Almoço": p.lunch_end.strftime("%H:%M:%S") if p.lunch_end else "-",
+                    "Fim Jornada": p.departure.strftime("%H:%M:%S") if p.departure else "-",
+                    "Horas Trab.": f"{p.worked_minutes // 60:02d}:{p.worked_minutes % 60:02d}",
+                    "Status": p.status.value,
+                    "Observações": p.notes or ""
+                })
+
+            df = pd.DataFrame(data)
+            df.to_excel(writer, index=False, sheet_name="Relatório de Ponto", startrow=7)
+
+            workbook = writer.book
+            sheet = workbook["Relatório de Ponto"]
+
+            # Styles
+            title_font = Font(name='Arial', size=14, bold=True)
+            header_font = Font(name='Arial', size=10, bold=True)
+            label_font = Font(name='Arial', size=9, bold=True)
+            value_font = Font(name='Arial', size=9)
+            border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            fill_header = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+
+            # Report Title
+            sheet.merge_cells('A1:H1')
+            sheet['A1'] = "RELATÓRIO MENSAL DE FREQUÊNCIA"
+            sheet['A1'].font = title_font
+            sheet['A1'].alignment = Alignment(horizontal='center')
+
+            sheet.merge_cells('A2:H2')
+            sheet['A2'] = f"Período: {period_str}"
+            sheet['A2'].font = value_font
+            sheet['A2'].alignment = Alignment(horizontal='center')
+
+            # Employee Info Section
+            info_rows = [
+                ('A3', 'Funcionário:', 'B3', full_name, 'E3', 'Matrícula:', 'F3', registration),
+                ('A4', 'Cargo:', 'B4', position, 'E4', 'Departamento:', 'F4', department),
+                ('A5', 'CPF:', 'B5', cpf, 'E5', 'Emitido em:', 'F5', datetime.now().strftime("%d/%m/%Y %H:%M"))
+            ]
+
+            for r in info_rows:
+                sheet[r[0]] = r[1]; sheet[r[0]].font = label_font
+                sheet.merge_cells(f"{r[2]}:D{r[0][1]}")
+                sheet[r[2]] = r[3]; sheet[r[2]].font = value_font
+                sheet[r[4]] = r[5]; sheet[r[4]].font = label_font
+                sheet.merge_cells(f"{r[6]}:H{r[0][1]}")
+                sheet[r[6]] = r[7]; sheet[r[6]].font = value_font
+
+            # Style Table Headers
+            for cell in sheet[8]:
+                cell.font = header_font
+                cell.fill = fill_header
+                cell.border = border
+                cell.alignment = Alignment(horizontal='center')
+
+            # Style Table Data
+            last_row = 8 + len(data)
+            for row in sheet.iter_rows(min_row=9, max_row=last_row, min_col=1, max_col=8):
+                for cell in row:
+                    cell.font = value_font
+                    cell.border = border
+                    cell.alignment = Alignment(horizontal='center')
+
+            # Adjust Column Widths
+            widths = [12, 12, 12, 12, 12, 12, 15, 30]
+            for i, width in enumerate(widths):
+                sheet.column_dimensions[get_column_letter(i+1)].width = width
+
+            # Signature Lines
+            sig_row = last_row + 3
+            sheet.merge_cells(f'A{sig_row}:C{sig_row}')
+            sheet[f'A{sig_row}'].border = Border(top=Side(style='thin'))
+            sheet[f'A{sig_row+1}'] = "Assinatura do Funcionário"
+            sheet[f'A{sig_row+1}'].font = value_font
+            sheet[f'A{sig_row+1}'].alignment = Alignment(horizontal='center')
+            sheet.merge_cells(f'A{sig_row+1}:C{sig_row+1}')
+
+            sheet.merge_cells(f'F{sig_row}:H{sig_row}')
+            sheet[f'F{sig_row}'].border = Border(top=Side(style='thin'))
+            sheet[f'F{sig_row+1}'] = "Assinatura do Gestor / RH"
+            sheet[f'F{sig_row+1}'].font = value_font
+            sheet[f'F{sig_row+1}'].alignment = Alignment(horizontal='center')
+            sheet.merge_cells(f'F{sig_row+1}:H{sig_row+1}')
+
         output.seek(0)
         return output
-
 def add_vacation(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, start_date: date, end_date: date):
     with uow:
         ensure_manager(uow, manager_id)
@@ -450,7 +561,7 @@ def add_vacation(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, sta
             raise ValueError("Employee not found.")
         employee.vacations.append(vacation)
         uow.commit()
-        uow.record_action(manager_id, "ADD_VACATION", target_id=employee_id, details=f"Start: {start_date}, End: {end_date}")
+        uow.record_action(manager_id, "ADD_VACATION", target_id=employee_id, details=f"Início: {start_date}, Fim: {end_date}")
         uow.commit()
 
 def delete_ponto_entry(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date: date):
@@ -471,7 +582,7 @@ def delete_ponto_entry(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
             
             uow.commit()
             manager_name = manager.profile.full_name or manager.email
-            uow.record_action(manager_id, "DELETE_PONTO", target_id=employee_id, details=f"Deleted {len(matching_pontos)} entry/ies for {entry_date} by {manager_name}")
+            uow.record_action(manager_id, "DELETE_PONTO", target_id=employee_id, details=f"Excluído(s) {len(matching_pontos)} registro(s) para {entry_date} por {manager_name}")
             uow.commit()
 def add_holiday(uow: AbstractUnitOfWork, manager_id: int, holiday_date: date, description: str, is_mandatory: bool = True):
     with uow:
@@ -479,7 +590,7 @@ def add_holiday(uow: AbstractUnitOfWork, manager_id: int, holiday_date: date, de
         holiday = Holiday(holiday_date=holiday_date, description=description, is_mandatory=is_mandatory)
         uow.session.merge(holiday)
         uow.commit()
-        uow.record_action(manager_id, "ADD_HOLIDAY", target_id=None, details=f"Date: {holiday_date}, Desc: {description}")
+        uow.record_action(manager_id, "ADD_HOLIDAY", target_id=None, details=f"Data: {holiday_date}, Desc: {description}")
         uow.commit()
 
 def get_start_analysis_date(uow: AbstractUnitOfWork) -> date:
@@ -514,7 +625,7 @@ def delete_user(uow: AbstractUnitOfWork, manager_id: int, user_id: int):
             email = user.email
             uow.session.delete(user)
             uow.commit()
-            uow.record_action(manager_id, "DELETE_USER", target_id=user_id, details=f"Deleted user: {email}")
+            uow.record_action(manager_id, "DELETE_USER", target_id=user_id, details=f"Usuário deletado: {email}")
             uow.commit()
 
 def create_journey_type(
@@ -526,10 +637,12 @@ def create_journey_type(
     lunch_end: Optional[time],
     departure: time,
     tolerance: int = 15,
-    has_lunch_break: bool = True
+    has_lunch_break: bool = True,
+    schedule_type: str = "standard"
 ):
     with uow:
         ensure_manager(uow, manager_id)
+        from src.domain.model import ScheduleType
         jt = JourneyType(
             name=name,
             expected_arrival=arrival,
@@ -537,11 +650,12 @@ def create_journey_type(
             expected_lunch_end=lunch_end,
             expected_departure=departure,
             tolerance_minutes=tolerance,
-            has_lunch_break=has_lunch_break
+            has_lunch_break=has_lunch_break,
+            schedule_type=ScheduleType(schedule_type)
         )
         uow.session.add(jt)
         uow.commit()
-        uow.record_action(manager_id, "CREATE_JOURNEY_TYPE", target_id=None, details=f"Name: {name}, Lunch: {has_lunch_break}")
+        uow.record_action(manager_id, "CREATE_JOURNEY_TYPE", target_id=None, details=f"Nome: {name}, Almoço: {has_lunch_break}, Tipo: {schedule_type}")
         uow.commit()
 
 def list_journey_types(uow: AbstractUnitOfWork) -> List[JourneyType]:
@@ -562,7 +676,8 @@ def update_journey_type(
     lunch_end: Optional[time],
     departure: time,
     tolerance: int = 15,
-    has_lunch_break: bool = True
+    has_lunch_break: bool = True,
+    schedule_type: str = "standard"
 ):
     with uow:
         ensure_manager(uow, manager_id)
@@ -570,6 +685,7 @@ def update_journey_type(
         if not jt:
             raise ValueError("Journey Type not found.")
         
+        from src.domain.model import ScheduleType
         jt.name = name
         jt.expected_arrival = arrival
         jt.expected_lunch_start = lunch_start
@@ -577,8 +693,9 @@ def update_journey_type(
         jt.expected_departure = departure
         jt.tolerance_minutes = tolerance
         jt.has_lunch_break = has_lunch_break
+        jt.schedule_type = ScheduleType(schedule_type)
         uow.commit()
-        uow.record_action(manager_id, "UPDATE_JOURNEY_TYPE", target_id=journey_id, details=f"Name: {name}, Lunch: {has_lunch_break}")
+        uow.record_action(manager_id, "UPDATE_JOURNEY_TYPE", target_id=journey_id, details=f"Nome: {name}, Almoço: {has_lunch_break}, Tipo: {schedule_type}")
         uow.commit()
 
 def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: int):
@@ -589,7 +706,7 @@ def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: in
             name = jt.name
             uow.session.delete(jt)
             uow.commit()
-            uow.record_action(manager_id, "DELETE_JOURNEY_TYPE", target_id=journey_id, details=f"Deleted: {name}")
+            uow.record_action(manager_id, "DELETE_JOURNEY_TYPE", target_id=journey_id, details=f"Deletado: {name}")
             uow.commit()
 
 def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: int, entry_date: date, stage: str, action: str):
@@ -622,5 +739,5 @@ def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: in
             elif action == "excuse": ponto.departure_early_excused = True
         
         uow.commit()
-        uow.record_action(admin_id, f"{action.upper()}_ANOMALY", target_id=employee_id, details=f"Date: {entry_date}, Stage: {stage}")
+        uow.record_action(admin_id, f"{action.upper()}_ANOMALY", target_id=employee_id, details=f"Data: {entry_date}, Estágio: {stage}")
         uow.commit()

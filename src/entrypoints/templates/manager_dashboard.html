@@ -36,10 +36,7 @@
                                     {% if employee.role.value == 'admin' %}bg-accent text-white
                                     {% elif employee.role.value == 'manager' %}bg-secondary text-white
                                     {% else %}bg-primary text-white{% endif %}">
-                                    {% if employee.role.value == 'admin' %}Secretário
-                                    {% elif employee.role.value == 'manager' %}Diretor
-                                    {% elif employee.role.value == 'employee' %}Funcionário
-                                    {% else %}{{ employee.role.value|capitalize }}{% endif %}
+                                    {{ get_role_label(employee.role.value, employee.email) }}
                                 </span>
                             </td>
                             <td>

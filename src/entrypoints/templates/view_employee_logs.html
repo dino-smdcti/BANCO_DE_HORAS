@@ -37,48 +37,67 @@
     </div>
 </div>
 
-<!-- Vacation Modal -->
-<div class="modal fade" id="vacationModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form action="{{ url_for('add_vacation', employee_id=employee.user_id) }}" method="POST" class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Lançar Férias - {{ employee.profile.full_name }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Início</label>
-                    <input type="date" name="start_date" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Término</label>
-                    <input type="date" name="end_date" class="form-control" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">Salvar Férias</button>
-            </div>
-        </form>
-    </div>
-</div>
+<style>
+    .card-header-sticky {
+        position: sticky;
+        top: 0;
+        z-index: 1020;
+        background-color: #dc3545;
+        color: #fff;
+        padding: 1rem;
+        border-bottom: 1px solid #dc3545;
+    }
+    .table-container {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1010;
+        background-color: #f8f9fa;
+    }
+</style>
 
 <div class="card shadow mb-4">
     <form id="bulkFixForm" action="{{ url_for('bulk_fix_ponto', employee_id=employee.user_id) }}" method="POST">
-        <div class="card-header bg-white">
+        <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Registros de Ponto</h5>
+            <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-funnel"></i> Filtros
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-3" style="width: 300px;">
+                        <form method="GET">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Data Início</label>
+                                <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Data Fim</label>
+                                <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
+                            </div>
+                            <button type="submit" class="btn btn-secondary w-100">Aplicar Filtro</button>
+                        </form>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-light fw-bold text-danger">Salvar mudanças</button>
+            </div>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
+        <div class="card-body">
+            <div class="table-responsive table-container">
                 <table class="table table-hover mb-0">
-                    <thead class="table-light">
+                    <thead>
                         <tr>
+                            <th>Notas Gestor</th>
                             <th>Nota</th>
                             <th>Data</th>
                             <th>Chegada</th>
                             <th>Almoço (Sai)</th>
                             <th>Almoço (Vol)</th>
                             <th>Fim de Jornada</th>
-                            <th>Localização</th>
+                            <th>Loc.</th>
                             <th>Status</th>
                             <th>Ações</th>
                         </tr>
@@ -87,9 +106,16 @@
                         {% for p in recent_entries %}
                             <tr class="{% if p.has_anomaly and p.status.value not in ['Justificado', 'Dispensado'] %}table-warning{% elif p.status.value == 'Corrigido' %}table-success{% endif %}">
                                 <td>
+                                    <button type="button" class="btn btn-sm btn-link p-0 {{ 'text-warning' if p.manager_notes else 'text-muted' }}" 
+                                            onclick="openManagerNoteModal('{{ p.entry_date }}', `{{ p.manager_notes or '' }}`)"
+                                            title="Notas do Gestor">
+                                        <i class="bi {{ 'bi-exclamation-triangle-fill' if p.manager_notes else 'bi-plus-circle' }} fs-5"></i>
+                                    </button>
+                                </td>
+                                <td>
                                     {% if p.notes %}
                                         <button type="button" class="btn btn-sm btn-link p-0 text-primary" title="Ver Nota" 
-                                                onclick="openViewNoteModal('{{ p.entry_date }}', this.getAttribute('data-note'))"
+                                                onclick="openViewNoteModal('{{ p.entry_date }}', `{{ p.notes|escape }}`)"
                                                 data-note="{{ p.notes }}">
                                             <i class="bi bi-sticky-fill fs-5"></i>
                                         </button>
@@ -103,113 +129,32 @@
                                 </td>
                                 <td>
                                     <input type="text" name="arrival_{{ p.entry_date }}" value="{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                    {% if p.arrival_late %}
-                                        <div class="mt-1">
-                                            {% if p.arrival_late_approved %}
-                                                <span class="badge bg-success" title="Atraso Aprovado">
-                                                    <i class="bi bi-check-circle"></i> Atraso
-                                                </span>
-                                            {% elif p.arrival_late_excused %}
-                                                <span class="badge bg-info text-white" title="Atraso Abonado">
-                                                    <i class="bi bi-file-earmark-check"></i> Licença
-                                                </span>
-                                            {% elif p.arrival_late_reviewed %}
-                                                <span class="badge bg-danger opacity-75" title="Atraso Mantido (Revisado)">
-                                                    Atraso
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'arrival', 'Atraso na Chegada')" style="cursor: pointer;"{% endif %}>
-                                                    Atraso
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_start_{{ p.entry_date }}" value="{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                    {% if p.lunch_start_late %}
-                                        <div class="mt-1">
-                                            {% if p.lunch_start_late_approved %}
-                                                <span class="badge bg-success" title="Anomalia Aprovada">
-                                                    <i class="bi bi-check-circle"></i> Anomalia
-                                                </span>
-                                            {% elif p.lunch_start_late_excused %}
-                                                <span class="badge bg-info text-white" title="Anomalia Abonada">
-                                                    <i class="bi bi-file-earmark-check"></i> Licença
-                                                </span>
-                                            {% elif p.lunch_start_late_reviewed %}
-                                                <span class="badge bg-danger opacity-75" title="Anomalia Mantida (Revisada)">
-                                                    Anomalia
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_start', 'Anomalia no Almoço (Saída)')" style="cursor: pointer;"{% endif %}>
-                                                    Anomalia
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_end_{{ p.entry_date }}" value="{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                    {% if p.lunch_end_late %}
-                                        <div class="mt-1">
-                                            {% if p.lunch_end_late_approved %}
-                                                <span class="badge bg-success" title="Atraso Aprovado">
-                                                    <i class="bi bi-check-circle"></i> Atraso
-                                                </span>
-                                            {% elif p.lunch_end_late_excused %}
-                                                <span class="badge bg-info text-white" title="Atraso Abonado">
-                                                    <i class="bi bi-file-earmark-check"></i> Licença
-                                                </span>
-                                            {% elif p.lunch_end_late_reviewed %}
-                                                <span class="badge bg-danger opacity-75" title="Atraso Mantido (Revisado)">
-                                                    Atraso
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_end', 'Atraso no Almoço (Volta)')" style="cursor: pointer;"{% endif %}>
-                                                    Atraso
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="departure_{{ p.entry_date }}" value="{{ p.departure.strftime('%H:%M:%S') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
-                                    {% if p.departure_early %}
-                                        <div class="mt-1">
-                                            {% if p.departure_early_approved %}
-                                                <span class="badge bg-success" title="Saída Cedo Aprovada">
-                                                    <i class="bi bi-check-circle"></i> Saída Cedo
-                                                </span>
-                                            {% elif p.departure_early_excused %}
-                                                <span class="badge bg-info text-white" title="Saída Cedo Abonada">
-                                                    <i class="bi bi-file-earmark-check"></i> Licença
-                                                </span>
-                                            {% elif p.departure_early_reviewed %}
-                                                <span class="badge bg-danger opacity-75" title="Saída Cedo Mantida (Revisada)">
-                                                    Saída Cedo
-                                                </span>
-                                            {% else %}
-                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'departure', 'Saída Antecipada')" style="cursor: pointer;"{% endif %}>
-                                                Saída Cedo
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    {% endif %}
                                 </td>
                                 <td>
-                                    <small class="text-muted">{{ (p.location_data or '')[:20] }}{{ '...' if (p.location_data or '')|length > 20 else '' }}</small>
+                                    {% if p.location_data %}
+                                        <button type="button" class="btn btn-sm btn-link p-0 text-info" 
+                                                onclick="openLocationModal('{{ p.entry_date }}', `{{ p.location_data or '' }}`)"
+                                                title="Ver Localização">
+                                            <i class="bi bi-geo-alt fs-5"></i>
+                                        </button>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <span class="badge 
                                         {% if p.status.value == 'No Horário' %}bg-success
                                         {% elif p.status.value in ['Atrasado', 'Faltante'] %}bg-danger
                                         {% elif p.status.value == 'Corrigido' %}bg-warning text-dark
-                                        {% elif p.status_label == 'Desconhecido' %}bg-secondary
                                         {% else %}bg-secondary{% endif %}">
                                         {{ p.status_label }}
                                     </span>
@@ -221,8 +166,6 @@
                                     </button>
                                 </td>
                             </tr>
-                        {% else %}
-                            <tr><td colspan="9" class="text-center py-4 text-muted">Nenhum registro encontrado.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -233,55 +176,9 @@
         </div>
     </form>
 </div>
-
-<!-- Hidden Delete Form -->
-<form id="hiddenDeleteForm" method="POST" style="display:none;"></form>
-
-<div class="card shadow border-danger mb-4">
-    <div class="card-header bg-danger text-white">
-        <h5 class="mb-0">Configurações de Análise</h5>
-    </div>
-    <div class="card-body">
-        <form action="{{ url_for('update_user_analysis_date', employee_id=employee.user_id) }}" method="POST" class="row g-3 align-items-center">
-            <div class="col-auto">
-                <label class="form-label mb-0 text-muted">Data de início da análise:</label>
-            </div>
-            <div class="col-auto">
-                <input type="date" name="start_analysis_date" class="form-control-plaintext text-danger fw-bold" value="{{ employee.profile.start_analysis_date.strftime('%Y-%m-%d') if employee.profile.start_analysis_date else '2026-05-11' }}" required>
-            </div>
-            <div class="col-auto">
-                <button type="submit" class="btn btn-outline-danger">Atualizar</button>
-            </div>
-        </form>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_modals %}
-<!-- Review Anomaly Modal -->
-<div class="modal fade" id="reviewBadgeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Revisar Anomalia Individual</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p id="reviewBadgeInfo"></p>
-                <p>Aprovar esta anomalia removerá a penalidade no banco de horas para este estágio específico.</p>
-            </div>
-            <div class="modal-footer">
-                <form id="reviewBadgeForm" method="POST">
-                    <button type="submit" name="action" value="reject" class="btn btn-outline-danger">Manter Penalidade</button>
-                    <button type="submit" name="action" value="approve" class="btn btn-success">Aprovar (Remover Penalidade)</button>
-                    <button type="submit" name="action" value="excuse" class="btn btn-primary">Abonar (Licença)</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- View Note Modal -->
 <div class="modal fade" id="viewNoteModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -304,48 +201,110 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="editManagerNoteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nota Privada do Gestor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="manager_note_entry_date">
+                <textarea id="manager_note_edit_text" class="form-control" rows="5" placeholder="Digite uma nota privada..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="saveManagerNote()">Salvar Nota</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="locationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Histórico de Localização</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="locationStageButtons" class="d-flex justify-content-center flex-wrap mb-3"></div>
+                <div id="mapIframeContainer">
+                    <iframe id="locationMapIframe" width="100%" height="400" frameborder="0" style="border:0;"></iframe>
+                </div>
+                <div id="locationWarning" class="alert alert-warning" style="display:none;">
+                    Nenhuma localização disponível para este registro.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 function openViewNoteModal(entryDate, noteText) {
+    const modalEl = document.getElementById('viewNoteModal');
+    new bootstrap.Modal(modalEl).show();
     document.getElementById('display_note_view_date').innerText = entryDate;
     document.getElementById('note_view_text').value = noteText;
-    new bootstrap.Modal(document.getElementById('viewNoteModal')).show();
 }
 
-function openReviewModal(entryDate, stage, stageLabel) {
-    const info = document.getElementById('reviewBadgeInfo');
-    info.innerHTML = `Data: <strong>${entryDate}</strong><br>Anomalia: <strong>${stageLabel}</strong>`;
+function openLocationModal(entryDate, locationData) {
+    const modalEl = document.getElementById('locationModal');
+    const iframe = document.getElementById('locationMapIframe');
+    const container = document.getElementById('mapIframeContainer');
+    const warning = document.getElementById('locationWarning');
+    const buttonGroup = document.getElementById('locationStageButtons');
     
-    const form = document.getElementById('reviewBadgeForm');
-    // We'll update the action URL dynamically
-    form.onsubmit = function(e) {
-        e.preventDefault();
-        const action = e.submitter.value;
-        const employeeId = '{{ employee.user_id }}';
-        let url = `{{ url_for('review_badge', employee_id=0, entry_date='DATE_PLACEHOLDER', stage='STAGE_PLACEHOLDER', action='ACTION_PLACEHOLDER') }}`
-            .replace('/0/', '/' + employeeId + '/')
-            .replace('DATE_PLACEHOLDER', entryDate)
-            .replace('STAGE_PLACEHOLDER', stage)
-            .replace('ACTION_PLACEHOLDER', action);
-        
-        form.action = url;
-        form.submit();
+    buttonGroup.innerHTML = '';
+    const stagesMap = {
+        "Chegada": /Chegada: ([\d\.\-,]+)/,
+        "Saída Almoço": /Almoço \(Sai\): ([\d\.\-,]+)/,
+        "Volta Almoço": /Almoço \(Vol\): ([\d\.\-,]+)/,
+        "Fim": /Fim: ([\d\.\-,]+)/
     };
     
-    new bootstrap.Modal(document.getElementById('reviewBadgeModal')).show();
+    let foundStages = [];
+    Object.keys(stagesMap).forEach(stage => {
+        const match = locationData.match(stagesMap[stage]);
+        if (match) foundStages.push({ name: stage, coords: match[1] });
+    });
+
+    if (foundStages.length > 0) {
+        foundStages.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-sm btn-outline-primary m-1';
+            btn.innerText = item.name;
+            btn.type = 'button';
+            btn.onclick = function() { iframe.src = `https://www.google.com/maps?q=${item.coords}&output=embed`; };
+            buttonGroup.appendChild(btn);
+        });
+        iframe.src = `https://www.google.com/maps?q=${foundStages[0].coords}&output=embed`;
+        container.style.display = 'block';
+        warning.style.display = 'none';
+    } else {
+        container.style.display = 'none';
+        warning.style.display = 'block';
+    }
+    new bootstrap.Modal(modalEl).show();
 }
 
-function confirmDeletePonto(employeeId, entryDate) {
-    if (confirm('Deseja realmente excluir este registro de ponto?')) {
-        const form = document.getElementById('hiddenDeleteForm');
-        let url = `{{ url_for('delete_ponto', employee_id=0, entry_date='DATE_PLACEHOLDER') }}`
-            .replace('/0/', '/' + employeeId + '/')
-            .replace('DATE_PLACEHOLDER', entryDate);
-        
-        form.action = url;
-        form.submit();
+function openManagerNoteModal(entryDate, noteText) {
+    const modalEl = document.getElementById('editManagerNoteModal');
+    document.getElementById('manager_note_entry_date').value = entryDate;
+    document.getElementById('manager_note_edit_text').value = noteText;
+    new bootstrap.Modal(modalEl).show();
+}
+
+function saveManagerNote() {
+    const entryDate = document.getElementById('manager_note_entry_date').value;
+    const noteText = document.getElementById('manager_note_edit_text').value;
+    const inputField = document.querySelector(`input[name="manager_notes_${entryDate}"]`);
+    if (inputField) {
+        inputField.value = noteText;
+        bootstrap.Modal.getInstance(document.getElementById('editManagerNoteModal')).hide();
     }
 }
 </script>

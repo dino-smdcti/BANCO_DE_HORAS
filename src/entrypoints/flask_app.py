@@ -81,7 +81,10 @@ def load_user(user_id):
 
 @app.context_processor
 def utility_processor():
-    def get_role_label(role_value):
+    def get_role_label(role_value, user_email=None):
+        if role_value == 'manager' and user_email == 'nagelalima1307.smdcti@gmail.com':
+            return 'Gestor'
+            
         mapping = {
             'employee': 'Funcionário',
             'manager': 'Diretor',
@@ -526,6 +529,11 @@ def dashboard():
         ponto_hoje = next((p for p in user.time_entries if p.entry_date == today_date), None)
         current_stage = ponto_hoje.current_stage if ponto_hoje else "Chegada"
         
+        last_clock_time = None
+        if ponto_hoje:
+            times = [ponto_hoje.departure, ponto_hoje.lunch_end, ponto_hoje.lunch_start, ponto_hoje.arrival]
+            last_clock_time = next((t.strftime("%H:%M:%S") for t in times if t is not None), None)
+        
         if filter_date:
             recent_entries = [p for p in user.time_entries if p.entry_date == filter_date]
         else:
@@ -570,6 +578,7 @@ def dashboard():
                 "expected_lunch_start": user.work_schedule.expected_lunch_start.strftime("%H:%M") if user.work_schedule.expected_lunch_start else None,
                 "expected_lunch_end": user.work_schedule.expected_lunch_end.strftime("%H:%M") if user.work_schedule.expected_lunch_end else None,
                 "expected_departure": user.work_schedule.expected_departure.strftime("%H:%M"),
+                "has_lunch_break": user.work_schedule.has_lunch_break
             }
 
         return render_template("employee_dashboard.html", 
@@ -582,7 +591,8 @@ def dashboard():
                              expected_daily=expected_daily,
                              saldo_total=saldo_total,
                              worked_hoje=worked_hoje,
-                             ponto_hoje=ponto_hoje)
+                             ponto_hoje=ponto_hoje,
+                             last_clock_time=last_clock_time)
 
 @app.route("/manager/archive-justification/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
@@ -797,10 +807,25 @@ def download_report(user_id):
     if current_user.id != user_id and current_user.role not in ["manager", "admin"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
-    
+
+    start_date_str = request.args.get("start_date")
+    end_date_str = request.args.get("end_date")
+
+    start_date = None
+    end_date = None
+
+    try:
+        if start_date_str:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        if end_date_str:
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    except ValueError:
+        flash("Formato de data inválido.", "danger")
+        return redirect(url_for("dashboard"))
+
     uow = SqlAlchemyUnitOfWork()
-    excel_file = services.generate_excel_report(uow, user_id)
-    
+    excel_file = services.generate_excel_report(uow, user_id, start_date, end_date)
+
     filename = f"relatorio_horas_{user_id}_{date.today()}.xlsx"
     return send_file(
         excel_file,
@@ -808,7 +833,6 @@ def download_report(user_id):
         download_name=filename,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
 @app.route("/manager/view-logs/<int:employee_id>")
 @login_required
 def view_employee_logs(employee_id):
@@ -870,11 +894,14 @@ def bulk_fix_ponto(employee_id):
                 lunch_start = parse_time(request.form.get(f"lunch_start_{entry_date_str}"))
                 lunch_end = parse_time(request.form.get(f"lunch_end_{entry_date_str}"))
                 departure = parse_time(request.form.get(f"departure_{entry_date_str}"))
+                manager_notes = request.form.get(f"manager_notes_{entry_date_str}")
 
                 services.manual_ponto_correction(
-                    uow, current_user.id, employee_id, entry_date, 
-                    arrival, lunch_start, lunch_end, departure
+                    uow, current_user.id, employee_id, entry_date,
+                    arrival, lunch_start, lunch_end, departure,
+                    manager_notes=manager_notes
                 )
+
         flash("Registros atualizados com sucesso.", "success")
     except Exception as e:
         flash(f"Erro ao processar correções: {str(e)}", "danger")
@@ -1011,11 +1038,18 @@ def set_schedule(employee_id):
 
         try:
             journey_id = int(request.form.get("journey_type", 0))
+            rotation_start = None
+            if form.rotation_start_date.data:
+                try:
+                    rotation_start = datetime.strptime(form.rotation_start_date.data, "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+
             if journey_id > 0:
                 with uow:
                     j = services.get_journey_type(uow, journey_id)
                     if j:
-                        arr, l_s, l_e, dep, tol, has_lunch = j.expected_arrival, j.expected_lunch_start, j.expected_lunch_end, j.expected_departure, j.tolerance_minutes, j.has_lunch_break
+                        arr, l_s, l_e, dep, tol, has_lunch, s_type = j.expected_arrival, j.expected_lunch_start, j.expected_lunch_end, j.expected_departure, j.tolerance_minutes, j.has_lunch_break, j.schedule_type.value
                     else:
                         raise ValueError("Modelo de jornada não encontrado.")
             else:
@@ -1025,13 +1059,13 @@ def set_schedule(employee_id):
                 dep = parse_time(form.departure.data)
                 tol = int(form.tolerance.data)
                 has_lunch = form.has_lunch_break.data
+                s_type = form.schedule_type.data
 
-            services.set_work_schedule(uow, current_user.id, employee_id, arr, l_s, l_e, dep, tol, has_lunch_break=has_lunch)
-            
+            services.set_work_schedule(uow, current_user.id, employee_id, arr, l_s, l_e, dep, tol, has_lunch_break=has_lunch, schedule_type=s_type, rotation_start_date=rotation_start)
+
             if journey_id == 0 and form.save_as_new.data:
-                services.create_journey_type(uow, current_user.id, form.save_as_new.data, arr, l_s, l_e, dep, tol, has_lunch_break=has_lunch)
+                services.create_journey_type(uow, current_user.id, form.save_as_new.data, arr, l_s, l_e, dep, tol, has_lunch_break=has_lunch, schedule_type=s_type)
                 flash(f"Template '{form.save_as_new.data}' salvo!", "info")
-
             flash("Horário de trabalho configurado.", "success")
             return redirect(url_for("view_employee_logs", employee_id=employee_id))
         except Exception as e:
@@ -1072,7 +1106,8 @@ def manage_journeys():
             parse_time(form.lunch_end.data),
             parse_time(form.departure.data),
             int(form.tolerance.data),
-            has_lunch_break=form.has_lunch_break.data
+            has_lunch_break=form.has_lunch_break.data,
+            schedule_type=form.schedule_type.data
         )
         flash("Tipo de Jornada criado.", "success")
         return redirect(url_for("management_panel"))
@@ -1098,7 +1133,8 @@ def get_journey_json(journey_id):
         "lunch_start": j.expected_lunch_start.strftime("%H:%M") if j.expected_lunch_start else "",
         "lunch_end": j.expected_lunch_end.strftime("%H:%M") if j.expected_lunch_end else "",
         "departure": j.expected_departure.strftime("%H:%M"),
-        "tolerance": j.tolerance_minutes
+        "tolerance": j.tolerance_minutes,
+        "schedule_type": j.schedule_type.value
     }
 
 @app.route("/manager/edit-journey/<int:journey_id>", methods=["GET", "POST"])
@@ -1124,7 +1160,8 @@ def edit_journey(journey_id):
                 parse_time(form.lunch_end.data),
                 parse_time(form.departure.data),
                 int(form.tolerance.data),
-                has_lunch_break=form.has_lunch_break.data
+                has_lunch_break=form.has_lunch_break.data,
+                schedule_type=form.schedule_type.data
             )
             flash("Tipo de Jornada atualizado.", "success")
             return redirect(url_for("manage_journeys"))
@@ -1145,6 +1182,7 @@ def edit_journey(journey_id):
             form.lunch_end.data = j.expected_lunch_end.strftime("%H:%M") if j.expected_lunch_end else ""
             form.departure.data = j.expected_departure.strftime("%H:%M")
             form.tolerance.data = str(j.tolerance_minutes)
+            form.schedule_type.data = j.schedule_type.value
         
         return render_template("edit_journey.html", form=form, journey=j)
 
@@ -1197,23 +1235,50 @@ def audit_logs():
     user_email = request.args.get("user_email")
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
+    action_type = request.args.get("action_type")
 
     uow = SqlAlchemyUnitOfWork()
     with uow:
-        query = uow.session.query(AuditLog)
+        # Join with User table to filter by role
+        query = uow.session.query(AuditLog).join(User, AuditLog.user_id == User.user_id)
+        
+        # Exclude standard employee actions
+        query = query.filter(AuditLog.action.notin_(['CLOCK_EVENT', 'SUBMIT_CORRECTION_REQUEST']))
+        
+        # Only show actions by managers or admins
+        query = query.filter(User.role.in_(['manager', 'admin']))
 
         if user_email:
             user = uow.users.get_user_by_email(user_email)
             if user:
                 query = query.filter(AuditLog.user_id == user.user_id)
+        
+        if action_type:
+            query = query.filter(AuditLog.action == action_type)
 
         if start_date:
             query = query.filter(AuditLog.timestamp >= datetime.strptime(start_date, "%Y-%m-%d"))
         if end_date:
             query = query.filter(AuditLog.timestamp <= datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
 
-        logs = query.order_by(AuditLog.timestamp.desc()).all()
-        return render_template("audit_logs.html", audit_logs=logs)
+        logs = query.order_by(AuditLog.timestamp.desc()).limit(200).all()
+        
+        logs_display = []
+        for l in logs:
+            actor = uow.users.get_user_by_id(l.user_id) if l.user_id else None
+            target = uow.users.get_user_by_id(l.target_id) if l.target_id else None
+            
+            logs_display.append({
+                "timestamp": l.timestamp,
+                "action": l.action,
+                "details": l.details,
+                "actor_name": actor.profile.full_name if actor and actor.profile else (actor.email if actor else "Sistema"),
+                "actor_email": actor.email if actor else "",
+                "target_name": target.profile.full_name if target and target.profile else (target.email if target else ""),
+                "target_email": target.email if target else ""
+            })
+            
+        return render_template("audit_logs.html", audit_logs=logs, logs_display=logs_display)
 @app.route("/admin/settings", methods=["GET", "POST"])
 @login_required
 def admin_settings():

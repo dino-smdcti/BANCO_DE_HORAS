@@ -14,6 +14,10 @@
                         <label class="form-label">Nome da Jornada</label>
                         {{ form.name(class="form-control", placeholder="Ex: Administrativo 08-18") }}
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Regime de Trabalho</label>
+                        {{ form.schedule_type(class="form-select") }}
+                    </div>
                     <div class="mb-3 form-check form-switch">
                         {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
                         <label class="form-check-label" for="lunchToggle">Possui intervalo de almoço?</label>

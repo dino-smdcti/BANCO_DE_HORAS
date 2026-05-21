@@ -2,43 +2,121 @@
 
 {% block content %}
 <div class="card shadow">
-    <div class="card-header bg-primary text-white">
-        <h5 class="mb-0">Logs do Sistema</h5>
+    <div class="card-header bg-accent text-white d-flex justify-content-between align-items-center" style="background-color: var(--accent) !important;">
+        <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Auditoria de Gestão</h5>
+        <span class="badge bg-light text-dark">{{ audit_logs|length }} registros encontrados</span>
     </div>
     <div class="card-body">
-        <form method="GET" class="row g-3 mb-4">
+        <form method="GET" class="row g-2 mb-4">
             <div class="col-md-3">
-                <input type="text" name="user_email" class="form-control" placeholder="E-mail do Funcionário" value="{{ request.args.get('user_email', '') }}">
+                <label class="form-label small fw-bold">Actor (Gestor/Admin)</label>
+                <input type="text" name="user_email" class="form-control form-control-sm" placeholder="E-mail" value="{{ request.args.get('user_email', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Início</label>
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request.args.get('start_date', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-bold">Fim</label>
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request.args.get('end_date', '') }}">
             </div>
             <div class="col-md-3">
-                <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+                <label class="form-label small fw-bold">Tipo de Ação</label>
+                <select name="action_type" class="form-select form-select-sm">
+                    <option value="">Todas as Ações</option>
+                    <option value="MANUAL_CORRECTION" {{ 'selected' if request.args.get('action_type') == 'MANUAL_CORRECTION' }}>Correção Manual</option>
+                    <option value="REVIEW_CORRECTION_REQUEST" {{ 'selected' if request.args.get('action_type') == 'REVIEW_CORRECTION_REQUEST' }}>Revisão de Pedido</option>
+                    <option value="DELETE_PONTO" {{ 'selected' if request.args.get('action_type') == 'DELETE_PONTO' }}>Exclusão de Ponto</option>
+                    <option value="PROMOTE_USER" {{ 'selected' if request.args.get('action_type') == 'PROMOTE_USER' }}>Promoção</option>
+                    <option value="DEMOTE_USER" {{ 'selected' if request.args.get('action_type') == 'DEMOTE_USER' }}>Rebaixamento</option>
+                    <option value="ADD_VACATION" {{ 'selected' if request.args.get('action_type') == 'ADD_VACATION' }}>Lançar Férias</option>
+                </select>
             </div>
-            <div class="col-md-3">
-                <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
-            </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-secondary btn-sm w-100">Filtrar</button>
             </div>
         </form>
+
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
                         <th>Data/Hora</th>
-                        <th>Usuário</th>
+                        <th>Responsável (Actor)</th>
                         <th>Ação</th>
-                        <th>Alvo</th>
+                        <th>Alvo (Funcionário)</th>
                         <th>Detalhes</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for log in audit_logs %}
+                    {% for item in logs_display %}
+                    <tr class="{% if item.action in ['DELETE_PONTO', 'DEMOTE_USER', 'DELETE_USER'] %}table-danger-light{% elif item.action in ['MANUAL_CORRECTION', 'REVIEW_CORRECTION_REQUEST'] %}table-info-light{% endif %}">
+                        <td class="small">{{ item.timestamp.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                        <td>
+                            <div class="fw-bold">{{ item.actor_name }}</div>
+                            <div class="text-muted small">{{ item.actor_email }}</div>
+                        </td>
+                        <td>
+                            {% if item.action == 'USER_REGISTERED' %}
+                                <span class="badge bg-primary">Inclusão de usuário</span>
+                            {% elif item.action == 'DELETE_USER' %}
+                                <span class="badge bg-danger">Usuário deletado</span>
+                            {% elif item.action in ['REJECT_ANOMALY', 'REJECT_ANOMALY_BADGE'] %}
+                                <span class="badge bg-warning text-dark">Manter atraso</span>
+                            {% elif item.action in ['APPROVE_ANOMALY', 'APPROVE_ANOMALY_BADGE'] %}
+                                <span class="badge bg-success">Atraso ciente</span>
+                            {% elif item.action == 'EXCUSE_ANOMALY' %}
+                                <span class="badge bg-info text-dark">Atraso abonado</span>
+                            {% elif item.action == 'ADD_VACATION' %}
+                                <span class="badge bg-secondary">Adicionar férias</span>
+                            {% elif item.action == 'SET_WORK_SCHEDULE' %}
+                                <span class="badge bg-accent">Definir Jornada</span>
+                            {% elif item.action == 'MANUAL_CORRECTION' %}
+                                <span class="badge bg-secondary">Correção Manual</span>
+                            {% elif item.action == 'REVIEW_CORRECTION_REQUEST' %}
+                                <span class="badge bg-primary">Revisão Pedido</span>
+                            {% elif item.action == 'DELETE_PONTO' %}
+                                <span class="badge bg-danger">Exclusão Ponto</span>
+                            {% elif item.action == 'PROMOTE_USER' %}
+                                <span class="badge bg-success">Promover</span>
+                            {% elif item.action == 'DEMOTE_USER' %}
+                                <span class="badge bg-warning text-dark">Rebaixar</span>
+                            {% elif item.action == 'UPDATE_PROFILE' %}
+                                <span class="badge bg-accent">Atualizar Perfil</span>
+                            {% elif item.action == 'UPDATE_CREDENTIALS' %}
+                                <span class="badge bg-accent">Troca de Senha</span>
+                            {% elif item.action == 'ADD_HOLIDAY' %}
+                                <span class="badge bg-secondary">Lançar Feriado</span>
+                            {% elif item.action == 'CREATE_JOURNEY_TYPE' %}
+                                <span class="badge bg-primary">Criar Modelo</span>
+                            {% elif item.action == 'UPDATE_JOURNEY_TYPE' %}
+                                <span class="badge bg-primary">Editar Modelo</span>
+                            {% elif item.action == 'DELETE_JOURNEY_TYPE' %}
+                                <span class="badge bg-danger">Deletar Modelo</span>
+                            {% else %}
+                                <span class="badge bg-dark">{{ item.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.target_name %}
+                                <div class="fw-bold">{{ item.target_name }}</div>
+                                <div class="text-muted small">{{ item.target_email }}</div>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="p-2 bg-light rounded small" style="max-width: 300px; word-wrap: break-word;">
+                                {{ item.details or '-' }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
                     <tr>
-                        <td>{{ log.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
-                        <td>{{ log.user_id }}</td>
-                        <td><span class="badge bg-secondary">{{ log.action }}</span></td>
-                        <td>{{ log.target_id or '-' }}</td>
-                        <td><small>{{ log.details or '-' }}</small></td>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            Nenhum log encontrado para os filtros selecionados.
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -46,4 +124,10 @@
         </div>
     </div>
 </div>
+
+<style>
+    .table-danger-light { background-color: #fff5f5; }
+    .table-info-light { background-color: #f0faff; }
+    .table-success-light { background-color: #f6fff6; }
+</style>
 {% endblock %}

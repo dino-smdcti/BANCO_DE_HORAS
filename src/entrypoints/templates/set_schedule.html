@@ -46,6 +46,17 @@
                             <label class="form-label fw-bold">Usar Modelo Predefinido</label>
                             {{ form.journey_type(class="form-select", id="journey_select") }}
                         </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Regime de Trabalho</label>
+                                {{ form.schedule_type(class="form-select", id="schedule_type", onchange="toggleRotationField()") }}
+                            </div>
+                            <div class="col-md-6 d-none" id="rotationField">
+                                <label class="form-label fw-bold">Início do Ciclo (12x36)</label>
+                                {{ form.rotation_start_date(class="form-control", id="rotation_start_date", placeholder="AAAA-MM-DD") }}
+                            </div>
+                        </div>
                         
                         <div class="mb-3 form-check form-switch">
                             {{ form.has_lunch_break(class="form-check-input", id="lunchToggle", onchange="toggleLunchFields()") }}
@@ -99,6 +110,16 @@
                     }
                 }
 
+                function toggleRotationField() {
+                    const sType = document.getElementById('schedule_type').value;
+                    const field = document.getElementById('rotationField');
+                    if (sType === '12x36') {
+                        field.classList.remove('d-none');
+                    } else {
+                        field.classList.add('d-none');
+                    }
+                }
+
                 document.getElementById('journey_select').addEventListener('change', function() {
                     const journey_id = this.value;
                     if (journey_id == "0") return;
@@ -113,11 +134,16 @@
                             document.getElementById('lunch_end').value = data.lunch_end;
                             document.getElementById('departure').value = data.departure;
                             document.getElementById('tolerance').value = data.tolerance;
+                            document.getElementById('schedule_type').value = data.schedule_type;
                             toggleLunchFields();
+                            toggleRotationField();
                         });
                 });
 
-                document.addEventListener('DOMContentLoaded', toggleLunchFields);
+                document.addEventListener('DOMContentLoaded', () => {
+                    toggleLunchFields();
+                    toggleRotationField();
+                });
             </script>
             {% endif %}
 

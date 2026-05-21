@@ -49,13 +49,13 @@ function markRead(url) {
     });
 }
 
-function showConfirmModal(modalId, nextStage, scheduledTime) {
+function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, lastClockTime, userRole) {
     const modalElement = document.getElementById(modalId);
     const modal = new bootstrap.Modal(modalElement);
     const timeSpan = document.getElementById('confirmTime');
     const locSpan = document.getElementById('confirmLoc');
     const locationInput = document.getElementById('locationInput');
-    const mapContainer = document.getElementById('mapContainer');
+    const mapSection = document.getElementById('mapSection');
     const modalMap = document.getElementById('modalMap');
     const locStatus = document.getElementById('locStatus');
     const btnConfirm = document.getElementById('btnConfirmPonto');
@@ -64,84 +64,101 @@ function showConfirmModal(modalId, nextStage, scheduledTime) {
     // Smart Detection Elements
     const smartAlert = document.getElementById('smartStageAlert');
     const suggestedLabel = document.getElementById('suggestedStageLabel');
-    const stageOverride = document.getElementById('stageOverrideSection');
-    const stageSelect = document.getElementById('stageSelect');
-    const displayStage = document.getElementById('displayStage');
+    const stageInput = document.getElementById('stageInput');
     const pontoBtn = document.getElementById('pontoBtn');
 
-    // Reset Smart UI
+    // Duplicate Detection Elements
+    const duplicateWarning = document.getElementById('duplicateWarning');
+    const confirmDuplicate = document.getElementById('confirmDuplicate');
+
+    // Reset UI
     smartAlert.classList.add('d-none');
-    stageOverride.classList.add('d-none');
-    stageSelect.removeAttribute('name'); // Only send if shown
-    displayStage.innerText = nextStage;
-
+    duplicateWarning.classList.add('d-none');
+    confirmDuplicate.checked = false;
+    
     const now = new Date();
-    const formattedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    timeSpan.innerText = formattedTime;
+    timeSpan.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    // Nearest Stage Detection Logic
-    if (pontoBtn) {
-        const arrival = pontoBtn.getAttribute('data-arrival');
-        const lStart = pontoBtn.getAttribute('data-lunch-start');
-        const lEnd = pontoBtn.getAttribute('data-lunch-end');
-        const departure = pontoBtn.getAttribute('data-departure');
-
-        const stages = [
-            { id: 'arrival', label: 'Chegada', time: arrival },
-            { id: 'lunch_start', label: 'Saída Almoço', time: lStart },
-            { id: 'lunch_end', label: 'Volta Almoço', time: lEnd },
-            { id: 'departure', label: 'Fim Jornada', time: departure }
-        ].filter(s => s.time);
-
-        if (stages.length > 0) {
-            let nearest = null;
-            let minDiff = Infinity;
-
-            stages.forEach(s => {
-                const [sh, sm] = s.time.split(':').map(Number);
-                const sDate = new Date();
-                sDate.setHours(sh, sm, 0, 0);
-                const diff = Math.abs(now - sDate);
-                if (diff < minDiff) {
-                    minDiff = diff;
-                    nearest = s;
-                }
-            });
-
-            // Map current_stage name to ID for comparison
-            const nextStageIdMap = {
-                'Chegada': 'arrival',
-                'Saída Almoço': 'lunch_start',
-                'Retorno Almoço': 'lunch_end',
-                'Fim Jornada': 'departure'
-            };
-
-            if (nearest && nextStageIdMap[nextStage] !== nearest.id) {
-                smartAlert.classList.remove('d-none');
-                suggestedLabel.innerText = nearest.label;
-                stageOverride.classList.remove('d-none');
-                stageSelect.setAttribute('name', 'stage');
-                stageSelect.value = nearest.id;
-                
-                // Update display when select changes
-                stageSelect.onchange = function() {
-                    displayStage.innerText = stageSelect.options[stageSelect.selectedIndex].text;
-                };
-            }
+    // 15-minute Duplicate Check
+    let isTooClose = false;
+    if (lastClockTime) {
+        const [lh, lm, ls] = lastClockTime.split(':').map(Number);
+        const lastDate = new Date();
+        lastDate.setHours(lh, lm, ls, 0);
+        
+        const diffMs = Math.abs(now - lastDate);
+        const diffMins = diffMs / (1000 * 60);
+        
+        if (diffMins < 15) {
+            isTooClose = true;
+            duplicateWarning.classList.remove('d-none');
         }
     }
+
+    // Map nextStage label (from backend) to value
+    const stageMap = {
+        'Chegada': 'arrival',
+        'Saída Almoço': 'lunch_start',
+        'Retorno Almoço': 'lunch_end',
+        'Fim Jornada': 'departure'
+    };
     
+    let currentSelectedStage = stageMap[nextStage] || 'arrival';
+
+    // Handle lunch break visibility (Managers/Admins always see all buttons)
+    const lunchStartRadio = document.getElementById('stage_lunch_start');
+    const lunchEndRadio = document.getElementById('stage_lunch_end');
+    const lunchStartLabel = document.querySelector('label[for="stage_lunch_start"]');
+    const lunchEndLabel = document.querySelector('label[for="stage_lunch_end"]');
+
+    const isManagement = (userRole === 'manager' || userRole === 'admin');
+
+    if (hasLunchBreak === false && !isManagement) {
+        if (lunchStartRadio) lunchStartRadio.classList.add('d-none');
+        if (lunchEndRadio) lunchEndRadio.classList.add('d-none');
+        if (lunchStartLabel) lunchStartLabel.classList.add('d-none');
+        if (lunchEndLabel) lunchEndLabel.classList.add('d-none');
+    } else {
+        if (lunchStartRadio) lunchStartRadio.classList.remove('d-none');
+        if (lunchEndRadio) lunchEndRadio.classList.remove('d-none');
+        if (lunchStartLabel) lunchStartLabel.classList.remove('d-none');
+        if (lunchEndLabel) lunchEndLabel.classList.remove('d-none');
+    }
+
+    // Initialize Radio Buttons
+    const radios = document.querySelectorAll('input[name="stage_radio"]');
+    radios.forEach(r => {
+        if (r.value === currentSelectedStage) {
+            r.checked = true;
+            stageInput.value = r.value;
+        }
+        r.onchange = function() {
+            stageInput.value = this.value;
+        };
+    });
+    
+    // Function to check if confirm should be enabled
+    function updateConfirmState(locationObtained) {
+        const needsDupConfirm = isTooClose && !confirmDuplicate.checked;
+        btnConfirm.disabled = !locationObtained || needsDupConfirm;
+    }
+
+    confirmDuplicate.onchange = () => {
+        const hasLoc = !!locationInput.value;
+        updateConfirmState(hasLoc);
+    };
+
     // Reset state
     btnConfirm.disabled = true;
     btnConfirm.innerHTML = 'Confirmar e Registrar';
-    mapContainer.classList.add('d-none');
+    mapSection.classList.add('d-none');
     locStatus.classList.remove('d-none');
     locSpan.innerText = "Obtendo localização...";
-    locSpan.className = "";
+    locSpan.className = "small ms-1";
     modalMap.src = "";
 
     modal.show();
-    // ... rest of geolocation code ...
+
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -149,26 +166,27 @@ function showConfirmModal(modalId, nextStage, scheduledTime) {
                 const lng = position.coords.longitude;
                 const locStr = `${lat},${lng}`;
                 locationInput.value = locStr;
-                
                 modalMap.src = `https://www.google.com/maps?q=${locStr}&output=embed`;
-                
-                mapContainer.classList.remove('d-none');
+                mapSection.classList.remove('d-none');
                 locStatus.classList.add('d-none');
-                btnConfirm.disabled = false;
+                
+                updateConfirmState(true);
             },
             (error) => {
                 console.error("Geolocation error:", error);
-                locStatus.querySelector('.spinner-border').classList.add('d-none');
+                const spinner = locStatus.querySelector('.spinner-border');
+                if (spinner) spinner.classList.add('d-none');
                 locSpan.innerText = "Localização não obtida. Você ainda pode registrar seu ponto.";
-                locSpan.classList.add("text-muted", "small", "d-block", "mt-2");
-                btnConfirm.disabled = false;
+                
+                updateConfirmState(true);
             },
             { enableHighAccuracy: true, timeout: 10000 }
         );
     } else {
-        locStatus.querySelector('.spinner-border').classList.add('d-none');
-        locSpan.innerText = "Geolocalização não suportada pelo seu navegador.";
-        locSpan.classList.add("text-danger");
+        const spinner = locStatus.querySelector('.spinner-border');
+        if (spinner) spinner.classList.add('d-none');
+        locSpan.innerText = "Geolocalização não suportada.";
+        updateConfirmState(true);
     }
 
     if (clockForm) {

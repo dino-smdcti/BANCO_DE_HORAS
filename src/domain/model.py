@@ -8,6 +8,19 @@ class UserRole(str, Enum):
     MANAGER = "manager"
     EMPLOYEE = "employee"
 
+class ScheduleType(str, Enum):
+    STANDARD = "STANDARD"
+    ROTATION_12X36 = "ROTATION_12X36"
+
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, str):
+            normalized = value.upper()
+            for member in cls:
+                if member.value == normalized:
+                    return member
+        return None
+
 class PontoStatus(str, Enum):
     ON_TIME = "No Horário"
     LATE = "Atrasado"
@@ -32,7 +45,18 @@ class WorkSchedule:
     expected_departure: time
     tolerance_minutes: int = 15
     has_lunch_break: bool = True
+    schedule_type: ScheduleType = ScheduleType.STANDARD
+    rotation_start_date: Optional[date] = None
     schedule_id: Optional[int] = None
+
+    def is_work_day(self, target_date: date) -> bool:
+        if self.schedule_type == ScheduleType.STANDARD:
+            return target_date.weekday() < 5
+        if self.schedule_type == ScheduleType.ROTATION_12X36:
+            if not self.rotation_start_date: return True
+            diff = (target_date - self.rotation_start_date).days
+            return diff % 2 == 0
+        return True
 
 @dataclass
 class JourneyType:
@@ -43,6 +67,7 @@ class JourneyType:
     expected_departure: time
     tolerance_minutes: int = 15
     has_lunch_break: bool = True
+    schedule_type: ScheduleType = ScheduleType.STANDARD
     journey_id: Optional[int] = None
 
 @dataclass
@@ -77,6 +102,7 @@ class DailyPonto:
     location_data: str = ""
     status: PontoStatus = PontoStatus.ON_TIME
     notes: Optional[str] = None
+    manager_notes: Optional[str] = None
     has_lunch_break: bool = True
     ponto_id: Optional[int] = None
     
@@ -278,8 +304,8 @@ class User:
             if self.profile and self.profile.start_analysis_date and p.entry_date < self.profile.start_analysis_date:
                 continue
             
-            # Skip weekends (Saturday=5, Sunday=6)
-            if p.entry_date.weekday() in [5, 6]: continue
+            # Check if it was a work day for this user
+            if not self.work_schedule.is_work_day(p.entry_date): continue
 
             # If the log is missing, penalty.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
