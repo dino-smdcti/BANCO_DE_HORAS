@@ -830,8 +830,15 @@ def download_report(user_id):
 
     uow = SqlAlchemyUnitOfWork()
     excel_file = services.generate_excel_report(uow, user_id, start_date, end_date)
+    
+    with uow:
+        user = uow.users.get_user_by_id(user_id)
+        emp_name = (user.profile.full_name or "funcionario").replace(" ", "_").lower() if user and user.profile else "funcionario"
 
-    filename = f"relatorio_horas_{user_id}_{date.today()}.xlsx"
+    start_str = start_date.strftime('%Y%m%d') if start_date else 'inicio'
+    end_str = end_date.strftime('%Y%m%d') if end_date else 'fim'
+    filename = f"relatorio_{emp_name}_{start_str}_{end_str}.xlsx"
+    
     return send_file(
         excel_file,
         as_attachment=True,
