@@ -130,15 +130,27 @@
                                 </td>
                                 <td>
                                     <input type="text" name="arrival_{{ p.entry_date }}" value="{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.arrival_late %}
+                                    <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'arrival', 'Anomalia')" style="cursor: pointer; display: block;">! Chegada</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_start_{{ p.entry_date }}" value="{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.lunch_start_late %}
+                                    <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'lunch_start', 'Anomalia')" style="cursor: pointer; display: block;">! Saída</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_end_{{ p.entry_date }}" value="{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.lunch_end_late %}
+                                    <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'lunch_end', 'Anomalia')" style="cursor: pointer; display: block;">! Volta</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="departure_{{ p.entry_date }}" value="{{ p.departure.strftime('%H:%M:%S') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
+                                    {% if p.departure_early %}
+                                    <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'departure', 'Anomalia')" style="cursor: pointer; display: block;">! Fim</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if p.location_data and p.location_data.strip() and p.location_data != 'None' %}
