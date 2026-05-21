@@ -153,14 +153,15 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {% if p.location_data and p.location_data.strip() and p.location_data != 'None' %}
+                                    {% set loc = p.location_data %}
+                                    {% if loc and loc is string and loc.strip() and loc.lower() != 'none' %}
                                         <button type="button" class="btn btn-sm btn-link p-0 text-info" 
-                                                onclick="openLocationModal('{{ p.entry_date }}', `{{ p.location_data or '' }}`)"
+                                                onclick="openLocationModal('{{ p.entry_date }}', `{{ loc }}`)"
                                                 title="Ver Localização">
                                             <i class="bi bi-geo-alt fs-5"></i>
                                         </button>
                                     {% else %}
-                                        <span class="text-danger" title="Sem localização">
+                                        <span class="text-danger" title="Sem localização (Debug: {{ loc }})">
                                             <i class="bi bi-x-circle fs-5"></i>
                                         </span>
                                     {% endif %}
