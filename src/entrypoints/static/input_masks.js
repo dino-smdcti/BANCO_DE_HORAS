@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (name === 'registration_number' && !e.target.dataset.masked) {
                 applyMask(e.target, registrationMask);
                 e.target.dataset.masked = "true";
-            } else if (timeFields.includes(name) && !e.target.dataset.masked) {
+            } else if ((timeFields.some(f => name.startsWith(f)) || timeFields.includes(name)) && !e.target.dataset.masked) {
                 applyMask(e.target, timeMask);
                 e.target.dataset.masked = "true";
             }
