@@ -1269,8 +1269,8 @@ def audit_logs():
             else:
                 query = query.filter(
                     (User.email.contains(actor_search)) | 
-                    (User.profile.full_name == actor_search) |
-                    (User.profile.full_name.contains(actor_search))
+                    (User.full_name == actor_search) |
+                    (User.full_name.contains(actor_search))
                 )
         
         if action_type:
