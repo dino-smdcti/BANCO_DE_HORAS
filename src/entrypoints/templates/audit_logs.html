@@ -9,8 +9,8 @@
     <div class="card-body">
         <form method="GET" class="row g-2 mb-4">
             <div class="col-md-3">
-                <label class="form-label small fw-bold">Actor (Gestor/Admin)</label>
-                <input type="text" name="user_email" class="form-control form-control-sm" placeholder="E-mail" value="{{ request.args.get('user_email', '') }}">
+                <label class="form-label small fw-bold">Responsável (Gestor/Admin)</label>
+                <input type="text" name="actor_search" class="form-control form-control-sm" placeholder="Nome, E-mail ou ID" value="{{ request.args.get('actor_search', '') }}">
             </div>
             <div class="col-md-2">
                 <label class="form-label small fw-bold">Início</label>
@@ -42,7 +42,7 @@
                 <thead class="table-light">
                     <tr>
                         <th>Data/Hora</th>
-                        <th>Responsável (Actor)</th>
+                        <th>Responsável</th>
                         <th>Ação</th>
                         <th>Alvo (Funcionário)</th>
                         <th>Detalhes</th>

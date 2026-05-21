@@ -1244,7 +1244,7 @@ def audit_logs():
         flash("Acesso restrito ao Administrador.", "danger")
         return redirect(url_for("dashboard"))
 
-    user_email = request.args.get("user_email")
+    actor_search = request.args.get("actor_search")
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
     action_type = request.args.get("action_type")
@@ -1260,10 +1260,16 @@ def audit_logs():
         # Only show actions by managers or admins
         query = query.filter(User.role.in_(['manager', 'admin']))
 
-        if user_email:
-            user = uow.users.get_user_by_email(user_email)
-            if user:
-                query = query.filter(AuditLog.user_id == user.user_id)
+        if actor_search:
+            # Check if input is a digit (ID) or string (Email/Name)
+            if actor_search.isdigit():
+                query = query.filter(AuditLog.user_id == int(actor_search))
+            else:
+                query = query.filter(
+                    (User.email.contains(actor_search)) | 
+                    (User.profile.has(full_name=actor_search)) |
+                    (User.profile.has(full_name.contains(actor_search)))
+                )
         
         if action_type:
             query = query.filter(AuditLog.action == action_type)
