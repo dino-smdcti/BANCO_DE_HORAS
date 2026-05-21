@@ -1261,8 +1261,7 @@ def audit_logs():
         query = query.filter(User.role.in_(['manager', 'admin']))
 
         if actor_search:
-            # Join UserProfile if not already done, or join it here
-            query = query.outerjoin(UserProfile, User.user_id == UserProfile.user_id)
+            # Join on User table ID directly since UserProfile is a composite of User
             
             # Check if input is a digit (ID) or string (Email/Name)
             if actor_search.isdigit():
@@ -1270,8 +1269,8 @@ def audit_logs():
             else:
                 query = query.filter(
                     (User.email.contains(actor_search)) | 
-                    (UserProfile.full_name == actor_search) |
-                    (UserProfile.full_name.contains(actor_search))
+                    (User.profile.full_name == actor_search) |
+                    (User.profile.full_name.contains(actor_search))
                 )
         
         if action_type:
