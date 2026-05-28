@@ -255,7 +255,7 @@ def list_pending_corrections(uow: AbstractUnitOfWork, manager_id: int) -> List[C
 def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_id: int, approved: bool):
     with uow:
         ensure_manager(uow, manager_id)
-        req = uow.session.query(CorrectionRequest).filter_by(id=request_id).first()
+        req = uow.session.query(CorrectionRequest).filter_by(request_id=request_id).first()
         if not req:
             raise ValueError("Solicitação não encontrada.")
         
@@ -747,6 +747,10 @@ def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: in
             ponto.departure_early_reviewed = True
             if action == "approve": ponto.departure_early_approved = True
             elif action == "excuse": ponto.departure_early_excused = True
+        elif stage == "missing":
+            ponto.missing_reviewed = True
+            if action == "approve": ponto.missing_approved = True
+            elif action == "excuse": ponto.missing_excused = True
         
         uow.commit()
         uow.record_action(admin_id, f"{action.upper()}_ANOMALY", target_id=employee_id, details=f"Data: {entry_date}, Estágio: {stage}")

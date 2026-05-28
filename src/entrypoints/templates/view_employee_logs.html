@@ -131,26 +131,35 @@
                                 <td>
                                     <input type="text" name="arrival_{{ p.entry_date }}" value="{{ p.arrival.strftime('%H:%M:%S') if p.arrival else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
                                     {% if p.arrival_late %}
-                                    <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'arrival', 'Anomalia')" style="cursor: pointer; display: block;">! Chegada</span>
+                                    {% set is_reviewed = p.arrival_late_approved or p.arrival_late_excused %}
+                                    <span class="badge {{ 'bg-warning text-dark' if is_reviewed else 'bg-danger text-white' }} {{ '' if is_reviewed else 'clickable-badge' }} mt-1" 
+                                          {% if not is_reviewed %}onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'arrival', 'Anomalia')" style="cursor: pointer; display: block;"{% else %}style="display: block;"{% endif %}>! Chegada</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_start_{{ p.entry_date }}" value="{{ p.lunch_start.strftime('%H:%M:%S') if p.lunch_start else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
                                     {% if p.lunch_start_late %}
-                                    <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'lunch_start', 'Anomalia')" style="cursor: pointer; display: block;">! Saída</span>
+                                    {% set is_reviewed = p.lunch_start_late_approved or p.lunch_start_late_excused %}
+                                    <span class="badge {{ 'bg-warning text-dark' if is_reviewed else 'bg-danger text-white' }} {{ '' if is_reviewed else 'clickable-badge' }} mt-1" 
+                                          {% if not is_reviewed %}onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'lunch_start', 'Anomalia')" style="cursor: pointer; display: block;"{% else %}style="display: block;"{% endif %}>! Saída</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_end_{{ p.entry_date }}" value="{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
                                     {% if p.lunch_end_late %}
-                                    <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'lunch_end', 'Anomalia')" style="cursor: pointer; display: block;">! Volta</span>
+                                    {% set is_reviewed = p.lunch_end_late_approved or p.lunch_end_late_excused %}
+                                    <span class="badge {{ 'bg-warning text-dark' if is_reviewed else 'bg-danger text-white' }} {{ '' if is_reviewed else 'clickable-badge' }} mt-1" 
+                                          {% if not is_reviewed %}onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'lunch_end', 'Anomalia')" style="cursor: pointer; display: block;"{% else %}style="display: block;"{% endif %}>! Volta</span>
                                     {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="departure_{{ p.entry_date }}" value="{{ p.departure.strftime('%H:%M:%S') if p.departure else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">
                                     {% if p.departure_early %}
-                                    <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'departure', 'Anomalia')" style="cursor: pointer; display: block;">! Fim</span>
+                                    {% set is_reviewed = p.departure_early_approved or p.departure_early_excused %}
+                                    <span class="badge {{ 'bg-warning text-dark' if is_reviewed else 'bg-danger text-white' }} {{ '' if is_reviewed else 'clickable-badge' }} mt-1" 
+                                          {% if not is_reviewed %}onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'departure', 'Anomalia')" style="cursor: pointer; display: block;"{% else %}style="display: block;"{% endif %}>! Fim</span>
                                     {% endif %}
+                                </td>
                                 </td>
                                 <td>
                                     {% set loc = p.location_data %}
@@ -167,9 +176,24 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="badge {{ 'bg-success' if p.status.value == 'No Horário' else ('bg-warning text-dark' if p.status.value == 'Corrigido' else 'bg-secondary') }}">
-                                        {{ p.status_label }}
-                                    </span>
+                                    {% if p.status_label == 'Desconhecido' %}
+                                        <span></span>
+                                    {% elif p.status.value == 'Atrasado' %}
+                                        <span class="badge {{ 'bg-warning text-dark' if p.arrival_late_reviewed or p.arrival_late_approved or p.arrival_late_excused else 'bg-danger text-white' }} mt-1" style="display: block;">{{ p.status_label }}</span>
+                                    {% else %}
+                                        <span class="badge {{ 'bg-success' if p.status.value == 'No Horário' else ('bg-warning text-dark' if p.status.value == 'Corrigido' else 'bg-secondary') }}">
+                                            {{ p.status_label }}
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {# Anomaly Badges #}
+                                    {% if p.status.value == 'Faltante' %}
+                                        {% if not (p.missing_approved or p.missing_excused) %}
+                                        <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'missing', 'Falta')" style="cursor: pointer; display: block;">! Abonar Falta</span>
+                                        {% else %}
+                                        <span class="badge bg-success mt-1" style="display: block;">Falta Abonada</span>
+                                        {% endif %}
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-danger btn-compact" 

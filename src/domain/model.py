@@ -16,6 +16,8 @@ class ScheduleType(str, Enum):
     def _missing_(cls, value):
         if isinstance(value, str):
             normalized = value.upper()
+            if normalized == "12X36":
+                return cls.ROTATION_12X36
             for member in cls:
                 if member.value == normalized:
                     return member
@@ -111,20 +113,23 @@ class DailyPonto:
     lunch_end_late: bool = False
     departure_early: bool = False
 
+    arrival_late_reviewed: bool = False
+    lunch_start_late_reviewed: bool = False
+    lunch_end_late_reviewed: bool = False
+    departure_early_reviewed: bool = False
+    missing_reviewed: bool = False
+
     arrival_late_approved: bool = False
     lunch_start_late_approved: bool = False
     lunch_end_late_approved: bool = False
     departure_early_approved: bool = False
+    missing_approved: bool = False
 
     arrival_late_excused: bool = False
     lunch_start_late_excused: bool = False
     lunch_end_late_excused: bool = False
     departure_early_excused: bool = False
-
-    arrival_late_reviewed: bool = False
-    lunch_start_late_reviewed: bool = False
-    lunch_end_late_reviewed: bool = False
-    departure_early_reviewed: bool = False
+    missing_excused: bool = False
 
     def get_placeholder(self, field: str, schedule: Optional[WorkSchedule]) -> Optional[time]:
         if not schedule: return None
@@ -141,7 +146,7 @@ class DailyPonto:
             self.lunch_start_late and not (self.lunch_start_late_reviewed or self.lunch_start_late_approved or self.lunch_start_late_excused),
             self.lunch_end_late and not (self.lunch_end_late_reviewed or self.lunch_end_late_approved or self.lunch_end_late_excused),
             self.departure_early and not (self.departure_early_reviewed or self.departure_early_approved or self.departure_early_excused),
-            self.status == PontoStatus.MISSING
+            self.status == PontoStatus.MISSING and not (self.missing_reviewed or self.missing_approved or self.missing_excused)
         ])
 
     @property
@@ -307,23 +312,29 @@ class User:
             # Check if it was a work day for this user
             if not self.work_schedule.is_work_day(p.entry_date): continue
 
-            # If the log is missing, penalty.
+            # If the log is missing or rejected, full penalty unless excused/approved.
             if p.status == PontoStatus.MISSING or p.status == PontoStatus.REJECTED:
+                if p.status == PontoStatus.MISSING and (p.missing_approved or p.missing_excused):
+                    continue
                 balance -= target_minutes
-            elif not p.is_complete:
                 continue
+
+            # If dismissed or justified, no penalty (target met)
+            if p.status == PontoStatus.DISMISSED or p.status == PontoStatus.JUSTIFIED:
+                continue
+
+            # For all other statuses (ON_TIME, LATE, CORRECTED), calculate worked time.
+            # If there are approved OR excused anomalies, use predicted worked minutes based on schedule
+            excused_conditions = [
+                p.arrival_late_approved, p.lunch_start_late_approved, p.lunch_end_late_approved, p.departure_early_approved,
+                p.arrival_late_excused, p.lunch_start_late_excused, p.lunch_end_late_excused, p.departure_early_excused
+            ]
+            if any(excused_conditions):
+                 day_worked = p.get_predicted_worked_minutes(self.work_schedule)
             else:
-                # If there are approved OR excused anomalies, use predicted worked minutes based on schedule
-                excused_conditions = [
-                    p.arrival_late_approved, p.lunch_start_late_approved, p.lunch_end_late_approved, p.departure_early_approved,
-                    p.arrival_late_excused, p.lunch_start_late_excused, p.lunch_end_late_excused, p.departure_early_excused
-                ]
-                if any(excused_conditions):
-                     day_worked = p.get_predicted_worked_minutes(self.work_schedule)
-                else:
-                     day_worked = p.worked_minutes
-                
-                balance += (day_worked - target_minutes)
+                 day_worked = p.worked_minutes
+            
+            balance += (day_worked - target_minutes)
         return balance
 
     @property

@@ -13,3 +13,10 @@
 - **Environment**: All commands are executed within a Windows PowerShell environment.
 - **Commands**: ALWAYS use PowerShell-compatible syntax. AVOID bash-specific utilities unless explicitly available.
 
+## 2. Project Structure
+- `src/`: Core logic (Domain, Service Layer, Adapters, Entrypoints).
+- `tests/`: Complete test suite (Unit and Integration).
+- `scripts/`: Maintenance, Migrations, and Debugging scripts.
+- `DOCUMENTATION_DETAILED.md`: Technical documentation of all functionalities and business rules.
+- `scripts/maintenance/interactive_runner.py`: Interactive test runner for rapid debugging.
+

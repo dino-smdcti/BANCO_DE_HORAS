@@ -76,8 +76,9 @@ def test_total_balance_only_complete_days():
     
     user.time_entries.extend([ponto1, ponto2])
     
-    # Only ponto1 counts. Balance 60.
-    assert user.total_balance == 60
+    # Only ponto1 counts as 60. Ponto2 counts as -480 (8h penalty).
+    # Total: 60 - 480 = -420
+    assert user.total_balance == -420
 
 def test_incomplete_entry_status_unknown():
     # Incomplete entry in past = unknown
