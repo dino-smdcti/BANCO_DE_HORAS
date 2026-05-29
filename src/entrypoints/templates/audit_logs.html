@@ -10,7 +10,14 @@
         <form method="GET" class="row g-2 mb-4">
             <div class="col-md-3">
                 <label class="form-label small fw-bold">Responsável (Gestor/Admin)</label>
-                <input type="text" name="actor_search" class="form-control form-control-sm" placeholder="Nome, E-mail ou ID" value="{{ request.args.get('actor_search', '') }}">
+                <select name="actor_search" class="form-select form-select-sm">
+                    <option value="">Selecione um responsável...</option>
+                    {% for user in unique_users %}
+                    <option value="{{ user.user_id }}" {{ 'selected' if request.args.get('actor_search') == user.user_id|string }}>
+                        {{ user.profile.full_name or user.email }}
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="col-md-2">
                 <label class="form-label small fw-bold">Início</label>
@@ -37,6 +44,7 @@
             </div>
         </form>
 
+        {% if request.args.get('actor_search') or request.args.get('start_date') or request.args.get('end_date') or request.args.get('action_type') %}
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
@@ -122,6 +130,12 @@
                 </tbody>
             </table>
         </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-funnel fs-1 d-block mb-2"></i>
+            Utilize os filtros acima para pesquisar logs de auditoria.
+        </div>
+        {% endif %}
     </div>
 </div>
 
