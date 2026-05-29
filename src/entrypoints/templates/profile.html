@@ -11,11 +11,11 @@
                 <form method="POST">
                     <div class="mb-3">
                         <label class="form-label">E-mail</label>
-                        <input type="E-mail" name="E-mail" class="form-control" value="{{ user.email }}" required>
+                        <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Nova Senha (deixe em branco para não alterar)</label>
-                        <input type="Senha" name="Senha" class="form-control">
+                        <input type="password" name="password" class="form-control">
                     </div>
                     <div class="mb-3 form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" {% if user.email_notifications_enabled %}checked{% endif %}>
