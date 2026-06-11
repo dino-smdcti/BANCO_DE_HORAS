@@ -36,7 +36,7 @@ class PontoStatus(str, Enum):
 class CompanySettings:
     lat: float
     lon: float
-    start_analysis_date: date = date(2026, 1, 1)
+    start_analysis_date: date = date(2026, 5, 1)
 
 @dataclass
 class WorkSchedule:
@@ -216,7 +216,11 @@ class DailyPonto:
 
     @property
     def status_label(self) -> str:
-        if not self.is_complete and self.entry_date < date.today():
+        """
+        Returns the display label for the status. 
+        Only returns 'Desconhecido' if the day has passed, it's not complete, and no specific status (like MISSING) was set.
+        """
+        if self.status == PontoStatus.ON_TIME and not self.is_complete and self.entry_date < date.today():
             return "Desconhecido"
         return self.status.value
 
@@ -238,7 +242,7 @@ class UserProfile:
     position: Optional[str] = None
     secretariat: Optional[str] = None
     full_name: Optional[str] = None
-    start_analysis_date: date = date(2026, 1, 1)
+    start_analysis_date: date = date(2026, 5, 1)
 
     def is_complete(self) -> bool:
         return all([self.registration_number, self.cpf, self.department, self.position, self.secretariat, self.full_name])

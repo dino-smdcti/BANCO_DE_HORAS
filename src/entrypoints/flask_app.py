@@ -3,6 +3,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from src.adapters.orm import start_mappers, metadata
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
+from src.service_layer.absence_processor import process_daily_absences
 from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm, WorkScheduleForm, JourneyTypeForm
 from src.domain.model import User, PontoStatus, JourneyType, AuditLog, CompanySettings, UserProfile
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -78,6 +79,17 @@ def load_user(user_id):
         except (ValueError, TypeError):
             return None
     return None
+
+@app.before_request
+def run_daily_absences_check():
+    # Only run for actual routes, skip static files to avoid extra overhead
+    if request.endpoint and not request.endpoint.startswith('static'):
+        uow = SqlAlchemyUnitOfWork()
+        try:
+            process_daily_absences(uow)
+        except Exception as e:
+            import sys
+            print(f"Error running daily absences check: {e}", file=sys.stderr)
 
 @app.context_processor
 def utility_processor():
