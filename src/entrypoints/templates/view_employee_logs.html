@@ -63,7 +63,7 @@
     <div class="card-header card-header-sticky d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Registros de Ponto</h5>
         <div class="d-flex align-items-center gap-2">
-            <button type="submit" form="bulkFixForm" class="btn btn-sm btn-light fw-bold text-danger">Salvar mudanças</button>
+            <button type="submit" form="bulkFixForm" class="btn btn-sm btn-light fw-bold text-danger">Salvar selecionados</button>
             <div class="dropdown">
                 <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
                     <i class="bi bi-funnel"></i> Filtros
@@ -90,6 +90,7 @@
                 <table class="table table-hover mb-0">
                     <thead>
                         <tr>
+                            <th></th>
                             <th>Notas Gestor</th>
                             <th>Nota</th>
                             <th>Data</th>
@@ -105,6 +106,7 @@
                     <tbody>
                         {% for p in recent_entries %}
                             <tr class="{% if p.has_anomaly and p.status.value not in ['Justificado', 'Dispensado'] %}table-warning{% elif p.status.value == 'Corrigido' %}table-success{% endif %}">
+                                <td class="align-middle"><input type="checkbox" name="selected_points" value="{{ p.entry_date }}" class="form-check-input"></td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-link p-0 {{ 'text-warning' if p.manager_notes else 'text-muted' }}" 
                                             onclick="openManagerNoteModal('{{ p.entry_date }}', `{{ p.manager_notes or '' }}`)"

@@ -63,51 +63,54 @@
 {% include "anomaly_table_partial.html" %}
 
 <div class="card shadow border-danger mb-4">
-    <div class="card-header bg-danger text-white">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapseCorrections" aria-expanded="false" aria-controls="collapseCorrections">
         <h5 class="mb-0">Correções Retroativas Pendentes</h5>
+        <i class="bi bi-chevron-down"></i>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Funcionário</th>
-                        <th>Data</th>
-                        <th>Estágio</th>
-                        <th>Horário Proposto</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for c in pending_corrections %}
+    <div class="collapse" id="collapseCorrections">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
                         <tr>
-                            <td>{{ c.user_name }}</td>
-                            <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
-                            <td>
-                                {% if c.stage == 'arrival' %}Chegada
-                                {% elif c.stage == 'lunch_start' %}Saída Almoço
-                                {% elif c.stage == 'lunch_end' %}Volta Almoço
-                                {% elif c.stage == 'departure' %}Fim Jornada
-                                {% else %}{{ c.stage }}
-                                {% endif %}
-                            </td>
-                            <td><span class="badge bg-dark">{{ c.time.strftime('%H:%M') }}</span></td>
-                            <td>
-                                <form action="{{ url_for('review_correction', request_id=c.id, action='Aprovar') }}" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-xs btn-success py-0" style="font-size: 0.7rem;">Aprovar</button>
-                                </form>
-                                <form action="{{ url_for('review_correction', request_id=c.id, action='Rejeitar') }}" method="POST" class="d-inline">
-                                    <button type="submit" class="btn btn-xs btn-outline-danger py-0" style="font-size: 0.7rem;">Rejeitar</button>
-                                </form>
-                            </td>
+                            <th>Funcionário</th>
+                            <th>Data</th>
+                            <th>Estágio</th>
+                            <th>Horário Proposto</th>
+                            <th>Ações</th>
                         </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center py-3 text-muted small">Nenhuma solicitação de correção pendente.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for c in pending_corrections %}
+                            <tr>
+                                <td>{{ c.user_name }}</td>
+                                <td>{{ c.date.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if c.stage == 'arrival' %}Chegada
+                                    {% elif c.stage == 'lunch_start' %}Saída Almoço
+                                    {% elif c.stage == 'lunch_end' %}Volta Almoço
+                                    {% elif c.stage == 'departure' %}Fim Jornada
+                                    {% else %}{{ c.stage }}
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-dark">{{ c.time.strftime('%H:%M') }}</span></td>
+                                <td>
+                                    <form action="{{ url_for('review_correction', request_id=c.id, action='Aprovar') }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-xs btn-success py-0" style="font-size: 0.7rem;">Aprovar</button>
+                                    </form>
+                                    <form action="{{ url_for('review_correction', request_id=c.id, action='Rejeitar') }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-xs btn-outline-danger py-0" style="font-size: 0.7rem;">Rejeitar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-3 text-muted small">Nenhuma solicitação de correção pendente.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

@@ -1,8 +1,10 @@
 <div class="card shadow border-warning mb-4">
-    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapseAnomalies" aria-expanded="false" aria-controls="collapseAnomalies">
         <h5 class="mb-0">Registros com Anomalias</h5>
+        <i class="bi bi-chevron-down"></i>
     </div>
-    <div class="card-body">
+    <div class="collapse" id="collapseAnomalies">
+        <div class="card-body">
         <form method="GET" class="row g-3 mb-3">
             <div class="col-md-4">
                 <select name="emp_filter" class="form-select form-select-sm">
@@ -27,6 +29,7 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllAnomalies" class="form-check-input"></th>
                             <th>Funcionário</th>
                             <th>Data</th>
                             <th>Chegada</th>
@@ -41,6 +44,9 @@
                         {% set p = item.ponto %}
                         {% set emp = item.emp %}
                             <tr class="table-warning">
+                                <td>
+                                    <input type="checkbox" name="selected_points" value="{{ emp.user_id }}_{{ p.entry_date }}" class="form-check-input anomaly-checkbox">
+                                </td>
                                 <td>{{ emp.profile.full_name or emp.email }}</td>
                                 <td>
                                     {{ p.entry_date.strftime('%d/%m/%Y') }}
@@ -130,6 +136,7 @@
             {% endif %}
         </form>
     </div>
+</div>
 </div>
 
 {% block extra_modals %}

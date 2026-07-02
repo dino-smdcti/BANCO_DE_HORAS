@@ -364,7 +364,11 @@ def choose_journey():
             return redirect(url_for("dashboard"))
         
         journeys = services.list_journey_types(uow)
-        
+        if not journeys:
+            flash("Nenhuma jornada disponível. Por favor, crie uma jornada primeiro.", "warning")
+            return redirect(url_for("manage_journeys"))
+
+
         if request.method == "POST":
             journey_id = request.form.get("journey_id")
             if journey_id:
@@ -381,7 +385,7 @@ def choose_journey():
                     flash("Jornada de trabalho selecionada com sucesso!", "success")
                     return redirect(url_for("dashboard"))
             flash("Por favor, selecione uma jornada.", "warning")
-            
+
         return render_template("set_schedule.html", employee=user, journeys=journeys, self_select=True)
 
 @app.route("/complete-profile", methods=["GET", "POST"])
@@ -885,6 +889,7 @@ def bulk_fix_ponto(employee_id):
     uow = SqlAlchemyUnitOfWork()
     dates = request.form.getlist("dates")
     emp_ids = request.form.getlist("emp_ids")
+    selected_points = request.form.getlist("selected_points")
     
     def parse_time(val):
         if not val: return None
@@ -900,6 +905,9 @@ def bulk_fix_ponto(employee_id):
         if emp_ids and len(emp_ids) == len(dates):
             for i, entry_date_str in enumerate(dates):
                 emp_id = int(emp_ids[i])
+                key = f"{emp_id}_{entry_date_str}"
+                if key not in selected_points:
+                    continue
                 entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
                 arrival = parse_time(request.form.get(f"arrival_{emp_id}_{entry_date_str}"))
                 lunch_start = parse_time(request.form.get(f"lunch_start_{emp_id}_{entry_date_str}"))
@@ -914,6 +922,8 @@ def bulk_fix_ponto(employee_id):
         else:
             # Fallback to single employee from route param
             for entry_date_str in dates:
+                if entry_date_str not in selected_points:
+                    continue
                 entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
                 arrival = parse_time(request.form.get(f"arrival_{entry_date_str}"))
                 lunch_start = parse_time(request.form.get(f"lunch_start_{entry_date_str}"))
@@ -926,7 +936,7 @@ def bulk_fix_ponto(employee_id):
                     arrival, lunch_start, lunch_end, departure,
                     manager_notes=manager_notes
                 )
-        flash("Registros atualizados com sucesso.", "success")
+        flash("Registros selecionados atualizados com sucesso.", "success")
     except Exception as e:
         flash(f"Erro ao processar correções: {str(e)}", "danger")
 
