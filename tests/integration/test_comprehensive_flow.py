@@ -9,8 +9,9 @@ from src.domain.model import User, PontoStatus, DailyPonto
 def client(session_factory):
     app.config["TESTING"] = True
     app.config["WTF_CSRF_ENABLED"] = False
-    with app.test_client() as client:
-        yield client
+    with patch("src.entrypoints.flask_app.SqlAlchemyUnitOfWork", lambda: SqlAlchemyUnitOfWork(session_factory)):
+        with app.test_client() as client:
+            yield client
 
 from werkzeug.security import generate_password_hash, check_password_hash
 

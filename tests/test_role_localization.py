@@ -11,6 +11,47 @@ from src.entrypoints.flask_app import app
 class TestDashboardRoleBadges(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        # Seed test database users
+        from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
+        from src.service_layer import services
+        uow = SqlAlchemyUnitOfWork()
+        with uow:
+            # check if admin exists
+            admin = uow.users.get_user_by_email("admin@admin.com")
+            if not admin:
+                services.register_user(uow, "admin@admin.com", "123456", role="admin")
+                uow.commit()
+                admin = uow.users.get_user_by_email("admin@admin.com")
+                services.update_user_profile(
+                    uow, admin.user_id, "12345678", "12345678901",
+                    "admin-dept", "admin-pos", "admin-sec", "Secretário Geral"
+                )
+                uow.commit()
+            
+            # check if manager exists
+            manager = uow.users.get_user_by_email("manager@manager.com")
+            if not manager:
+                services.register_user(uow, "manager@manager.com", "123456", role="manager")
+                uow.commit()
+                manager = uow.users.get_user_by_email("manager@manager.com")
+                services.update_user_profile(
+                    uow, manager.user_id, "12345679", "12345678902",
+                    "mgr-dept", "mgr-pos", "mgr-sec", "Diretor Geral"
+                )
+                uow.commit()
+
+            # check if employee exists
+            employee = uow.users.get_user_by_email("employee@employee.com")
+            if not employee:
+                services.register_user(uow, "employee@employee.com", "123456", role="employee")
+                uow.commit()
+                employee = uow.users.get_user_by_email("employee@employee.com")
+                services.update_user_profile(
+                    uow, employee.user_id, "12345680", "12345678903",
+                    "emp-dept", "emp-pos", "emp-sec", "Funcionário Padrão"
+                )
+                uow.commit()
+
         # Start app in background
         cls.app_thread = threading.Thread(target=lambda: app.run(port=5001, use_reloader=False))
         cls.app_thread.daemon = True

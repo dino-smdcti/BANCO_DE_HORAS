@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -14,29 +14,47 @@
                     <div class="mb-3">
                         <label class="form-label">Nome Completo</label>
                         {{ form.full_name(class="form-control") }}
+                        {% if form.full_name.errors %}
+                            <div class="text-danger small">{% for error in form.full_name.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Matrícula</label>
                             {{ form.registration_number(class="form-control", id="regNum", placeholder="00000000-00", maxlength="12") }}
+                            {% if form.registration_number.errors %}
+                                <div class="text-danger small">{% for error in form.registration_number.errors %}{{ error }}{% endfor %}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">CPF</label>
                             {{ form.cpf(class="form-control", id="cpf") }}
+                            {% if form.cpf.errors %}
+                                <div class="text-danger small">{% for error in form.cpf.errors %}{{ error }}{% endfor %}</div>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Secretaria</label>
                         {{ form.secretariat(class="form-control", id="secretariat", value="Secretaria Municipal de Desenvolvimento Ciência Tecnologia e Inovação") }}
+                        {% if form.secretariat.errors %}
+                            <div class="text-danger small">{% for error in form.secretariat.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Departamento</label>
                             {{ form.department(class="form-control capitalize") }}
+                            {% if form.department.errors %}
+                                <div class="text-danger small">{% for error in form.department.errors %}{{ error }}{% endfor %}</div>
+                            {% endif %}
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Posição /Cargo</label>
                             {{ form.position(class="form-control capitalize") }}
+                            {% if form.position.errors %}
+                                <div class="text-danger small">{% for error in form.position.errors %}{{ error }}{% endfor %}</div>
+                            {% endif %}
                         </div>
                     </div>
 

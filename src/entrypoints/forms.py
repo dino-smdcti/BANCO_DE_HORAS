@@ -1,4 +1,4 @@
-﻿from flask_wtf import FlaskForm
+from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, SelectField, BooleanField
 from wtforms.validators import DataRequired, Email, Length, EqualTo
 
@@ -14,8 +14,8 @@ class RegisterForm(FlaskForm):
 
 class ProfileForm(FlaskForm):
     full_name = StringField("Nome Completo", validators=[DataRequired()])
-    registration_number = StringField("Matrícula")
-    cpf = StringField("CPF")
+    registration_number = StringField("Matrícula", validators=[DataRequired()])
+    cpf = StringField("CPF", validators=[DataRequired()])
     department = StringField("Departamento", validators=[DataRequired()])
     position = StringField("Cargo", validators=[DataRequired()])
     secretariat = StringField("Secretaria", validators=[DataRequired()])
