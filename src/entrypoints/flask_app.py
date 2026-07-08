@@ -22,6 +22,9 @@ load_dotenv()
 
 app = Flask(__name__, template_folder='templates')
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
+login_manager = LoginManager()
+login_manager.login_view = "login"
+login_manager.init_app(app)
 
 database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
 if not database_url:
@@ -73,34 +76,34 @@ def load_user(user_id):
     """Load a user for Flask-Login.
     Handles case-insensitive role values by normalizing stored role to lowercase.
     """
-    # Initialize Unit of Work
-    uow = SqlAlchemyUnitOfWork()
-    try:
-        user = uow.users.get_user_by_id(int(user_id))
-        if user:
-            return AuthenticatedUser(user)
-    except LookupError:
-        # Role may have incorrect case; fetch raw record and fix
-        with uow.session.begin():
-            raw_user = uow.session.execute(
-                "SELECT * FROM users WHERE id = :uid",
-                {"uid": int(user_id)}
-            ).first()
-            if raw_user and hasattr(raw_user, "role"):
-                # Normalize role to lowercase
-                normalized_role = raw_user.role.lower()
-                uow.session.execute(
-                    "UPDATE users SET role = :role WHERE id = :uid",
-                    {"role": normalized_role, "uid": int(user_id)}
-                )
-                uow.session.commit()
-                # Reload user after fix
-                user = uow.users.get_user_by_id(int(user_id))
-                if user:
-                    return AuthenticatedUser(user)
-    except (ValueError, TypeError):
+    # Use Unit of Work context to ensure repositories are available
+    with SqlAlchemyUnitOfWork() as uow:
+        try:
+            user = uow.users.get_user_by_id(int(user_id))
+            if user:
+                return AuthenticatedUser(user)
+        except LookupError:
+            # Role may have incorrect case; fetch raw record and fix
+            with uow.session.begin():
+                raw_user = uow.session.execute(
+                    "SELECT * FROM users WHERE id = :uid",
+                    {"uid": int(user_id)}
+                ).first()
+                if raw_user and hasattr(raw_user, "role"):
+                    # Normalize role to lowercase
+                    normalized_role = raw_user.role.lower()
+                    uow.session.execute(
+                        "UPDATE users SET role = :role WHERE id = :uid",
+                        {"role": normalized_role, "uid": int(user_id)}
+                    )
+                    uow.session.commit()
+                    # Reload user after fix
+                    user = uow.users.get_user_by_id(int(user_id))
+                    if user:
+                        return AuthenticatedUser(user)
+        except (ValueError, TypeError):
+            return None
         return None
-    return None
 
 @app.before_request
 def run_daily_absences_check():
