@@ -24,6 +24,10 @@ def fill_missing_entries():
             if not user or not user.work_schedule:
                 continue
             
+            # Skip excluded users
+            if user.full_name in ('Ana Clara', 'Matheus'):
+                continue
+            
             # Fill times from schedule
             ponto.arrival = user.work_schedule.expected_arrival
             ponto.lunch_start = user.work_schedule.expected_lunch_start

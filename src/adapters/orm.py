@@ -158,26 +158,28 @@ def start_mappers():
     mapper_registry.map_imperatively(CompanySettings, company_settings)
 
     mapper_registry.map_imperatively(
-        User,
-        users,
-        properties={
-            "user_id": users.c.id,
-            "profile": composite(
-                UserProfile,
-                users.c.registration_number,
-                users.c.cpf,
-                users.c.department,
-                users.c.position,
-                users.c.secretariat,
-                users.c.full_name,
-                users.c.start_analysis_date,
-            ),
-            "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date, cascade="all, delete-orphan"),
-            "vacations": relationship(Vacation, backref="user", cascade="all, delete-orphan"),
-            "work_schedule": relationship(WorkSchedule, backref="user", uselist=False, cascade="all, delete-orphan"),
-            "notifications": relationship(Notification, backref="user", order_by=notifications.c.created_at.desc(), cascade="all, delete-orphan")
-        }
-    )
+    User,
+    users,
+    properties={
+        "user_id": users.c.id,
+        "full_name": users.c.full_name,
+        "profile": composite(
+            UserProfile,
+            users.c.registration_number,
+            users.c.cpf,
+            users.c.department,
+            users.c.position,
+            users.c.secretariat,
+            users.c.full_name,
+            users.c.start_analysis_date,
+        ),
+        "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date, cascade="all, delete-orphan"),
+        "vacations": relationship(Vacation, backref="user", cascade="all, delete-orphan"),
+        "work_schedule": relationship(WorkSchedule, backref="user", uselist=False, cascade="all, delete-orphan"),
+        "notifications": relationship(Notification, backref="user", order_by=notifications.c.created_at.desc(), cascade="all, delete-orphan")
+    },
+
+)
 
     mapper_registry.map_imperatively(
         WorkSchedule,

@@ -6,8 +6,10 @@ from enum import Enum
 class UserRole(str, Enum):
     ADMIN = "admin"
     MANAGER = "manager"
+    GESTOR = "gestor"
     EMPLOYEE = "employee"
 
+# Gestor class removed from early position; will be defined after User class.
 class ScheduleType(str, Enum):
     STANDARD = "STANDARD"
     ROTATION_12X36 = "ROTATION_12X36"
@@ -278,8 +280,16 @@ class User:
         return self.role in [UserRole.MANAGER, UserRole.ADMIN]
 
     @property
+    def is_gestor(self) -> bool:
+        return self.role == UserRole.GESTOR
+
+    @property
     def is_admin(self) -> bool:
         return self.role == UserRole.ADMIN
+
+    @property
+    def full_name(self) -> str:
+        return self.profile.full_name if self.profile else ""
 
     @property
     def unread_notifications_count(self) -> int:
@@ -365,3 +375,23 @@ class User:
         
         day_worked = p.worked_minutes + p.get_approved_bonus_minutes(self.work_schedule)
         return day_worked - target_minutes
+
+class Gestor(User):
+    """Gestor role with extended permissions. Inherits absence penalties and can alter clocks for self and others. Actions are recorded via AuditLog."""
+    def __init__(self, email, password_hash, user_id=None, profile=None, work_schedule=None, email_notifications_enabled=False):
+        super().__init__(email, password_hash, UserRole.GESTOR, user_id, profile, work_schedule, email_notifications_enabled)
+
+    @property
+    def can_alter_others(self) -> bool:
+        return True
+
+    @property
+    def can_alter_self(self) -> bool:
+        return True
+
+    @property
+    def receives_absence_penalties(self) -> bool:
+        return True
+
+    def __repr__(self) -> str:
+        return f"Gestor(email={self.email!r}, user_id={self.user_id})"

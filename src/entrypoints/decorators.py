@@ -14,7 +14,7 @@ def admin_required(f):
 def manager_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.role not in ["manager", "admin"]:
+        if not current_user.is_authenticated or current_user.role not in ["manager", "admin", "gestor"]:
             flash("Acesso restrito a gestores.", "danger")
             return redirect(url_for("dashboard"))
         return f(*args, **kwargs)

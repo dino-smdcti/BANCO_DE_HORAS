@@ -327,27 +327,30 @@ from src.entrypoints.decorators import manager_required, admin_required, handle_
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        uow = SqlAlchemyUnitOfWork()
-        is_new = services.register_user(uow, form.email.data, role=form.role.data, registered_by_id=current_user.id)
-        
-        # Send invitation email (regardless of is_new, as per request)
-        token = serializer.dumps(form.email.data, salt="password-reset-salt")
-        setup_url = url_for("reset_password", token=token, _external=True)
-        html = render_template("emails/welcome_invite.html", setup_url=setup_url)
-        
-        if send_email(form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html):
-            if is_new:
-                flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
+        try:
+            uow = SqlAlchemyUnitOfWork()
+            is_new = services.register_user(uow, form.email.data, role=form.role.data, registered_by_id=current_user.id)
+
+            # Send invitation email (regardless of is_new, as per request)
+            token = serializer.dumps(form.email.data, salt="password-reset-salt")
+            setup_url = url_for("reset_password", token=token, _external=True)
+            html = render_template("emails/welcome_invite.html", setup_url=setup_url)
+
+            if send_email(form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html):
+                if is_new:
+                    flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
+                else:
+                    flash("O usuário já estava cadastrado. O convite foi reenviado com sucesso.", "info")
             else:
-                flash("O usuário já estava cadastrado. O convite foi reenviado com sucesso.", "info")
-        else:
-            # Fallback: Exibir o link na tela se o e-mail falhar
-            status_msg = "Usuário cadastrado, mas o e-mail falhou. "
-            if not is_new:
-                status_msg = "O usuário já existe, mas o e-mail falhou. "
-            
-            flash(f"{status_msg} Copie o link de ativação: {setup_url}", "warning")
-        
+                # Fallback: Exibir o link na tela se o e-mail falhar
+                status_msg = "Usuário cadastrado, mas o e-mail falhou. "
+                if not is_new:
+                    status_msg = "O usuário já existe, mas o e-mail falhou. "
+                
+                flash(f"{status_msg} Copie o link de ativação: {setup_url}", "warning")
+        except Exception as e:
+            flash(f"Erro ao cadastrar usuário: {str(e)}", "danger")
+            return render_template("register.html", form=form)
         return redirect(url_for("dashboard"))
     return render_template("register.html", form=form)
 
@@ -1280,7 +1283,7 @@ def audit_logs():
         query = query.filter(AuditLog.action.notin_(['CLOCK_EVENT', 'SUBMIT_CORRECTION_REQUEST']))
         
         # Only show actions by managers or admins
-        query = query.filter(User.role.in_(['manager', 'admin']))
+        query = query.filter(User.role.in_(['manager', 'admin', 'gestor']))
 
         if actor_search:
             # Join on User table ID directly since UserProfile is a composite of User
