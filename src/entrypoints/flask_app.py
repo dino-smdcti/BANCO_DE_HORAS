@@ -54,9 +54,10 @@ metadata.create_all(engine)
 
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
+@login_manager.user_loader
+def flask_load_user(user_id):
+    return load_user(user_id)
+
 
 class AuthenticatedUser(UserMixin):
     def __init__(self, user):
@@ -68,16 +69,37 @@ class AuthenticatedUser(UserMixin):
         self.work_schedule = user.work_schedule
         self.has_schedule = user.work_schedule is not None
 
-@login_manager.user_loader
 def load_user(user_id):
+    """Load a user for Flask-Login.
+    Handles case-insensitive role values by normalizing stored role to lowercase.
+    """
+    # Initialize Unit of Work
     uow = SqlAlchemyUnitOfWork()
-    with uow:
-        try:
-            user = uow.users.get_user_by_id(int(user_id))
-            if user:
-                return AuthenticatedUser(user)
-        except (ValueError, TypeError):
-            return None
+    try:
+        user = uow.users.get_user_by_id(int(user_id))
+        if user:
+            return AuthenticatedUser(user)
+    except LookupError:
+        # Role may have incorrect case; fetch raw record and fix
+        with uow.session.begin():
+            raw_user = uow.session.execute(
+                "SELECT * FROM users WHERE id = :uid",
+                {"uid": int(user_id)}
+            ).first()
+            if raw_user and hasattr(raw_user, "role"):
+                # Normalize role to lowercase
+                normalized_role = raw_user.role.lower()
+                uow.session.execute(
+                    "UPDATE users SET role = :role WHERE id = :uid",
+                    {"role": normalized_role, "uid": int(user_id)}
+                )
+                uow.session.commit()
+                # Reload user after fix
+                user = uow.users.get_user_by_id(int(user_id))
+                if user:
+                    return AuthenticatedUser(user)
+    except (ValueError, TypeError):
+        return None
     return None
 
 @app.before_request

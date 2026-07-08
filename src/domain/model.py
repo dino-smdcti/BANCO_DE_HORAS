@@ -9,6 +9,16 @@ class UserRole(str, Enum):
     GESTOR = "gestor"
     EMPLOYEE = "employee"
 
+    @classmethod
+    def _missing_(cls, value):
+        """Allow case‑insensitive lookup of role strings."""
+        if isinstance(value, str):
+            lowered = value.lower()
+            for member in cls:
+                if member.value.lower() == lowered:
+                    return member
+        return None
+
 # Gestor class removed from early position; will be defined after User class.
 class ScheduleType(str, Enum):
     STANDARD = "STANDARD"
@@ -16,12 +26,15 @@ class ScheduleType(str, Enum):
 
     @classmethod
     def _missing_(cls, value):
+        """Resolve case‑insensitive and legacy values.
+        Accept "12X36" as ROTATION_12X36 and any case variation of enum names.
+        """
         if isinstance(value, str):
             normalized = value.upper()
             if normalized == "12X36":
                 return cls.ROTATION_12X36
             for member in cls:
-                if member.value == normalized:
+                if member.value.upper() == normalized:
                     return member
         return None
 
