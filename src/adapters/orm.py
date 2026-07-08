@@ -1,4 +1,29 @@
 from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float
+from sqlalchemy.types import TypeDecorator
+from src.domain.model import UserRole
+
+class UserRoleType(TypeDecorator):
+    """SQLAlchemy type to store UserRole as lowercase string and load case‑insensitively."""
+    impl = String(50)
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, UserRole):
+            return value.value
+        return str(value).lower()
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        try:
+            return UserRole(value)
+        except Exception:
+            return UserRole(value.lower())
+
+# duplicate process_* methods removed
+
 from sqlalchemy.orm import registry, relationship, composite
 from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType
 from datetime import datetime, date
@@ -54,7 +79,7 @@ users = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("email", String(255), unique=True, nullable=False),
     Column("password_hash", String(255), nullable=False),
-    Column("role", SQLEnum(UserRole), nullable=False),
+    Column("role", UserRoleType(), nullable=False),
     Column("registration_number", String(50), nullable=True),
     Column("cpf", String(14), nullable=True),
     Column("department", String(100), nullable=True),
