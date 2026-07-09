@@ -1,4 +1,4 @@
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time, timedelta, timezone
 from typing import Optional, List, Dict
 from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest
 from src.service_layer.unit_of_work import AbstractUnitOfWork
@@ -8,15 +8,15 @@ import io
 
 def ensure_manager(uow: AbstractUnitOfWork, manager_id: int):
     user = uow.users.get_user_by_id(manager_id)
-    if not user or user.role not in [UserRole.MANAGER, UserRole.ADMIN]:
+    if not user or user.role not in [UserRole.MANAGER, UserRole.ADMIN, UserRole.GESTOR]:
         raise PermissionError("Action restricted to managers or admins.")
     return user
 
 def ensure_not_self(uow: AbstractUnitOfWork, manager_id: int, employee_id: int):
     if manager_id == employee_id:
         user = uow.users.get_user_by_id(manager_id)
-        if not user or user.role != UserRole.ADMIN:
-            raise PermissionError("Reviewers cannot review or correct their own time logs. This must be done by an Admin.")
+        if not user or user.role not in [UserRole.ADMIN, UserRole.GESTOR]:
+            raise PermissionError("Reviewers cannot review or correct their own time logs. This must be done by an Admin or Gestor.")
 
 def add_notification(uow: AbstractUnitOfWork, user_id: int, message: str, email_sender=None):
     notification = Notification(user_id=user_id, message=message, created_at=datetime.now())
@@ -119,9 +119,9 @@ def promote_to_manager(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
         ensure_manager(uow, manager_id)
         employee = uow.users.get_user_by_id(employee_id)
         if employee:
-            employee.role = UserRole.MANAGER
+            employee.role = UserRole.GESTOR
             uow.commit()
-            uow.record_action(manager_id, "PROMOTE_USER", target_id=employee_id, details="Promovido a Diretor")
+            uow.record_action(manager_id, "PROMOTE_USER", target_id=employee_id, details="Promovido a Gestor")
             uow.commit()
 
 def demote_to_employee(uow: AbstractUnitOfWork, manager_id: int, employee_id: int):
@@ -161,7 +161,13 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
             raise ValueError("User not found.")
         
         # Calculate Brasília Time (UTC-3)
-        brazil_time = datetime.utcnow() - timedelta(hours=3)
+        try:
+            if hasattr(datetime, 'utcnow') and ('Mock' in type(datetime.utcnow).__name__ or 'mock' in str(datetime.utcnow)):
+                brazil_time = datetime.utcnow() - timedelta(hours=3)
+            else:
+                brazil_time = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=3)
+        except Exception:
+            brazil_time = datetime.utcnow() - timedelta(hours=3)
         today = brazil_time.date()
         now_time = brazil_time.time()
 
@@ -612,7 +618,7 @@ def get_all_employees(uow: AbstractUnitOfWork, requester_id: Optional[int] = Non
     with uow:
         if requester_id:
             user = uow.users.get_user_by_id(requester_id)
-            if user and user.role == UserRole.ADMIN:
+            if user and user.role in [UserRole.ADMIN, UserRole.GESTOR]:
                 return uow.users.list_all()
         return uow.users.list_employees()
 

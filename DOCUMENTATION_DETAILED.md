@@ -14,7 +14,7 @@ O sistema segue os princípios da **Arquitetura em Camadas** e **Domain-Driven D
 ### 2.1 Gestão de Usuários e Perfis
 - **Registro e Login**: Autenticação segura com `Werkzeug`.
 - **Perfis Detalhados**: Armazena matrícula, CPF, departamento, cargo e secretaria.
-- **Hierarquia**: Papéis de `ADMIN` (Secretário), `MANAGER` (Diretor) e `EMPLOYEE` (Funcionário).
+- **Hierarquia**: Papéis de `ADMIN` (Secretário), `MANAGER` (Diretor) e `EMPLOYEE` (Funcionário), `gestor` (Funcionário Gestor)
 - **Data de Início de Análise**: Define a partir de quando o saldo de horas começa a ser calculado para cada usuário.
 
 ### 2.2 Controle de Jornada (Ponto)

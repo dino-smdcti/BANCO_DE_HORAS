@@ -290,7 +290,7 @@ class User:
 
     @property
     def is_manager(self) -> bool:
-        return self.role in [UserRole.MANAGER, UserRole.ADMIN]
+        return self.role in [UserRole.MANAGER, UserRole.ADMIN, UserRole.GESTOR]
 
     @property
     def is_gestor(self) -> bool:

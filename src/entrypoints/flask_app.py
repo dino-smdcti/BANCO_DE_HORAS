@@ -154,78 +154,52 @@ def inject_notifications():
 import sys
 
 def send_email(to_email, subject, body_html):
-    # API-based email sending via Brevo (Transactional API v3)
-    api_key = os.environ.get("BREVO_API_KEY")
-    # Priority: BREVO_SENDER -> MAIL_USERNAME
-    sender_email = os.environ.get("BREVO_SENDER") or os.environ.get("MAIL_USERNAME")
+    # API-based email sending via Brevo commented out per request
+    # api_key = os.environ.get("BREVO_API_KEY")
+    # sender_email = os.environ.get("BREVO_SENDER") or os.environ.get("MAIL_USERNAME")
+    # ...
     
-    if not api_key:
-        print("DEBUG: BREVO_API_KEY is missing", file=sys.stderr)
-        return False
-    if not sender_email:
-        print("DEBUG: BREVO_SENDER/MAIL_USERNAME is missing", file=sys.stderr)
+    # SMTP implementation optimized for serverless environments (Vercel)
+    # Serverless platforms like Vercel have short execution limits, so we use short, explicit timeouts
+    # and clean SMTP connection closure.
+    if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
+        print("SMTP Error: MAIL_USERNAME or MAIL_PASSWORD not configured.", file=sys.stderr)
         return False
 
-    url = "https://api.brevo.com/v3/smtp/email"
-    headers = {
-        "api-key": api_key,
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
+    msg = MIMEMultipart()
+    sender_display = "Banco de Horas"
+    msg["From"] = f"{sender_display} <{app.config['MAIL_USERNAME']}>"
+    msg["To"] = to_email
+    msg["Subject"] = subject
     
-    data = {
-        "sender": {"name": "Banco de Horas", "email": sender_email},
-        "to": [{"email": to_email}],
-        "subject": subject,
-        "htmlContent": body_html
-    }
-
-    print(f"DEBUG: Attempting to send email to {to_email} via Brevo from {sender_email}...", file=sys.stderr)
-
+    msg.attach(MIMEText(body_html, "html"))
+    
     try:
-        req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
-        with urllib.request.urlopen(req) as response:
-            status = response.status
-            resp_body = response.read().decode("utf-8")
-            print(f"DEBUG: Brevo Response Status: {status} - {resp_body}", file=sys.stderr)
-            return status in [200, 201]
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8")
-        print(f"DEBUG: Brevo API HTTP Error: {e.code} - {error_body}", file=sys.stderr)
-        return False
+        port = app.config["MAIL_PORT"]
+        server_host = app.config["MAIL_SERVER"]
+        
+        print(f"DEBUG: Attempting serverless-optimized SMTP to {to_email} via {server_host}:{port}...", file=sys.stderr)
+        
+        if port == 465:
+            server = smtplib.SMTP_SSL(server_host, port, timeout=8)
+        else:
+            server = smtplib.SMTP(server_host, port, timeout=8)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            
+        server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
+        server.send_message(msg)
+        try:
+            server.quit()
+        except Exception:
+            # Serverless environments sometimes drop the connection before quit completes; safe to ignore
+            pass
+        print(f"DEBUG: Email sent successfully via SMTP to {to_email}", file=sys.stderr)
+        return True
     except Exception as e:
-        print(f"DEBUG: Brevo API Unexpected Error: {str(e)}", file=sys.stderr)
+        print(f"Detailed SMTP Error for {to_email}: {str(e)}", file=sys.stderr)
         return False
-
-# Original SMTP implementation (Commented out)
-# def send_email(to_email, subject, body_html):
-#     if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
-#         print("SMTP Error: MAIL_USERNAME or MAIL_PASSWORD not configured.")
-#         return False
-#
-#     msg = MIMEMultipart()
-#     msg["From"] = f"Banco de Horas <{app.config['MAIL_USERNAME']}>"
-#     msg["To"] = to_email
-#     msg["Subject"] = subject
-#     
-#     msg.attach(MIMEText(body_html, "html"))
-#     
-#     try:
-#         # Determine if we should use SSL or STARTTLS based on port
-#         port = app.config["MAIL_PORT"]
-#         if port == 465:
-#             server = smtplib.SMTP_SSL(app.config["MAIL_SERVER"], port, timeout=10)
-#         else:
-#             server = smtplib.SMTP(app.config["MAIL_SERVER"], port, timeout=10)
-#             server.starttls()
-#             
-#         server.login(app.config["MAIL_USERNAME"], app.config["MAIL_PASSWORD"])
-#         server.send_message(msg)
-#         server.quit()
-#         return True
-#     except Exception as e:
-#         print(f"Detailed SMTP Error for {to_email}: {str(e)}")
-#         return False
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
@@ -354,7 +328,15 @@ def register():
     if form.validate_on_submit():
         try:
             uow = SqlAlchemyUnitOfWork()
-            is_new = services.register_user(uow, form.email.data, role=form.role.data, registered_by_id=current_user.id)
+            is_new = False
+            try:
+                services.register_user(uow, form.email.data, role=form.role.data, registered_by_id=current_user.id)
+                is_new = True
+            except ValueError as e:
+                if "already exists" in str(e).lower():
+                    is_new = False
+                else:
+                    raise e
 
             # Send invitation email (regardless of is_new, as per request)
             token = serializer.dumps(form.email.data, salt="password-reset-salt")
