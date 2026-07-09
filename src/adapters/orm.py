@@ -10,9 +10,14 @@ class UserRoleType(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is None:
             return None
-        if isinstance(value, UserRole):
-            return value.value
-        return str(value).lower()
+        val_str = value.value if isinstance(value, UserRole) else str(value)
+        # PostgreSQL enum 'userrole' has values: ADMIN, MANAGER, EMPLOYEE, gestor
+        val_lower = val_str.lower()
+        if val_lower in ("admin", "manager", "employee"):
+            return val_lower.upper()
+        elif val_lower == "gestor":
+            return "gestor"
+        return val_str
 
     def process_result_value(self, value, dialect):
         if value is None:
