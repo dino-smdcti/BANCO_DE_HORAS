@@ -56,6 +56,7 @@ def register_user(
             password_hash=pw_hash,
             role=UserRole(role)
         )
+        user.profile.start_analysis_date = date.today()
         uow.users.add_user(user)
         uow.commit()
         
@@ -73,7 +74,8 @@ def update_user_profile(
     position: str,
     secretariat: str,
     full_name: str,
-    start_analysis_date: Optional[date] = None
+    start_analysis_date: Optional[date] = None,
+    birth_date: Optional[date] = None
 ) -> None:
     with uow:
         user = uow.users.get_user_by_id(user_id)
@@ -81,7 +83,10 @@ def update_user_profile(
             raise ValueError("User not found.")
         
         analysis_date = start_analysis_date or (user.profile.start_analysis_date if user.profile else None) or date(2026, 1, 1)
-        
+        # Birthday can NOT be altered afterwards once set, unless it's empty
+        existing_birth = user.profile.birth_date if (user.profile and user.profile.birth_date) else None
+        final_birth = existing_birth if existing_birth else birth_date
+
         new_profile = UserProfile(
             registration_number=registration_number,
             cpf=cpf,
@@ -89,7 +94,8 @@ def update_user_profile(
             position=position,
             secretariat=secretariat,
             full_name=full_name,
-            start_analysis_date=analysis_date
+            start_analysis_date=analysis_date,
+            birth_date=final_birth
         )
         user.profile = new_profile
         uow.commit()
@@ -607,6 +613,71 @@ def add_holiday(uow: AbstractUnitOfWork, manager_id: int, holiday_date: date, de
         uow.session.merge(holiday)
         uow.commit()
         uow.record_action(manager_id, "ADD_HOLIDAY", target_id=None, details=f"Data: {holiday_date}, Desc: {description}")
+        uow.commit()
+
+def seed_holidays(uow: AbstractUnitOfWork):
+    with uow:
+        # Prepopulate Brazilian national holidays and Governador Valadares regional holidays
+        # For years 2026, 2027, 2028, 2029, 2030, etc.
+        # Fixed dates:
+        fixed_national = [
+            (1, 1, "Confraternização Universal (Ano Novo)"),
+            (4, 21, "Tiradentes"),
+            (5, 1, "Dia do Trabalhador"),
+            (9, 7, "Independência do Brasil"),
+            (10, 12, "Nossa Senhora Aparecida (Padroeira do Brasil)"),
+            (11, 2, "Finados"),
+            (11, 15, "Proclamação da República"),
+            (11, 20, "Dia Nacional de Zumbi e da Consciência Negra"),
+            (12, 25, "Natal"),
+        ]
+        fixed_valadares = [
+            (1, 30, "Aniversário de Governador Valadares"),
+            (6, 13, "Santo Antônio (Padroeiro de Governador Valadares)"),
+        ]
+
+        # Mobile dates calculations helper
+        def get_easter_date(year):
+            # Anonymous Gregorian algorithm
+            a = year % 19
+            b = year // 100
+            c = year % 100
+            d = b // 4
+            e = b % 4
+            f = (b + 8) // 25
+            g = (b - f + 1) // 3
+            h = (19 * a + b - d - g + 15) % 30
+            i = c // 4
+            k = c % 4
+            L = (32 + 2 * e + 2 * i - h - k) % 7
+            m = (a + 11 * h + 22 * L) // 451
+            month = (h + L - 7 * m + 114) // 31
+            day = ((h + L - 7 * m + 114) % 31) + 1
+            return date(year, month, day)
+
+        for year in range(2025, 2036):
+            # Fixed National Holidays
+            for m, d, desc in fixed_national:
+                uow.session.merge(Holiday(holiday_date=date(year, m, d), description=desc, is_mandatory=True))
+            # Fixed Regional Holidays (Governador Valadares)
+            for m, d, desc in fixed_valadares:
+                uow.session.merge(Holiday(holiday_date=date(year, m, d), description=desc, is_mandatory=True))
+            
+            # Mobile holidays based on Easter:
+            easter = get_easter_date(year)
+            
+            # Carnaval (47 days before Easter)
+            carnaval = easter - timedelta(days=47)
+            uow.session.merge(Holiday(holiday_date=carnaval, description="Carnaval", is_mandatory=True))
+            
+            # Sexta-feira Santa (2 days before Easter)
+            sexta_santa = easter - timedelta(days=2)
+            uow.session.merge(Holiday(holiday_date=sexta_santa, description="Sexta-feira Santa (Paixão de Cristo)", is_mandatory=True))
+            
+            # Corpus Christi (60 days after Easter)
+            corpus_christi = easter + timedelta(days=60)
+            uow.session.merge(Holiday(holiday_date=corpus_christi, description="Corpus Christi", is_mandatory=True))
+            
         uow.commit()
 
 def get_start_analysis_date(uow: AbstractUnitOfWork) -> date:

@@ -84,7 +84,7 @@ def check_for_missing_logs(uow):
                 # Skip if not a workday or holiday or vacation
                 if not user.work_schedule.is_work_day(check_date) or \
                    check_date in holiday_dates or \
-                   any(v.start_date <= check_date <= v.end_date for v in user.vacations):
+                   user.is_on_vacation(check_date):
                     continue
             
                 if not ponto:

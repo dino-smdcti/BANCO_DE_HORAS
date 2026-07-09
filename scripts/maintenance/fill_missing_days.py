@@ -46,9 +46,8 @@ def fill_missing_days():
                     continue
                 
                 # 3. Vacation check
-                is_on_vacation = any(v.start_date <= current_date <= v.end_date for v in user.vacations)
+                is_on_vacation = user.is_on_vacation(current_date)
                 if is_on_vacation:
-                    current_date += timedelta(days=1)
                     continue
                 
                 # 4. Check if entry exists

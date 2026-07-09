@@ -59,6 +59,11 @@
 
                     <hr>
                     <div class="mb-3">
+                        <label class="form-label">Data de Nascimento</label>
+                        <input type="date" name="birth_date" class="form-control" value="{{ user.profile.birth_date.strftime('%Y-%m-%d') if user.profile.birth_date else '' }}" {% if user.profile.birth_date %}readonly{% endif %}>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Data de Início da Análise</label>
                         <input type="date" name="start_analysis_date" class="form-control" value="{{ user.profile.start_analysis_date.strftime('%Y-%m-%d') if user.profile.start_analysis_date else '2026-01-01' }}" {% if current_user.role not in ['admin', 'gestor'] %}readonly{% endif %}>
                     </div>

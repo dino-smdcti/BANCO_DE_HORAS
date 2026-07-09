@@ -57,6 +57,13 @@
                             {% endif %}
                         </div>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Data de Nascimento</label>
+                        {{ form.birth_date(class="form-control", type="date", readonly=(form.birth_date.data is not none)) }}
+                        {% if form.birth_date.errors %}
+                            <div class="text-danger small">{% for error in form.birth_date.errors %}{{ error }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {

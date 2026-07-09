@@ -120,32 +120,107 @@
 {% if current_user.role in ['admin', 'gestor'] %}
 <!-- Holiday Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form action="{{ url_for('add_holiday') }}" method="POST" class="modal-content">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Cadastrar Feriado / Ponto Facultativo</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Descrição</label>
-                    <input type="text" name="description" class="form-control" placeholder="Ex: Natal" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Data</label>
-                    <input type="date" name="holiday_date" class="form-control" required>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" name="is_mandatory" id="isMandatory" checked>
-                    <label class="form-check-label" for="isMandatory">Feriado Obrigatório</label>
+                <div class="row">
+                    <!-- Form side -->
+                    <div class="col-md-6">
+                        <form action="{{ url_for('add_holiday') }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Descrição</label>
+                                <input type="text" name="description" class="form-control" placeholder="Ex: Natal" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Data</label>
+                                <input type="date" name="holiday_date" class="form-control" id="holidayDateInput" required>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" name="is_mandatory" id="isMandatory" checked>
+                                <label class="form-check-label" for="isMandatory">Feriado Obrigatório</label>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-dark">Cadastrar</button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- Calendar / Already registered events side -->
+                    <div class="col-md-6 border-start">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold">Feriados Cadastrados</span>
+                            <select class="form-select form-select-sm w-auto" id="holidayYearSelect">
+                                <option value="2026">2026</option>
+                                <option value="2025">2025</option>
+                                <option value="2027">2027</option>
+                                <option value="2028">2028</option>
+                            </select>
+                        </div>
+                        <div style="max-height: 250px; overflow-y: auto;" class="list-group list-group-flush border rounded p-1" id="holidaysListGroup">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-dark">Cadastrar</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const holidaysData = {{ holidays|tojson|safe if holidays else '[]' }};
+    const listGroup = document.getElementById('holidaysListGroup');
+    const yearSelect = document.getElementById('holidayYearSelect');
+    const today = new Date();
+    const currentYearStr = today.getFullYear().toString();
+
+    // Set the current year in the select if not preset
+    if ([...yearSelect.options].some(opt => opt.value === currentYearStr)) {
+        yearSelect.value = currentYearStr;
+    }
+
+    function renderHolidays() {
+        listGroup.innerHTML = '';
+        const selectedYear = yearSelect.value;
+        const filtered = holidaysData.filter(h => h.date.startsWith(selectedYear));
+        
+        // Sort by date ascending
+        filtered.sort((a, b) => a.date.localeCompare(b.date));
+
+        if (filtered.length === 0) {
+            listGroup.innerHTML = '<div class="text-muted p-3 text-center small">Nenhum feriado cadastrado para este ano.</div>';
+            return;
+        }
+
+        filtered.forEach(h => {
+            const dateParts = h.date.split('-');
+            const formattedDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+            
+            const item = document.createElement('div');
+            item.className = 'list-group-item list-group-item-action py-1 px-2 d-flex justify-content-between align-items-center small';
+            item.style.cursor = 'pointer';
+            item.onclick = function() {
+                document.getElementById('holidayDateInput').value = h.date;
+                document.getElementsByName('description')[0].value = h.description;
+            };
+
+            item.innerHTML = `
+                <div>
+                    <span class="badge bg-secondary me-1" style="font-size: 0.7rem;">${formattedDate}</span>
+                    <span class="fw-semibold text-dark">${h.description}</span>
+                </div>
+            `;
+            listGroup.appendChild(item);
+        });
+    }
+
+    yearSelect.addEventListener('change', renderHolidays);
+    renderHolidays();
+});
+</script>
 {% endif %}
 {% endblock %}
 

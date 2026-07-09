@@ -57,7 +57,7 @@ def process_daily_absences(uow):
                     continue
                 
                 # 3. Check if user is on vacation
-                is_on_vacation = any(v.start_date <= check_date <= v.end_date for v in user.vacations)
+                is_on_vacation = user.is_on_vacation(check_date)
                 if is_on_vacation:
                     continue
                 

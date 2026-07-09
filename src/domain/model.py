@@ -258,6 +258,7 @@ class UserProfile:
     secretariat: Optional[str] = None
     full_name: Optional[str] = None
     start_analysis_date: date = date(2026, 5, 1)
+    birth_date: Optional[date] = None
 
     def is_complete(self) -> bool:
         return all([self.department, self.position, self.secretariat, self.full_name])
@@ -287,6 +288,16 @@ class User:
     @property
     def is_profile_complete(self) -> bool:
         return self.profile.is_complete()
+
+    def is_on_vacation(self, target_date: date) -> bool:
+        # Check standard vacation periods
+        if any(v.start_date <= target_date <= v.end_date for v in self.vacations):
+            return True
+        # Check if it's the user's birthday vacation day (month and day match target_date)
+        if self.profile and self.profile.birth_date:
+            if self.profile.birth_date.month == target_date.month and self.profile.birth_date.day == target_date.day:
+                return True
+        return False
 
     @property
     def is_manager(self) -> bool:

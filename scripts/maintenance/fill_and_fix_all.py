@@ -60,7 +60,7 @@ def fill_and_fix_all():
                 if current in holiday_dates:
                     current += timedelta(days=1)
                     continue
-                if any(v.start_date <= current <= v.end_date for v in user.vacations):
+                if user.is_on_vacation(current):
                     current += timedelta(days=1)
                     continue
 

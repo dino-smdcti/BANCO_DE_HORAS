@@ -55,6 +55,14 @@ except Exception:
 
 metadata.create_all(engine)
 
+# Seed holidays on startup
+try:
+    with SqlAlchemyUnitOfWork() as init_uow:
+        services.seed_holidays(init_uow)
+except Exception as e:
+    import sys
+    print(f"Error seeding holidays on startup: {e}", file=sys.stderr)
+
 serializer = URLSafeTimedSerializer(app.config["SECRET_KEY"])
 
 @login_manager.user_loader
@@ -415,7 +423,8 @@ def complete_profile():
             form.department.data,
             form.position.data,
             form.secretariat.data,
-            form.full_name.data
+            form.full_name.data,
+            birth_date=form.birth_date.data
         )
         flash("Perfil preenchido com sucesso!", "success")
         return redirect(url_for("dashboard"))
@@ -437,6 +446,8 @@ def profile():
                 # If Admin or Gestor, update professional profile as well
                 if current_user.role in ["admin", "gestor"]:
                     analysis_date = datetime.strptime(request.form.get("start_analysis_date"), "%Y-%m-%d").date()
+                    raw_birth = request.form.get("birth_date")
+                    birth_date = datetime.strptime(raw_birth, "%Y-%m-%d").date() if raw_birth else None
                     services.update_user_profile(
                         uow,
                         current_user.id,
@@ -446,7 +457,8 @@ def profile():
                         request.form.get("position"),
                         request.form.get("secretariat"),
                         request.form.get("full_name"),
-                        start_analysis_date=analysis_date
+                        start_analysis_date=analysis_date,
+                        birth_date=birth_date
                     )
                 
                 flash("Perfil atualizado!", "success")
@@ -483,7 +495,8 @@ def edit_employee(employee_id):
                 form.department.data,
                 form.position.data,
                 form.secretariat.data,
-                form.full_name.data
+                form.full_name.data,
+                birth_date=form.birth_date.data
             )
             flash(f"Perfil de {employee.profile.full_name or employee.email} atualizado!", "success")
             return redirect(url_for("management_panel"))
@@ -495,6 +508,7 @@ def edit_employee(employee_id):
             form.position.data = employee.profile.position
             form.secretariat.data = employee.profile.secretariat
             form.full_name.data = employee.profile.full_name
+            form.birth_date.data = employee.profile.birth_date
             
         return render_template("complete_profile.html", form=form, title=f"Editar Perfil: {employee.email}")
 
@@ -750,13 +764,18 @@ def management_panel():
                 "time": c.proposed_time
             })
 
+        from src.domain.model import Holiday
+        holidays_list = uow.session.query(Holiday).order_by(Holiday.holiday_date).all()
+        holidays_serialized = [{"date": h.holiday_date.strftime("%Y-%m-%d"), "description": h.description} for h in holidays_list]
+
         return render_template("manager_dashboard.html", 
                              employees=employees, 
                              today=date.today(),
                              analysis_date=analysis_date,
                              pending_anomalies=pending_anomalies,
                              dismissed_justs=dismissed_justs,
-                             pending_corrections=corrections_display)
+                             pending_corrections=corrections_display,
+                             holidays=holidays_serialized)
 
 @app.route("/admin/update-user-analysis-date/<int:employee_id>", methods=["POST"])
 @login_required

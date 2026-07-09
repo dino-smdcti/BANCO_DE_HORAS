@@ -93,6 +93,7 @@ users = Table(
     Column("full_name", String(255), nullable=True),
     Column("email_notifications_enabled", Boolean, default=False),
     Column("start_analysis_date", Date, default=date(2026, 1, 1)),
+    Column("birth_date", Date, nullable=True),
 )
 
 daily_pontos = Table(
@@ -202,6 +203,7 @@ def start_mappers():
             users.c.secretariat,
             users.c.full_name,
             users.c.start_analysis_date,
+            users.c.birth_date,
         ),
         "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date, cascade="all, delete-orphan"),
         "vacations": relationship(Vacation, backref="user", cascade="all, delete-orphan"),

@@ -40,8 +40,7 @@ def verify_and_complete_logs():
                 # Skip non-workdays, holidays, vacations
                 if not user.work_schedule.is_work_day(current_date) or \
                    current_date in holiday_dates or \
-                   any(v.start_date <= current_date <= v.end_date for v in user.vacations):
-                    current_date += timedelta(days=1)
+                   user.is_on_vacation(current_date):
                     continue
                 
                 # Check for missing log
