@@ -461,7 +461,7 @@ def profile():
 @app.route("/manager/edit-employee/<int:employee_id>", methods=["GET", "POST"])
 @login_required
 def edit_employee(employee_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -672,7 +672,7 @@ def archive_justification_action(employee_id, entry_date):
 @app.route("/management")
 @login_required
 def management_panel():
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso restrito.", "danger")
         return redirect(url_for("dashboard"))
         
@@ -732,7 +732,7 @@ def management_panel():
 @app.route("/admin/update-user-analysis-date/<int:employee_id>", methods=["POST"])
 @login_required
 def update_user_analysis_date(employee_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso restrito.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -818,7 +818,7 @@ def update_note():
 @app.route("/manager/review-correction/<int:request_id>/<string:action>", methods=["POST"])
 @login_required
 def review_correction(request_id, action):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -835,7 +835,7 @@ def review_correction(request_id, action):
 @app.route("/download-report/<int:user_id>")
 @login_required
 def download_report(user_id):
-    if current_user.id != user_id and current_user.role not in ["manager", "admin"]:
+    if current_user.id != user_id and current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
 
@@ -874,7 +874,7 @@ def download_report(user_id):
 @app.route("/manager/view-logs/<int:employee_id>")
 @login_required
 def view_employee_logs(employee_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -892,7 +892,7 @@ def view_employee_logs(employee_id):
 @app.route("/manager/bulk-fix-ponto/<int:employee_id>", methods=["POST"])
 @login_required
 def bulk_fix_ponto(employee_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
 
@@ -957,7 +957,7 @@ def bulk_fix_ponto(employee_id):
 @app.route("/manager/fix-ponto/<int:employee_id>", methods=["GET", "POST"])
 @login_required
 def fix_ponto(employee_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
 
@@ -995,7 +995,7 @@ def fix_ponto(employee_id):
 @app.route("/manager/add-vacation/<int:employee_id>", methods=["POST"])
 @login_required
 def add_vacation(employee_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -1010,7 +1010,7 @@ def add_vacation(employee_id):
 @app.route("/manager/add-holiday", methods=["POST"])
 @login_required
 def add_holiday():
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -1026,7 +1026,7 @@ def add_holiday():
 @app.route("/manager/delete-user/<int:user_id>", methods=["POST"])
 @login_required
 def delete_user(user_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -1038,7 +1038,7 @@ def delete_user(user_id):
 @app.route("/manager/reset-user-password/<int:user_id>", methods=["POST"])
 @login_required
 def reset_user_password(user_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -1064,7 +1064,7 @@ def reset_user_password(user_id):
 @app.route("/manager/set-schedule/<int:employee_id>", methods=["GET", "POST"])
 @login_required
 def set_schedule(employee_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
 
@@ -1131,7 +1131,7 @@ def set_schedule(employee_id):
 @app.route("/manager/journey-types", methods=["GET", "POST"])
 @login_required
 def manage_journeys():
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -1163,7 +1163,7 @@ def manage_journeys():
 @app.route("/manager/get-journey/<int:journey_id>")
 @login_required
 def get_journey_json(journey_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         return {"error": "Unauthorized"}, 403
     
     uow = SqlAlchemyUnitOfWork()
@@ -1184,7 +1184,7 @@ def get_journey_json(journey_id):
 @app.route("/manager/edit-journey/<int:journey_id>", methods=["GET", "POST"])
 @login_required
 def edit_journey(journey_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -1233,7 +1233,7 @@ def edit_journey(journey_id):
 @app.route("/manager/delete-journey/<int:journey_id>", methods=["POST"])
 @login_required
 def delete_journey(journey_id):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -1364,7 +1364,7 @@ def admin_settings():
 @app.route("/manager/delete-ponto/<int:employee_id>/<string:entry_date>", methods=["POST"])
 @login_required
 def delete_ponto(employee_id, entry_date):
-    if current_user.role not in ["manager", "admin"]:
+    if current_user.role not in ["manager", "admin", "gestor"]:
         flash("Acesso não autorizado.", "danger")
         return redirect(url_for("dashboard"))
     
