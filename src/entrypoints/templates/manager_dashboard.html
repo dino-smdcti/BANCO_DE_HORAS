@@ -31,10 +31,12 @@
                         <tr>
                             <td>{{ employee.profile.full_name or employee.email }}</td>
                             <td>
-                                <span class="badge 
+                                <span class="badge cursor-pointer role-badge
                                     {% if employee.role.value == 'admin' %}bg-accent text-white
                                     {% elif employee.role.value == 'manager' %}bg-secondary text-white
-                                    {% else %}bg-primary text-white{% endif %}">
+                                    {% else %}bg-primary text-white{% endif %}"
+                                    style="cursor: pointer;"
+                                    onclick="changeRolePrompt({{ employee.user_id }}, '{{ employee.role.value }}')">
                                     {{ get_role_label(employee.role.value, employee.email) }}
                                 </span>
                             </td>
@@ -188,5 +190,80 @@ function sortTable(n) {
 document.addEventListener("DOMContentLoaded", function() {
     sortTable(0);
 });
+
+function changeRolePrompt(userId, currentRole) {
+    const roles = {
+        'employee': 'Funcionário',
+        'gestor': 'Gestor',
+        'manager': 'Diretor',
+        'admin': 'Secretário'
+    };
+    
+    let optionsHtml = '';
+    for (const [val, label] of Object.entries(roles)) {
+        const selected = val === currentRole ? 'selected' : '';
+        optionsHtml += `<option value="${val}" ${selected}>${label}</option>`;
+    }
+
+    // Modal structure for role selection
+    const modalId = 'roleChangeModal';
+    let modalEl = document.getElementById(modalId);
+    if (!modalEl) {
+        modalEl = document.createElement('div');
+        modalEl.id = modalId;
+        modalEl.className = 'modal fade';
+        modalEl.tabIndex = -1;
+        modalEl.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(modalEl);
+    }
+    
+    modalEl.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Alterar Perfil de Acesso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="newRoleSelect" class="form-label">Selecione o novo perfil:</label>
+                    <select id="newRoleSelect" class="form-select">
+                        ${optionsHtml}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmRoleChangeBtn" class="btn btn-primary">Salvar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const bootstrapModal = new bootstrap.Modal(modalEl);
+    bootstrapModal.show();
+    
+    document.getElementById('confirmRoleChangeBtn').onclick = function() {
+        const newRole = document.getElementById('newRoleSelect').value;
+        fetch(`/manager/change-role/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ role: newRole })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrapModal.hide();
+                window.location.reload();
+            } else {
+                alert('Erro: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error changing role:', error);
+            alert('Ocorreu um erro ao atualizar o perfil.');
+        });
+    };
+}
 </script>
 {% endblock %}

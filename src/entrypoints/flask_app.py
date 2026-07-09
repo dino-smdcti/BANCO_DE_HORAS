@@ -509,6 +509,35 @@ def promote_user(user_id):
     flash("Usuário promovido a Gestor!", "success")
     return redirect(url_for("management_panel"))
 
+@app.route("/manager/change-role/<int:user_id>", methods=["POST"])
+@login_required
+def change_user_role(user_id):
+    if current_user.role not in ["admin", "manager", "gestor"]:
+        return {"success": False, "message": "Acesso não autorizado"}, 403
+    
+    new_role = request.json.get("role")
+    if new_role not in ["employee", "gestor", "manager", "admin"]:
+        return {"success": False, "message": "Perfil inválido"}, 400
+        
+    uow = SqlAlchemyUnitOfWork()
+    from src.domain.model import UserRole
+    with uow:
+        employee = uow.users.get_user_by_id(user_id)
+        if employee:
+            old_role = employee.role.value if hasattr(employee.role, 'value') else employee.role
+            employee.role = UserRole(new_role)
+            uow.commit()
+            uow.record_action(
+                current_user.id, 
+                "PROMOTE_USER" if new_role in ["gestor", "manager", "admin"] else "DEMOTE_USER", 
+                target_id=user_id, 
+                details=f"Perfil alterado de {old_role} para {new_role}"
+            )
+            uow.commit()
+            return {"success": True, "message": "Perfil atualizado com sucesso!"}
+        else:
+            return {"success": False, "message": "Usuário não encontrado"}, 404
+
 @app.route("/manager/demote/<int:user_id>", methods=["POST"])
 @login_required
 def demote_user(user_id):
