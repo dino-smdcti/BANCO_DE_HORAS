@@ -51,12 +51,12 @@
                 <!-- Navigation links (collapsible on mobile) -->
                 <div class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
-                        {% if current_user.role in ['manager', 'admin'] %}
+                        {% if current_user.role in ['manager', 'admin', 'gestor'] %}
                             <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
                                 <i class="bi bi-people"></i> <span>Gestão</span>
                             </a>
                         {% endif %}
-                        {% if current_user.role == 'admin' %}
+                        {% if current_user.role in ['admin', 'gestor'] %}
                             <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('audit_logs') }}">
                                 <i class="bi bi-shield-lock"></i> <span>Auditoria</span>
                             </a>

@@ -115,7 +115,7 @@
     </div>
 </div>
 
-{% if current_user.role == 'admin' %}
+{% if current_user.role in ['admin', 'gestor'] %}
 <!-- Holiday Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
     <div class="modal-dialog">

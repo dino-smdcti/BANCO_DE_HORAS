@@ -434,8 +434,8 @@ def profile():
             try:
                 services.update_credentials(uow, current_user.id, email, password, email_notifications)
                 
-                # If Admin, update professional profile as well
-                if current_user.role == "admin":
+                # If Admin or Gestor, update professional profile as well
+                if current_user.role in ["admin", "gestor"]:
                     analysis_date = datetime.strptime(request.form.get("start_analysis_date"), "%Y-%m-%d").date()
                     services.update_user_profile(
                         uow,
@@ -1272,7 +1272,7 @@ def delete_journey(journey_id):
 @app.route("/admin/audit-logs")
 @login_required
 def audit_logs():
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "gestor"]:
         flash("Acesso restrito ao Administrador.", "danger")
         return redirect(url_for("dashboard"))
 
@@ -1334,7 +1334,7 @@ def audit_logs():
 @app.route("/admin/settings", methods=["GET", "POST"])
 @login_required
 def admin_settings():
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "gestor"]:
         flash("Acesso restrito ao Administrador.", "danger")
         return redirect(url_for("dashboard"))
     
@@ -1377,7 +1377,7 @@ def delete_ponto(employee_id, entry_date):
 @app.route("/manager/review-badge/<int:employee_id>/<string:entry_date>/<string:stage>/<string:action>", methods=["POST"])
 @login_required
 def review_badge(employee_id, entry_date, stage, action):
-    if current_user.role != "admin":
+    if current_user.role not in ["admin", "gestor"]:
         flash("Apenas o Administrador pode realizar esta ação.", "danger")
         return redirect(url_for("view_employee_logs", employee_id=employee_id))
 

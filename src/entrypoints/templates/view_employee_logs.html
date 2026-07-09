@@ -17,7 +17,7 @@
         <button class="btn btn-sm btn-secondary btn-compact" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
         <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-primary text-white btn-compact">Definir Horário</a>
         
-        {% if current_user.role == 'admin' %}
+        {% if current_user.role in ['admin', 'gestor'] %}
             {% if employee.role.value == 'employee' %}
                 <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="m-0">
                     <button type="submit" class="btn btn-sm btn-warning btn-compact" onclick="return confirm('Promover este usuário a Gestor?');">Promover</button>

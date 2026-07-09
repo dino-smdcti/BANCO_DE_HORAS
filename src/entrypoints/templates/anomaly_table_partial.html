@@ -64,8 +64,8 @@
                                             {% elif p.arrival_late_reviewed %}
                                                 <span class="badge bg-danger opacity-75" title="Atraso Mantido (Revisado)">Atraso</span>
                                             {% else %}
-                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'arrival', 'Atraso na Chegada', '{{ emp.user_id }}')" style="cursor: pointer;"{% endif %}>Atraso</span>
+                                                <span class="badge bg-danger {% if current_user.role in ['admin', 'gestor'] %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role in ['admin', 'gestor'] %}onclick="openReviewModal('{{ p.entry_date }}', 'arrival', 'Atraso na Chegada', '{{ emp.user_id }}')" style="cursor: pointer;"{% endif %}>Atraso</span>
                                             {% endif %}
                                         </div>
                                     {% endif %}
@@ -81,8 +81,8 @@
                                             {% elif p.lunch_start_late_reviewed %}
                                                 <span class="badge bg-danger opacity-75" title="Anomalia Mantida (Revisada)">Anomalia</span>
                                             {% else %}
-                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_start', 'Anomalia no Almoço (Saída)', '{{ emp.user_id }}')" style="cursor: pointer;"{% endif %}>Anomalia</span>
+                                                <span class="badge bg-danger {% if current_user.role in ['admin', 'gestor'] %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role in ['admin', 'gestor'] %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_start', 'Anomalia no Almoço (Saída)', '{{ emp.user_id }}')" style="cursor: pointer;"{% endif %}>Anomalia</span>
                                             {% endif %}
                                         </div>
                                     {% endif %}
@@ -98,8 +98,8 @@
                                             {% elif p.lunch_end_late_reviewed %}
                                                 <span class="badge bg-danger opacity-75" title="Atraso Mantido (Revisado)">Atraso</span>
                                             {% else %}
-                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_end', 'Atraso no Almoço (Volta)', '{{ emp.user_id }}')" style="cursor: pointer;"{% endif %}>Atraso</span>
+                                                <span class="badge bg-danger {% if current_user.role in ['admin', 'gestor'] %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role in ['admin', 'gestor'] %}onclick="openReviewModal('{{ p.entry_date }}', 'lunch_end', 'Atraso no Almoço (Volta)', '{{ emp.user_id }}')" style="cursor: pointer;"{% endif %}>Atraso</span>
                                             {% endif %}
                                         </div>
                                     {% endif %}
@@ -115,8 +115,8 @@
                                             {% elif p.departure_early_reviewed %}
                                                 <span class="badge bg-danger opacity-75" title="Saída Cedo Mantida (Revisada)">Saída Cedo</span>
                                             {% else %}
-                                                <span class="badge bg-danger {% if current_user.role == 'admin' %}cursor-pointer{% endif %}" 
-                                                      {% if current_user.role == 'admin' %}onclick="openReviewModal('{{ p.entry_date }}', 'departure', 'Saída Antecipada', '{{ emp.user_id }}')" style="cursor: pointer;"{% endif %}>Saída Cedo</span>
+                                                <span class="badge bg-danger {% if current_user.role in ['admin', 'gestor'] %}cursor-pointer{% endif %}" 
+                                                      {% if current_user.role in ['admin', 'gestor'] %}onclick="openReviewModal('{{ p.entry_date }}', 'departure', 'Saída Antecipada', '{{ emp.user_id }}')" style="cursor: pointer;"{% endif %}>Saída Cedo</span>
                                             {% endif %}
                                         </div>
                                     {% endif %}
