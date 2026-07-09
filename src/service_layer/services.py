@@ -405,13 +405,13 @@ def manual_ponto_correction(
                 user.time_entries.append(ponto)
 
         changed = False
-        if arrival is not None and ponto.arrival != arrival:
+        if ponto.arrival != arrival:
             ponto.arrival = arrival; changed = True
-        if lunch_start is not None and ponto.lunch_start != lunch_start:
+        if ponto.lunch_start != lunch_start:
             ponto.lunch_start = lunch_start; changed = True
-        if lunch_end is not None and ponto.lunch_end != lunch_end:
+        if ponto.lunch_end != lunch_end:
             ponto.lunch_end = lunch_end; changed = True
-        if departure is not None and ponto.departure != departure:
+        if ponto.departure != departure:
             ponto.departure = departure; changed = True
         if manager_notes is not None and ponto.manager_notes != manager_notes:
             ponto.manager_notes = manager_notes
