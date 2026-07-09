@@ -181,7 +181,15 @@
                                     {% if p.status_label == 'Desconhecido' %}
                                         <span></span>
                                     {% elif p.status.value == 'Atrasado' %}
-                                        <span class="badge {{ 'bg-warning text-dark' if p.arrival_late_reviewed or p.arrival_late_approved or p.arrival_late_excused else 'bg-danger text-white' }} mt-1" style="display: block;">{{ p.status_label }}</span>
+                                        {% if current_user.role in ['admin', 'gestor', 'manager'] %}
+                                            <span class="badge {{ 'bg-warning text-dark' if p.arrival_late_reviewed or p.arrival_late_approved or p.arrival_late_excused else 'bg-danger text-white' }} mt-1 cursor-pointer" 
+                                                  style="display: block; cursor: pointer;"
+                                                  onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'arrival', 'Atraso na Chegada')">
+                                                {{ p.status_label }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge {{ 'bg-warning text-dark' if p.arrival_late_reviewed or p.arrival_late_approved or p.arrival_late_excused else 'bg-danger text-white' }} mt-1" style="display: block;">{{ p.status_label }}</span>
+                                        {% endif %}
                                     {% else %}
                                         <span class="badge {{ 'bg-success' if p.status.value == 'No Horário' else ('bg-warning text-dark' if p.status.value == 'Corrigido' else 'bg-secondary') }}">
                                             {{ p.status_label }}
