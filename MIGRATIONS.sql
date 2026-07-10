@@ -1,44 +1,15 @@
--- Database Migration: Add missing columns to support new features
--- Run these commands in your Neon SQL Editor
+-- Migration: Reset auto-increment sequences for all tables
+-- Run this on your Neon PostgreSQL database if you encounter
+-- "duplicate key value violates unique constraint" errors.
+--
+-- Usage:
+--   psql "$DATABASE_URL" -f MIGRATIONS.sql
 
--- 1. Add anomaly tracking columns to daily_pontos
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS arrival_late BOOLEAN DEFAULT FALSE;
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_late BOOLEAN DEFAULT FALSE;
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_end_late BOOLEAN DEFAULT FALSE;
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS departure_early BOOLEAN DEFAULT FALSE;
-
--- 2. Add email notification setting to users
-ALTER TABLE users ADD COLUMN IF NOT EXISTS email_notifications_enabled BOOLEAN DEFAULT FALSE;
-
--- 3. Ensure location_data has enough space (if it was created as a smaller VARCHAR)
-ALTER TABLE daily_pontos ALTER COLUMN location_data TYPE TEXT;
-
--- 4. Support optional lunch breaks
-ALTER TABLE work_schedules ADD COLUMN IF NOT EXISTS has_lunch_break BOOLEAN DEFAULT TRUE;
-ALTER TABLE work_schedules ALTER COLUMN expected_lunch_start DROP NOT NULL;
-ALTER TABLE work_schedules ALTER COLUMN expected_lunch_end DROP NOT NULL;
-
-ALTER TABLE journey_types ADD COLUMN IF NOT EXISTS has_lunch_break BOOLEAN DEFAULT TRUE;
-ALTER TABLE journey_types ALTER COLUMN expected_lunch_start DROP NOT NULL;
-ALTER TABLE journey_types ALTER COLUMN expected_lunch_end DROP NOT NULL;
-
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS has_lunch_break BOOLEAN DEFAULT TRUE;
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS notes TEXT;
-
--- 6. Add approval flags for individual anomalies
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS arrival_late_approved BOOLEAN DEFAULT FALSE;
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_late_approved BOOLEAN DEFAULT FALSE;
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_end_late_approved BOOLEAN DEFAULT FALSE;
-ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS departure_early_approved BOOLEAN DEFAULT FALSE;
-
--- 7. Correction Requests Table
-CREATE TABLE IF NOT EXISTS correction_requests (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
-    ponto_date DATE NOT NULL,
-    stage VARCHAR(50) NOT NULL,
-    proposed_time TIME NOT NULL,
-    justification TEXT NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+SELECT setval('work_schedules_id_seq',   COALESCE((SELECT MAX(id) FROM work_schedules),   0));
+SELECT setval('users_id_seq',            COALESCE((SELECT MAX(id) FROM users),            0));
+SELECT setval('daily_pontos_id_seq',     COALESCE((SELECT MAX(id) FROM daily_pontos),     0));
+SELECT setval('journey_types_id_seq',    COALESCE((SELECT MAX(id) FROM journey_types),    0));
+SELECT setval('audit_logs_id_seq',       COALESCE((SELECT MAX(id) FROM audit_logs),       0));
+SELECT setval('correction_requests_id_seq', COALESCE((SELECT MAX(id) FROM correction_requests), 0));
+SELECT setval('notifications_id_seq',    COALESCE((SELECT MAX(id) FROM notifications),    0));
+SELECT setval('vacations_id_seq',        COALESCE((SELECT MAX(id) FROM vacations),        0));

@@ -1,5 +1,6 @@
 from datetime import datetime, date, time, timedelta, timezone
 from typing import Optional, List, Dict
+from sqlalchemy import select, update
 from src.domain.model import User, UserRole, UserProfile, DailyPonto, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from werkzeug.security import generate_password_hash
@@ -155,7 +156,7 @@ from src.domain.model import CompanySettings
 
 def get_company_settings(uow: AbstractUnitOfWork) -> Optional[CompanySettings]:
     with uow:
-        setting = uow.session.query(CompanySettings).first()
+        setting = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
         return setting
 
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None, stage: Optional[str] = None, notes: Optional[str] = None) -> str:
@@ -262,12 +263,12 @@ def submit_correction_request(uow: AbstractUnitOfWork, user_id: int, ponto_date:
 def list_pending_corrections(uow: AbstractUnitOfWork, manager_id: int) -> List[CorrectionRequest]:
     with uow:
         ensure_manager(uow, manager_id)
-        return uow.session.query(CorrectionRequest).filter_by(status="pending").all()
+        return uow.session.execute(select(CorrectionRequest).where(CorrectionRequest.status == "pending")).scalars().all()
 
 def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_id: int, approved: bool):
     with uow:
         ensure_manager(uow, manager_id)
-        req = uow.session.query(CorrectionRequest).filter_by(request_id=request_id).first()
+        req = uow.session.execute(select(CorrectionRequest).where(CorrectionRequest.request_id == request_id)).scalar_one_or_none()
         if not req:
             raise ValueError("Solicitação não encontrada.")
         
@@ -682,7 +683,7 @@ def seed_holidays(uow: AbstractUnitOfWork):
 
 def get_start_analysis_date(uow: AbstractUnitOfWork) -> date:
     with uow:
-        settings = uow.session.query(CompanySettings).first()
+        settings = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
         return settings.start_analysis_date if settings else date(2026, 1, 1)
 
 def get_all_employees(uow: AbstractUnitOfWork, requester_id: Optional[int] = None) -> List[User]:
@@ -701,13 +702,13 @@ def delete_user(uow: AbstractUnitOfWork, manager_id: int, user_id: int):
             # Preserve employee name in audit logs before nullifying user_id
             employee_name = user.profile.full_name if user.profile and user.profile.full_name else user.email
             # Update existing audit log entries to include employee name in details
-            audit_entries = uow.session.query(AuditLog).filter_by(user_id=user_id).all()
+            audit_entries = uow.session.execute(select(AuditLog).where(AuditLog.user_id == user_id)).scalars().all()
             for audit in audit_entries:
                 existing = audit.details or ""
                 audit.details = f"{existing} (User: {employee_name})" if existing else f"User: {employee_name}"
             uow.session.flush()
             # Nullify user_id in audit logs for this user (to avoid FK constraints)
-            uow.session.query(AuditLog).filter_by(user_id=user_id).update({AuditLog.user_id: None})
+            uow.session.execute(update(AuditLog).where(AuditLog.user_id == user_id).values({AuditLog.user_id: None}))
             
             email = user.email
             uow.session.delete(user)
@@ -747,11 +748,11 @@ def create_journey_type(
 
 def list_journey_types(uow: AbstractUnitOfWork) -> List[JourneyType]:
     with uow:
-        return uow.session.query(JourneyType).all()
+        return uow.session.execute(select(JourneyType)).scalars().all()
 
 def get_journey_type(uow: AbstractUnitOfWork, journey_id: int) -> Optional[JourneyType]:
     with uow:
-        return uow.session.query(JourneyType).filter_by(journey_id=journey_id).first()
+        return uow.session.execute(select(JourneyType).where(JourneyType.journey_id == journey_id)).scalar_one_or_none()
 
 def update_journey_type(
     uow: AbstractUnitOfWork,
@@ -768,7 +769,7 @@ def update_journey_type(
 ):
     with uow:
         ensure_manager(uow, manager_id)
-        jt = uow.session.query(JourneyType).filter_by(journey_id=journey_id).first()
+        jt = uow.session.execute(select(JourneyType).where(JourneyType.journey_id == journey_id)).scalar_one_or_none()
         if not jt:
             raise ValueError("Journey Type not found.")
         
@@ -788,7 +789,7 @@ def update_journey_type(
 def delete_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: int):
     with uow:
         ensure_manager(uow, manager_id)
-        jt = uow.session.query(JourneyType).filter_by(journey_id=journey_id).first()
+        jt = uow.session.execute(select(JourneyType).where(JourneyType.journey_id == journey_id)).scalar_one_or_none()
         if jt:
             name = jt.name
             uow.session.delete(jt)

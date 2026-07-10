@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import date, timedelta
+from sqlalchemy import select
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.domain.model import PontoStatus, DailyPonto, Holiday
 
@@ -57,7 +58,7 @@ def check_for_missing_logs(uow):
 
     with uow:
         employees = uow.users.list_employees()
-        holidays = uow.session.query(Holiday).all()
+        holidays = uow.session.execute(select(Holiday)).scalars().all()
         holiday_dates = {h.holiday_date for h in holidays if h.is_mandatory}
         
         for user in employees:

@@ -7,7 +7,7 @@ from src.service_layer.absence_processor import process_daily_absences
 from src.entrypoints.forms import LoginForm, RegisterForm, ProfileForm, WorkScheduleForm, JourneyTypeForm
 from src.domain.model import User, PontoStatus, JourneyType, AuditLog, CompanySettings, UserProfile
 from werkzeug.security import check_password_hash, generate_password_hash
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from datetime import datetime, date
 import smtplib
 import json
@@ -765,7 +765,7 @@ def management_panel():
             })
 
         from src.domain.model import Holiday
-        holidays_list = uow.session.query(Holiday).order_by(Holiday.holiday_date).all()
+        holidays_list = uow.session.execute(select(Holiday).order_by(Holiday.holiday_date)).scalars().all()
         holidays_serialized = [{"date": h.holiday_date.strftime("%Y-%m-%d"), "description": h.description} for h in holidays_list]
 
         return render_template("manager_dashboard.html", 
@@ -1215,19 +1215,20 @@ def get_journey_json(journey_id):
         return {"error": "Unauthorized"}, 403
     
     uow = SqlAlchemyUnitOfWork()
-    j = services.get_journey_type(uow, journey_id)
-    if not j:
-        return {"error": "Not found"}, 404
-    
-    return {
-        "arrival": j.expected_arrival.strftime("%H:%M"),
-        "has_lunch_break": j.has_lunch_break,
-        "lunch_start": j.expected_lunch_start.strftime("%H:%M") if j.expected_lunch_start else "",
-        "lunch_end": j.expected_lunch_end.strftime("%H:%M") if j.expected_lunch_end else "",
-        "departure": j.expected_departure.strftime("%H:%M"),
-        "tolerance": j.tolerance_minutes,
-        "schedule_type": j.schedule_type.value
-    }
+    with uow:
+        j = uow.session.execute(select(JourneyType).where(JourneyType.journey_id == journey_id)).scalar_one_or_none()
+        if not j:
+            return {"error": "Not found"}, 404
+        
+        return {
+            "arrival": j.expected_arrival.strftime("%H:%M"),
+            "has_lunch_break": j.has_lunch_break,
+            "lunch_start": j.expected_lunch_start.strftime("%H:%M") if j.expected_lunch_start else "",
+            "lunch_end": j.expected_lunch_end.strftime("%H:%M") if j.expected_lunch_end else "",
+            "departure": j.expected_departure.strftime("%H:%M"),
+            "tolerance": j.tolerance_minutes,
+            "schedule_type": j.schedule_type.value
+        }
 
 @app.route("/manager/edit-journey/<int:journey_id>", methods=["GET", "POST"])
 @login_required
@@ -1290,33 +1291,6 @@ def delete_journey(journey_id):
     flash("Tipo de Jornada excluído.", "warning")
     return redirect(url_for("manage_journeys"))
 
-
-    
-    target_date_str = request.form.get("target_date")
-    if not target_date_str:
-        flash("Data não fornecida.", "warning")
-        return redirect(url_for("dashboard"))
-        
-    target_date = datetime.strptime(target_date_str, "%Y-%m-%d").date()
-    uow = SqlAlchemyUnitOfWork()
-    services.generate_missing_logs(uow, current_user.id, target_date)
-    flash(f"Faltas processadas para {target_date}.", "info")
-    return redirect(url_for("dashboard"))
-
-
-    
-    approved = request.form.get("justified") == "true"
-    e_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
-    
-    uow = SqlAlchemyUnitOfWork()
-    try:
-        services.review_justification(uow, current_user.id, employee_id, e_date, approved, email_sender=send_email)
-        flash("Status atualizado.", "success")
-    except ValueError as e:
-        flash(str(e), "danger")
-        
-    return redirect(url_for("dashboard"))
-
 @app.route("/admin/audit-logs")
 @login_required
 def audit_logs():
@@ -1332,36 +1306,36 @@ def audit_logs():
     uow = SqlAlchemyUnitOfWork()
     with uow:
         # Join with User table to filter by role
-        query = uow.session.query(AuditLog).join(User, AuditLog.user_id == User.user_id)
+        query = select(AuditLog).join(User, AuditLog.user_id == User.user_id)
         
         # Exclude standard employee actions
-        query = query.filter(AuditLog.action.notin_(['CLOCK_EVENT', 'SUBMIT_CORRECTION_REQUEST']))
+        query = query.where(AuditLog.action.notin_(['CLOCK_EVENT', 'SUBMIT_CORRECTION_REQUEST']))
         
         # Only show actions by managers or admins
-        query = query.filter(User.role.in_(['manager', 'admin', 'gestor']))
+        query = query.where(User.role.in_(['manager', 'admin', 'gestor']))
 
         if actor_search:
             # Join on User table ID directly since UserProfile is a composite of User
             
             # Check if input is a digit (ID) or string (Email/Name)
             if actor_search.isdigit():
-                query = query.filter(AuditLog.user_id == int(actor_search))
+                query = query.where(AuditLog.user_id == int(actor_search))
             else:
-                query = query.filter(
+                query = query.where(
                     (User.email.contains(actor_search)) | 
                     (User.full_name == actor_search) |
                     (User.full_name.contains(actor_search))
                 )
         
         if action_type:
-            query = query.filter(AuditLog.action == action_type)
+            query = query.where(AuditLog.action == action_type)
 
         if start_date:
-            query = query.filter(AuditLog.timestamp >= datetime.strptime(start_date, "%Y-%m-%d"))
+            query = query.where(AuditLog.timestamp >= datetime.strptime(start_date, "%Y-%m-%d"))
         if end_date:
-            query = query.filter(AuditLog.timestamp <= datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
+            query = query.where(AuditLog.timestamp <= datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
 
-        logs = query.order_by(AuditLog.timestamp.desc()).limit(200).all()
+        logs = uow.session.execute(query.order_by(AuditLog.timestamp.desc()).limit(200)).scalars().all()
         
         logs_display = []
         for l in logs:
@@ -1393,7 +1367,7 @@ def admin_settings():
         start_date = datetime.strptime(request.form.get("start_date"), "%Y-%m-%d").date()
         
         with uow:
-            settings = uow.session.query(CompanySettings).first()
+            settings = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
             if settings:
                 settings.lat = lat
                 settings.lon = lon
@@ -1406,7 +1380,7 @@ def admin_settings():
             return redirect(url_for("admin_settings"))
             
     with uow:
-        settings = uow.session.query(CompanySettings).first()
+        settings = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
         return render_template("admin_settings.html", settings=settings)
 
 @app.route("/manager/delete-ponto/<int:employee_id>/<string:entry_date>", methods=["POST"])

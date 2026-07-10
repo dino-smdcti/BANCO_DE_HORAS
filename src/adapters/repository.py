@@ -1,5 +1,6 @@
 ﻿from abc import ABC, abstractmethod
 from typing import List, Optional
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from src.domain.model import User, DailyPonto, UserRole
 
@@ -36,16 +37,16 @@ class SqlAlchemyRepository(AbstractRepository):
         self.session.add(user)
 
     def get_user_by_email(self, email: str) -> Optional[User]:
-        return self.session.query(User).filter_by(email=email).first()
+        return self.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
 
     def get_user_by_id(self, user_id: int) -> Optional[User]:
-        return self.session.query(User).filter(User.user_id == user_id).first()
+        return self.session.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
 
     def list_employees(self) -> List[User]:
-        return self.session.query(User).filter_by(role=UserRole.EMPLOYEE).all()
+        return self.session.execute(select(User).where(User.role == UserRole.EMPLOYEE)).scalars().all()
 
     def list_all(self) -> List[User]:
-        return self.session.query(User).all()
+        return self.session.execute(select(User)).scalars().all()
 
     def add_time_entry(self, entry: DailyPonto):
         self.session.add(entry)

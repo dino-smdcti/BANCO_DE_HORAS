@@ -46,6 +46,8 @@ def test_password_change_flow(client, uow):
         assert not check_password_hash(user.password_hash, old_password)
 
 def test_daily_log_check_logic():
+    from src.adapters.orm import start_mappers
+    start_mappers()
     from src.service_layer.check_logic import check_for_missing_logs
     
     mock_uow = MagicMock()

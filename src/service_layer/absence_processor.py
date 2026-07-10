@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from sqlalchemy import select
 from src.domain.model import PontoStatus, DailyPonto, Holiday
 from src.service_layer.check_logic import get_last_check, set_last_check, IS_TESTING
 
@@ -26,7 +27,7 @@ def process_daily_absences(uow):
         employees = uow.users.list_employees()
         print(f"INFO: Processing daily absences for {len(employees)} employees.")
         # Get all holidays
-        holidays = uow.session.query(Holiday).all()
+        holidays = uow.session.execute(select(Holiday)).scalars().all()
         holiday_dates = {h.holiday_date for h in holidays if h.is_mandatory}
 
         for user in employees:
