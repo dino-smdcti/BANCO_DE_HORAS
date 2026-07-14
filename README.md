@@ -1,5 +1,14 @@
 # Banco de Horas — Employee Time Bank System
 
+![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.0-black?logo=flask)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?logo=sqlalchemy&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-0A9EDC?logo=pytest&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 A full-featured employee time bank / hour management web application with role-based access control, work schedules, clock-in/out tracking, anomaly detection, absence processing, corrections, vacation/holiday management, Excel report generation, and audit logging.
 
 ## Features
