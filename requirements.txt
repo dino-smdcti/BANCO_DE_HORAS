@@ -24,7 +24,7 @@ packaging==26.2
 pandas==3.0.2
 pathspec==1.1.1
 pluggy==1.6.0
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.12
 Pygments==2.20.0
 pytest==9.0.3
 python-dateutil==2.9.0.post0

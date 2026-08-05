@@ -35,18 +35,31 @@ Python, Flask, SQLAlchemy, PostgreSQL/SQLite, Flask-Login, Flask-WTF, pandas, op
 
 ```
 src/
-  domain/model.py          → Pure dataclasses (User, DailyPonto, WorkSchedule, etc.)
+  domain/
+    model.py               → Pure dataclasses (User, DailyPonto, WorkSchedule, etc.)
+    time_utils.py          → Shared time arithmetic helpers
   service_layer/
-    services.py            → All business logic (~835 lines)
+    services.py            → Facade re-exporting the use-case modules below
+    user_service.py        → Registration, profiles, passwords
+    clock_service.py       → Clock in/out, corrections, anomaly review
+    schedule_service.py    → Work schedules and journey types
+    administration.py      → Company settings, start-of-analysis date
+    report_service.py      → Excel report generation
+    notifications.py       → In-app notifications + email
+    permissions.py         → Role checks
+    audit.py               → Audit logging helpers
+    absence_processor.py   → Auto-absence detection (daily check state)
     unit_of_work.py        → Transaction management
-    absence_processor.py   → Auto-absence detection
-    auto_log.py            → Automatic log generation
-    check_logic.py         → Consistency checks
   adapters/
     orm.py                 → SQLAlchemy classical mapping
     repository.py          → Collection-like data access
   entrypoints/
-    flask_app.py           → 35+ routes with role decorators
+    flask_app.py           → App factory, login/auth infra, route registration
+    auth_routes.py         → Login/logout/password/magic-link routes
+    employee_routes.py     → Dashboard, clock, profile, reports
+    manager_routes.py      → Management panel, corrections, schedules, journeys
+    admin_routes.py        → Audit logs and company settings
+    web_helpers.py         → Shared route helpers (UoW factory, date/time parsing)
     forms.py               → WTForms definitions
     templates/             → Jinja2 HTML templates
     static/                → CSS/JS assets
@@ -58,7 +71,7 @@ migrations/                → Database migration files
 ### Data Flow
 
 ```
-HTTP Request → Route (flask_app.py) → UoW → Service → Domain Objects → uow.commit()
+HTTP Request → Route (entrypoints/*_routes.py) → UoW → Service → Domain Objects → uow.commit()
 ```
 
 ### Deployment

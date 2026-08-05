@@ -15,6 +15,7 @@
     <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
         <a href="{{ url_for('download_report', user_id=employee.user_id) }}" class="btn btn-sm btn-success btn-compact">Exportar Excel</a>
         <button class="btn btn-sm btn-secondary btn-compact" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
+        <button class="btn btn-sm btn-secondary btn-compact" data-bs-toggle="modal" data-bs-target="#attestationModal">Lançar Atestado</button>
         <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-primary text-white btn-compact">Definir Horário</a>
         
         {% if current_user.role in ['admin', 'gestor'] %}
@@ -204,6 +205,16 @@
                                         <span class="badge bg-success mt-1" style="display: block;">Falta Abonada</span>
                                         {% endif %}
                                     {% endif %}
+
+                                    {# Atestado Badge #}
+                                    {% for att in attestations %}
+                                        {% if att.start_date <= p.entry_date <= att.end_date %}
+                                        <span class="badge bg-info text-dark clickable-badge mt-1" style="cursor: pointer; display: block;"
+                                              onclick="openAttestationModal('{{ att.start_date.strftime('%d/%m/%Y') }}', '{{ att.end_date.strftime('%d/%m/%Y') }}', '{{ att.cid or '' }}', '{{ att.start_time.strftime('%H:%M') if att.start_time else '' }}', '{{ att.end_time.strftime('%H:%M') if att.end_time else '' }}')">
+                                            <i class="bi bi-file-medical"></i> Atestado{% if att.cid %} (CID {{ att.cid }}){% endif %}
+                                        </span>
+                                        {% endif %}
+                                    {% endfor %}
                                 </td>
                                 <td>
                                     <button type="button" class="btn btn-sm btn-danger btn-compact" 
@@ -303,6 +314,111 @@
     </div>
 </div>
 
+<div class="modal fade" id="vacationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('add_vacation', employee_id=employee.user_id) }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Lançar Férias</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">As faltas automáticas dentro do período serão removidas e não serão geradas novamente.</p>
+                    <div class="mb-3">
+                        <label for="vacation_start" class="form-label">Início</label>
+                        <input type="date" name="start_date" id="vacation_start" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="vacation_end" class="form-label">Fim</label>
+                        <input type="date" name="end_date" id="vacation_end" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Lançar Férias</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="attestationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('add_attestation', employee_id=employee.user_id) }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Lançar Atestado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Para atestar o <strong>dia inteiro</strong>, informe apenas o período de datas. 
+                        Para atestar apenas um <strong>intervalo de horário</strong>, preencha também os horários de início e fim.
+                    </p>
+                    <div class="mb-3">
+                        <label for="attestation_start" class="form-label">Início</label>
+                        <input type="date" name="start_date" id="attestation_start" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="attestation_end" class="form-label">Fim</label>
+                        <input type="date" name="end_date" id="attestation_end" class="form-control" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label for="attestation_start_time" class="form-label">Início do Horário (opcional)</label>
+                            <input type="time" name="start_time" id="attestation_start_time" class="form-control">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label for="attestation_end_time" class="form-label">Fim do Horário (opcional)</label>
+                            <input type="time" name="end_time" id="attestation_end_time" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="attestation_cid" class="form-label">CID (código médico)</label>
+                        <input type="text" name="cid" id="attestation_cid" class="form-control" maxlength="20" placeholder="Ex.: J06">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Lançar Atestado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="attestationViewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Atestado Médico</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <th class="text-muted w-25">CID</th>
+                            <td id="att_view_cid">-</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted w-25">Período</th>
+                            <td id="att_view_dates">-</td>
+                        </tr>
+                        <tr>
+                            <th class="text-muted w-25">Horário</th>
+                            <td id="att_view_times">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="locationModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -331,6 +447,13 @@ function openViewNoteModal(entryDate, noteText) {
     new bootstrap.Modal(modalEl).show();
     document.getElementById('display_note_view_date').innerText = entryDate;
     document.getElementById('note_view_text').value = noteText;
+}
+
+function openAttestationModal(startDate, endDate, cid, startTime, endTime) {
+    document.getElementById('att_view_cid').innerText = cid ? `CID ${cid}` : 'Não informado';
+    document.getElementById('att_view_dates').innerText = startDate === endDate ? startDate : `${startDate} a ${endDate}`;
+    document.getElementById('att_view_times').innerText = (startTime && endTime) ? `${startTime} às ${endTime}` : 'Dia inteiro';
+    new bootstrap.Modal(document.getElementById('attestationViewModal')).show();
 }
 
 function openLocationModal(entryDate, locationData) {

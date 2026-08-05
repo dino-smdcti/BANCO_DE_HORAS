@@ -118,7 +118,7 @@
 </div>
 
 {% if current_user.role in ['admin', 'gestor'] %}
-<!-- Holiday Modal -->
+<!-- Holiday / Facultativo Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -130,23 +130,65 @@
                 <div class="row">
                     <!-- Form side -->
                     <div class="col-md-6">
-                        <form action="{{ url_for('add_holiday') }}" method="POST">
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Descrição</label>
-                                <input type="text" name="description" class="form-control" placeholder="Ex: Natal" required>
+                        <ul class="nav nav-tabs mb-3" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="feriadoTab" data-bs-toggle="tab" data-bs-target="#feriadoPane" type="button" role="tab">Feriado</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="facultativoTab" data-bs-toggle="tab" data-bs-target="#facultativoPane" type="button" role="tab">Ponto Facultativo</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="feriadoPane" role="tabpanel">
+                                <form action="{{ url_for('add_holiday') }}" method="POST">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Descrição</label>
+                                        <input type="text" name="description" class="form-control" placeholder="Ex: Natal" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Data</label>
+                                        <input type="date" name="holiday_date" class="form-control" id="holidayDateInput" required>
+                                    </div>
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" name="is_mandatory" id="isMandatory" checked>
+                                        <label class="form-check-label" for="isMandatory">Feriado Obrigatório</label>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-dark">Cadastrar</button>
+                                    </div>
+                                </form>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Data</label>
-                                <input type="date" name="holiday_date" class="form-control" id="holidayDateInput" required>
+                            <div class="tab-pane fade" id="facultativoPane" role="tabpanel">
+                                <form action="{{ url_for('add_facultativo') }}" method="POST">
+                                    <p class="text-muted small">O período informado será dispensado para todos os funcionários. Deixe os horários em branco para dispensar o dia inteiro.</p>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Descrição</label>
+                                        <input type="text" name="description" class="form-control" placeholder="Ex: Véspera de Natal" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Início</label>
+                                        <input type="date" name="start_date" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Fim</label>
+                                        <input type="date" name="end_date" class="form-control" required>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-bold">Início do Horário (opcional)</label>
+                                            <input type="time" name="start_time" class="form-control">
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-bold">Fim do Horário (opcional)</label>
+                                            <input type="time" name="end_time" class="form-control">
+                                        </div>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-dark">Cadastrar</button>
+                                    </div>
+                                </form>
                             </div>
-                            <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" name="is_mandatory" id="isMandatory" checked>
-                                <label class="form-check-label" for="isMandatory">Feriado Obrigatório</label>
-                            </div>
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-dark">Cadastrar</button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                     <!-- Calendar / Already registered events side -->
                     <div class="col-md-6 border-start">

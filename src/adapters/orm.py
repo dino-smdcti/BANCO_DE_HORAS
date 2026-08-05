@@ -1,9 +1,11 @@
 from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float
 from sqlalchemy.types import TypeDecorator
-from src.domain.model import UserRole
+from sqlalchemy.orm import registry, relationship, composite
+from datetime import datetime, date
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo
 
 class UserRoleType(TypeDecorator):
-    """SQLAlchemy type to store UserRole as lowercase string and load case‑insensitively."""
+    """SQLAlchemy type to store UserRole as lowercase string and load case-insensitively."""
     impl = String(50)
     cache_ok = True
 
@@ -15,7 +17,7 @@ class UserRoleType(TypeDecorator):
         val_lower = val_str.lower()
         if val_lower in ("admin", "manager", "employee"):
             return val_lower.upper()
-        elif val_lower == "gestor":
+        if val_lower == "gestor":
             return "gestor"
         return val_str
 
@@ -27,11 +29,6 @@ class UserRoleType(TypeDecorator):
         except Exception:
             return UserRole(value.lower())
 
-# duplicate process_* methods removed
-
-from sqlalchemy.orm import registry, relationship, composite
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType
-from datetime import datetime, date
 
 metadata = MetaData()
 mapper_registry = registry(metadata=metadata)
@@ -59,7 +56,6 @@ journey_types = Table(
     Column("tolerance_minutes", Integer, default=15),
     Column("has_lunch_break", Boolean, default=True),
     Column("schedule_type", SQLEnum(ScheduleType), default=ScheduleType.STANDARD),
-
 )
 
 work_schedules = Table(
@@ -74,7 +70,6 @@ work_schedules = Table(
     Column("tolerance_minutes", Integer, default=15),
     Column("has_lunch_break", Boolean, default=True),
     Column("schedule_type", SQLEnum(ScheduleType), default=ScheduleType.STANDARD),
-
     Column("rotation_start_date", Date, nullable=True),
 )
 
@@ -120,18 +115,17 @@ daily_pontos = Table(
     Column("lunch_end_late_reviewed", Boolean, default=False),
     Column("departure_early_reviewed", Boolean, default=False),
     Column("missing_reviewed", Boolean, default=False),
-
     Column("arrival_late_approved", Boolean, default=False),
     Column("lunch_start_late_approved", Boolean, default=False),
     Column("lunch_end_late_approved", Boolean, default=False),
     Column("departure_early_approved", Boolean, default=False),
     Column("missing_approved", Boolean, default=False),
-
     Column("arrival_late_excused", Boolean, default=False),
     Column("lunch_start_late_excused", Boolean, default=False),
     Column("lunch_end_late_excused", Boolean, default=False),
     Column("departure_early_excused", Boolean, default=False),
     Column("missing_excused", Boolean, default=False),
+    Column("excused_minutes", Integer, default=0),
 )
 
 correction_requests = Table(
@@ -153,6 +147,31 @@ vacations = Table(
     Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
     Column("start_date", Date, nullable=False),
     Column("end_date", Date, nullable=False),
+)
+
+attestations = Table(
+    "attestations",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("start_date", Date, nullable=False),
+    Column("end_date", Date, nullable=False),
+    Column("cid", String(20), nullable=True),
+    Column("start_time", Time, nullable=True),
+    Column("end_time", Time, nullable=True),
+    Column("created_at", DateTime, default=datetime.now),
+)
+
+facultativos = Table(
+    "facultativos",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("start_date", Date, nullable=False),
+    Column("end_date", Date, nullable=False),
+    Column("description", String(255), nullable=True),
+    Column("start_time", Time, nullable=True),
+    Column("end_time", Time, nullable=True),
+    Column("created_at", DateTime, default=datetime.now),
 )
 
 holidays = Table(
@@ -182,92 +201,47 @@ notifications = Table(
     Column("is_read", Boolean, default=False),
 )
 
+
+def _user_properties():
+        return {
+                "user_id": users.c.id,
+                "full_name": users.c.full_name,
+                "profile": composite(
+                        UserProfile,
+                        users.c.registration_number,
+                        users.c.cpf,
+                        users.c.department,
+                        users.c.position,
+                        users.c.secretariat,
+                        users.c.full_name,
+                        users.c.start_analysis_date,
+                        users.c.birth_date,
+                ),
+                "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date, cascade="all, delete-orphan"),
+                "vacations": relationship(Vacation, backref="user", cascade="all, delete-orphan"),
+                "attestations": relationship(Attestation, backref="user", order_by=attestations.c.start_date, cascade="all, delete-orphan"),
+                "work_schedule": relationship(WorkSchedule, backref="user", uselist=False, cascade="all, delete-orphan"),
+                "notifications": relationship(Notification, backref="user", order_by=notifications.c.created_at.desc(), cascade="all, delete-orphan"),
+        }
+
+
+def _column_properties(column, key):
+        return {key: column}
+
+
 def start_mappers():
-    if hasattr(User, "__mapper__") or hasattr(CompanySettings, "__mapper__"):
-        return
+        if hasattr(User, "__mapper__") or hasattr(CompanySettings, "__mapper__"):
+                return
 
-    mapper_registry.map_imperatively(CompanySettings, company_settings)
-
-    mapper_registry.map_imperatively(
-    User,
-    users,
-    properties={
-        "user_id": users.c.id,
-        "full_name": users.c.full_name,
-        "profile": composite(
-            UserProfile,
-            users.c.registration_number,
-            users.c.cpf,
-            users.c.department,
-            users.c.position,
-            users.c.secretariat,
-            users.c.full_name,
-            users.c.start_analysis_date,
-            users.c.birth_date,
-        ),
-        "time_entries": relationship(DailyPonto, backref="user", order_by=daily_pontos.c.entry_date, cascade="all, delete-orphan"),
-        "vacations": relationship(Vacation, backref="user", cascade="all, delete-orphan"),
-        "work_schedule": relationship(WorkSchedule, backref="user", uselist=False, cascade="all, delete-orphan"),
-        "notifications": relationship(Notification, backref="user", order_by=notifications.c.created_at.desc(), cascade="all, delete-orphan")
-    },
-
-)
-
-    mapper_registry.map_imperatively(
-        WorkSchedule,
-        work_schedules,
-        properties={
-            "schedule_id": work_schedules.c.id,
-        }
-    )
-
-    mapper_registry.map_imperatively(
-        DailyPonto,
-        daily_pontos,
-        properties={
-            "ponto_id": daily_pontos.c.id,
-        }
-    )
-
-    mapper_registry.map_imperatively(
-        CorrectionRequest,
-        correction_requests,
-        properties={
-            "request_id": correction_requests.c.id,
-        }
-    )
-
-    mapper_registry.map_imperatively(
-        Vacation,
-        vacations,
-        properties={
-            "vacation_id": vacations.c.id,
-        }
-    )
-
-    mapper_registry.map_imperatively(
-        Notification,
-        notifications,
-        properties={
-            "notification_id": notifications.c.id,
-        }
-    )
-
-    mapper_registry.map_imperatively(Holiday, holidays)
-    
-    mapper_registry.map_imperatively(
-        JourneyType,
-        journey_types,
-        properties={
-            "journey_id": journey_types.c.id,
-        }
-    )
-
-    mapper_registry.map_imperatively(
-        AuditLog,
-        audit_logs,
-        properties={
-            "log_id": audit_logs.c.id,
-        }
-    )
-
+        mapper_registry.map_imperatively(CompanySettings, company_settings)
+        mapper_registry.map_imperatively(User, users, properties=_user_properties())
+        mapper_registry.map_imperatively(WorkSchedule, work_schedules, properties=_column_properties(work_schedules.c.id, "schedule_id"))
+        mapper_registry.map_imperatively(DailyPonto, daily_pontos, properties=_column_properties(daily_pontos.c.id, "ponto_id"))
+        mapper_registry.map_imperatively(CorrectionRequest, correction_requests, properties=_column_properties(correction_requests.c.id, "request_id"))
+        mapper_registry.map_imperatively(Vacation, vacations, properties=_column_properties(vacations.c.id, "vacation_id"))
+        mapper_registry.map_imperatively(Attestation, attestations, properties=_column_properties(attestations.c.id, "attestation_id"))
+        mapper_registry.map_imperatively(Facultativo, facultativos, properties=_column_properties(facultativos.c.id, "facultativo_id"))
+        mapper_registry.map_imperatively(Notification, notifications, properties=_column_properties(notifications.c.id, "notification_id"))
+        mapper_registry.map_imperatively(Holiday, holidays)
+        mapper_registry.map_imperatively(JourneyType, journey_types, properties=_column_properties(journey_types.c.id, "journey_id"))
+        mapper_registry.map_imperatively(AuditLog, audit_logs, properties=_column_properties(audit_logs.c.id, "log_id"))

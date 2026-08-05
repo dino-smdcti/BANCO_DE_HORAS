@@ -37,6 +37,8 @@
                     <option value="PROMOTE_USER" {{ 'selected' if request.args.get('action_type') == 'PROMOTE_USER' }}>Promoção</option>
                     <option value="DEMOTE_USER" {{ 'selected' if request.args.get('action_type') == 'DEMOTE_USER' }}>Rebaixamento</option>
                     <option value="ADD_VACATION" {{ 'selected' if request.args.get('action_type') == 'ADD_VACATION' }}>Lançar Férias</option>
+                    <option value="ADD_ATTESTATION" {{ 'selected' if request.args.get('action_type') == 'ADD_ATTESTATION' }}>Lançar Atestado</option>
+                    <option value="ADD_FACULTATIVO" {{ 'selected' if request.args.get('action_type') == 'ADD_FACULTATIVO' }}>Ponto Facultativo</option>
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
@@ -44,7 +46,7 @@
             </div>
         </form>
 
-        {% if request.args.get('actor_search') or request.args.get('start_date') or request.args.get('end_date') or request.args.get('action_type') %}
+        {% if logs_display %}
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
@@ -77,6 +79,10 @@
                                 <span class="badge bg-info text-dark">Atraso abonado</span>
                             {% elif item.action == 'ADD_VACATION' %}
                                 <span class="badge bg-secondary">Adicionar férias</span>
+                            {% elif item.action == 'ADD_ATTESTATION' %}
+                                <span class="badge bg-info text-dark">Lançar Atestado</span>
+                            {% elif item.action == 'ADD_FACULTATIVO' %}
+                                <span class="badge bg-info text-dark">Ponto Facultativo</span>
                             {% elif item.action == 'SET_WORK_SCHEDULE' %}
                                 <span class="badge bg-accent">Definir Jornada</span>
                             {% elif item.action == 'MANUAL_CORRECTION' %}
@@ -132,8 +138,8 @@
         </div>
         {% else %}
         <div class="text-center py-5 text-muted">
-            <i class="bi bi-funnel fs-1 d-block mb-2"></i>
-            Utilize os filtros acima para pesquisar logs de auditoria.
+            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+            Nenhum log de auditoria encontrado.
         </div>
         {% endif %}
     </div>

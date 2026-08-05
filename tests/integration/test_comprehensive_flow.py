@@ -48,20 +48,20 @@ def test_password_change_flow(client, uow):
 def test_daily_log_check_logic():
     from src.adapters.orm import start_mappers
     start_mappers()
-    from src.service_layer.check_logic import check_for_missing_logs
-    
+    from src.service_layer.absence_processor import process_daily_absences
+
     mock_uow = MagicMock()
-    
+
     # Mock date to be "today"
-    with patch("src.service_layer.check_logic.date") as mock_date:
+    with patch("src.service_layer.absence_processor.date") as mock_date:
         mock_date.today.return_value = date(2026, 5, 12)
         mock_date.fromisoformat = date.fromisoformat
-        
+
         # Mock last_check_date to be 2026-05-10
-        with patch("src.service_layer.check_logic.get_last_check", return_value=date(2026, 5, 10)):
-            with patch("src.service_layer.check_logic.set_last_check") as mock_set:
-                check_for_missing_logs(mock_uow)
-                
+        with patch("src.service_layer.absence_processor.get_last_check", return_value=date(2026, 5, 10)):
+            with patch("src.service_layer.absence_processor.set_last_check") as mock_set:
+                process_daily_absences(mock_uow)
+
                 # Assert check was performed
                 assert mock_uow.users.list_employees.called
                 mock_set.assert_called_with(date(2026, 5, 12))

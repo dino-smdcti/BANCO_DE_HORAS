@@ -4,7 +4,7 @@ from datetime import time, date
 from src.entrypoints.flask_app import app
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
-from src.domain.model import User, JourneyType
+from src.domain.model import User, JourneyType, DailyPonto, PontoStatus
 from werkzeug.security import generate_password_hash
 
 
@@ -332,3 +332,265 @@ class TestPasswordReset:
         token = serializer.dumps("reset@test.com", salt="password-reset-salt")
         r = client.get(f"/reset-password/{token}")
         assert r.status_code == 200
+
+
+# ===================================================================
+# 8. ABSENCES CARD  (only MISSING + manager-note logs, dismiss/delete)
+# ===================================================================
+
+def _add_ponto(uow, user_id, entry_date, status=PontoStatus.MISSING, manager_notes=None, notes=None):
+    with uow:
+        user = uow.users.get_user_by_id(user_id)
+        ponto = DailyPonto(
+            user_id=user_id,
+            entry_date=entry_date,
+            status=status,
+            manager_notes=manager_notes,
+            notes=notes,
+        )
+        user.time_entries.append(ponto)
+        uow.commit()
+        return user_id
+
+
+def _create_manager(uow):
+    return _create_user(uow, "mgr_card@test.com", role="manager")
+
+
+class TestAbsencesCard:
+    def test_card_only_shows_missing_and_user_notes(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "emp_card@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp, date(2026, 5, 4), status=PontoStatus.MISSING)
+        _add_ponto(uow, emp, date(2026, 5, 5), status=PontoStatus.LATE, notes="sem nota")
+        _add_ponto(uow, emp, date(2026, 5, 6), status=PontoStatus.ON_TIME, manager_notes="Atestado")
+        _add_ponto(uow, emp, date(2026, 5, 7), status=PontoStatus.DISMISSED)
+        _add_ponto(uow, emp, date(2026, 5, 8), status=PontoStatus.CORRECTED)
+        _login(client, mgr)
+        body = client.get("/management").data.decode("utf-8")
+        assert "04/05/2026" in body
+        assert "05/05/2026" in body
+        assert "sem nota" in body
+        assert "06/05/2026" not in body
+        assert "07/05/2026" not in body
+        assert "08/05/2026" not in body
+
+    def test_archive_dismisses_note_entry(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "emp_arch@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp, date(2026, 5, 10), status=PontoStatus.MISSING, notes="Atestado Influenza")
+        _login(client, mgr)
+        client.post(f"/manager/archive-justification/{emp}/{date(2026, 5, 10)}")
+        body = client.get("/management").data.decode("utf-8")
+        assert "10/05/2026" not in body
+
+    def test_delete_removes_entry(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "emp_del@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp, date(2026, 5, 12), status=PontoStatus.MISSING)
+        _login(client, mgr)
+        client.post(f"/manager/delete-ponto/{emp}/{date(2026, 5, 12)}")
+        body = client.get("/management").data.decode("utf-8")
+        assert "12/05/2026" not in body
+
+
+# ===================================================================
+# 9. AUDIT LOGS PAGE
+# ===================================================================
+
+class TestAuditLogsPage:
+    def test_audit_logs_show_rows_without_filters(self, client, uow):
+        admin = _create_user(uow, "adm_audit@test.com", role="admin")
+        with uow:
+            uow.record_action(admin, "DELETE_PONTO", target_id=1, details="Registro de auditoria de teste")
+            uow.commit()
+        _login(client, admin)
+        r = client.get("/admin/audit-logs")
+        assert r.status_code == 200
+        body = r.data.decode("utf-8")
+        assert "Registro de auditoria de teste" in body
+        assert "Utilize os filtros" not in body
+
+    def test_audit_logs_actor_filter_present(self, client, uow):
+        admin = _create_user(uow, "adm_audit2@test.com", role="admin")
+        _login(client, admin)
+        r = client.get("/admin/audit-logs")
+        assert r.status_code == 200
+        assert b"actor_search" in r.data
+
+
+# ===================================================================
+# 10. ATTESTATION (LANÇAR ATESTADO) & FACULTATIVO
+# ===================================================================
+
+class TestAttestation:
+    def test_full_day_attestation_keeps_dismissed_log(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "emp_att_full@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp, date(2026, 5, 15), status=PontoStatus.MISSING)
+        _login(client, mgr)
+        r = client.post(
+            f"/manager/add-attestation/{emp}",
+            data={"start_date": "2026-05-15", "end_date": "2026-05-15", "cid": "J06"},
+        )
+        assert r.status_code == 302
+        with uow:
+            user = uow.users.get_user_by_id(emp)
+            ponto = next(p for p in user.time_entries if p.entry_date == date(2026, 5, 15))
+            assert ponto.status == PontoStatus.DISMISSED
+            assert ponto.excused_minutes == 0
+            assert ponto.manager_notes and "J06" in ponto.manager_notes
+            assert user.is_on_attestation(date(2026, 5, 15))
+            assert not user.is_on_attestation(date(2026, 5, 16))
+
+    def test_partial_attestation_credits_missed_minutes(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "emp_att_part@test.com", complete_profile=True, with_schedule=True)
+        with uow:
+            user = uow.users.get_user_by_id(emp)
+            user.time_entries.append(DailyPonto(
+                user_id=emp,
+                entry_date=date(2026, 5, 13),
+                arrival=time(10, 0),
+                lunch_start=time(12, 0),
+                lunch_end=time(13, 0),
+                departure=time(17, 0),
+                status=PontoStatus.LATE,
+            ))
+            uow.commit()
+        _login(client, mgr)
+        r = client.post(
+            f"/manager/add-attestation/{emp}",
+            data={
+                "start_date": "2026-05-13",
+                "end_date": "2026-05-13",
+                "cid": "J00",
+                "start_time": "09:00",
+                "end_time": "11:00",
+            },
+        )
+        assert r.status_code == 302
+        with uow:
+            user = uow.users.get_user_by_id(emp)
+            ponto = next(p for p in user.time_entries if p.entry_date == date(2026, 5, 13))
+            assert ponto.status == PontoStatus.DISMISSED
+            assert ponto.excused_minutes == 60
+            assert ponto.manager_notes and "J00" in ponto.manager_notes
+            assert ponto.arrival_late_excused
+            assert ponto.arrival_late_reviewed
+            assert user.total_balance == -60
+
+    def test_attestation_is_audited(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "emp_att_audit@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp, date(2026, 5, 17), status=PontoStatus.MISSING)
+        _login(client, mgr)
+        client.post(
+            f"/manager/add-attestation/{emp}",
+            data={"start_date": "2026-05-17", "end_date": "2026-05-17", "cid": "J02"},
+        )
+        with uow:
+            from sqlalchemy import select
+            from src.domain.model import AuditLog
+            logs = uow.session.execute(select(AuditLog)).scalars().all()
+            assert any(
+                log.action == "ADD_ATTESTATION"
+                and log.target_id == emp
+                and log.details and "J02" in log.details
+                for log in logs
+            )
+
+    def test_invalid_partial_time_rejected(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "emp_att_bad@test.com", complete_profile=True, with_schedule=True)
+        _login(client, mgr)
+        r = client.post(
+            f"/manager/add-attestation/{emp}",
+            data={
+                "start_date": "2026-05-18",
+                "end_date": "2026-05-18",
+                "cid": "J03",
+                "start_time": "11:00",
+                "end_time": "09:00",
+            },
+        )
+        assert r.status_code == 302
+        with uow:
+            user = uow.users.get_user_by_id(emp)
+            assert not any(p.entry_date == date(2026, 5, 18) for p in user.time_entries)
+            assert not user.is_on_attestation(date(2026, 5, 18))
+
+
+class TestVacation:
+    def test_vacation_keeps_dismissed_logs(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "vac_emp1@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp, date(2026, 5, 25), status=PontoStatus.MISSING)
+        _login(client, mgr)
+        r = client.post(
+            f"/manager/add-vacation/{emp}",
+            data={"start_date": "2026-05-25", "end_date": "2026-05-26"},
+        )
+        assert r.status_code == 302
+        with uow:
+            user = uow.users.get_user_by_id(emp)
+            ponto = next(p for p in user.time_entries if p.entry_date == date(2026, 5, 25))
+            assert ponto.status == PontoStatus.DISMISSED
+            assert ponto.manager_notes == "Férias"
+            assert any(p.entry_date == date(2026, 5, 26) and p.status == PontoStatus.DISMISSED for p in user.time_entries)
+            assert user.is_on_vacation(date(2026, 5, 25))
+
+
+class TestFacultativo:
+    def test_full_day_facultativo_dismisses_all_employees(self, client, uow):
+        mgr = _create_manager(uow)
+        emp1 = _create_user(uow, "fac_emp1@test.com", complete_profile=True, with_schedule=True)
+        emp2 = _create_user(uow, "fac_emp2@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp1, date(2026, 5, 20), status=PontoStatus.MISSING)
+        _add_ponto(uow, emp2, date(2026, 5, 20), status=PontoStatus.LATE)
+        _login(client, mgr)
+        r = client.post(
+            "/manager/add-facultativo",
+            data={"start_date": "2026-05-20", "end_date": "2026-05-20", "description": "Aniversário da cidade"},
+        )
+        assert r.status_code == 302
+        with uow:
+            for emp_id in (emp1, emp2):
+                user = uow.users.get_user_by_id(emp_id)
+                ponto = next(p for p in user.time_entries if p.entry_date == date(2026, 5, 20))
+                assert ponto.status == PontoStatus.DISMISSED
+                assert ponto.manager_notes and "Ponto facultativo" in ponto.manager_notes
+
+    def test_partial_facultativo_credits_missed_minutes(self, client, uow):
+        mgr = _create_manager(uow)
+        emp = _create_user(uow, "fac_emp_part@test.com", complete_profile=True, with_schedule=True)
+        with uow:
+            user = uow.users.get_user_by_id(emp)
+            user.time_entries.append(DailyPonto(
+                user_id=emp,
+                entry_date=date(2026, 5, 21),
+                arrival=time(10, 0),
+                lunch_start=time(12, 0),
+                lunch_end=time(13, 0),
+                departure=time(17, 0),
+                status=PontoStatus.LATE,
+            ))
+            uow.commit()
+        _login(client, mgr)
+        r = client.post(
+            "/manager/add-facultativo",
+            data={
+                "start_date": "2026-05-21",
+                "end_date": "2026-05-21",
+                "description": "Véspera de feriado",
+                "start_time": "09:00",
+                "end_time": "11:00",
+            },
+        )
+        assert r.status_code == 302
+        with uow:
+            user = uow.users.get_user_by_id(emp)
+            ponto = next(p for p in user.time_entries if p.entry_date == date(2026, 5, 21))
+            assert ponto.status == PontoStatus.DISMISSED
+            assert ponto.excused_minutes == 60
+            assert user.total_balance == -60

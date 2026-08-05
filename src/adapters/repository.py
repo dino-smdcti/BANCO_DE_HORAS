@@ -1,53 +1,46 @@
-﻿from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod
 from typing import List, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from src.domain.model import User, DailyPonto, UserRole
+from src.domain.model import User, UserRole
 
 class AbstractRepository(ABC):
-    @abstractmethod
-    def add_user(self, user: User):
-        pass
+        @abstractmethod
+        def add_user(self, user: User):
+                pass
 
-    @abstractmethod
-    def get_user_by_email(self, email: str) -> Optional[User]:
-        pass
+        @abstractmethod
+        def get_user_by_email(self, email: str) -> Optional[User]:
+                pass
 
-    @abstractmethod
-    def get_user_by_id(self, user_id: int) -> Optional[User]:
-        pass
+        @abstractmethod
+        def get_user_by_id(self, user_id: int) -> Optional[User]:
+                pass
 
-    @abstractmethod
-    def list_employees(self) -> List[User]:
-        pass
+        @abstractmethod
+        def list_employees(self) -> List[User]:
+                pass
 
-    @abstractmethod
-    def list_all(self) -> List[User]:
-        pass
-
-    @abstractmethod
-    def add_time_entry(self, entry: DailyPonto):
-        pass
+        @abstractmethod
+        def list_all(self) -> List[User]:
+                pass
 
 class SqlAlchemyRepository(AbstractRepository):
-    def __init__(self, session: Session):
-        self.session = session
+        def __init__(self, session: Session):
+                self.session = session
 
-    def add_user(self, user: User):
-        self.session.add(user)
+        def add_user(self, user: User):
+                self.session.add(user)
 
-    def get_user_by_email(self, email: str) -> Optional[User]:
-        return self.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        def get_user_by_email(self, email: str) -> Optional[User]:
+                return self.session.execute(select(User).where(User.email == email)).scalar_one_or_none()
 
-    def get_user_by_id(self, user_id: int) -> Optional[User]:
-        return self.session.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
+        def get_user_by_id(self, user_id: int) -> Optional[User]:
+                return self.session.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
 
-    def list_employees(self) -> List[User]:
-        return self.session.execute(select(User).where(User.role == UserRole.EMPLOYEE)).scalars().all()
+        def list_employees(self) -> List[User]:
+                return self.session.execute(select(User).where(User.role == UserRole.EMPLOYEE)).scalars().all()
 
-    def list_all(self) -> List[User]:
-        return self.session.execute(select(User)).scalars().all()
-
-    def add_time_entry(self, entry: DailyPonto):
-        self.session.add(entry)
+        def list_all(self) -> List[User]:
+                return self.session.execute(select(User)).scalars().all()
 
