@@ -1,9 +1,9 @@
 <div class="card shadow border-danger mb-4">
-    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapseAbsences" aria-expanded="false" aria-controls="collapseAbsences">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapseAbsences" aria-expanded="{{ 'true' if request.args.get('emp_filter') or request.args.get('date_filter') else 'false' }}" aria-controls="collapseAbsences">
         <h5 class="mb-0">Faltas e Justificativas</h5>
         <i class="bi bi-chevron-down"></i>
     </div>
-    <div class="collapse" id="collapseAbsences">
+    <div class="collapse {{ 'show' if request.args.get('emp_filter') or request.args.get('date_filter') }}" id="collapseAbsences">
         <div class="card-body">
         <form method="GET" class="row g-3 mb-3">
             <div class="col-md-4">
