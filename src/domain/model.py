@@ -206,7 +206,7 @@ class DailyPonto:
 
         def get_predicted_worked_minutes(self, schedule: WorkSchedule, use_expected: bool = True) -> int:
                 arr, ls, le, dep = _predicted_times(self, schedule, use_expected)
-                return _predicted_minutes(arr, ls, le, dep, self.has_lunch_break)
+                return _predicted_minutes(arr, ls, le, dep, schedule.has_lunch_break if schedule else self.has_lunch_break)
 
         @property
         def is_complete(self) -> bool:
@@ -392,8 +392,10 @@ def _current_stage(ponto):
         return "Jornada Completa"
 
 
-def _worked_minutes(ponto):
-        if not ponto.has_lunch_break:
+def _worked_minutes(ponto, has_lunch_break=None):
+        if has_lunch_break is None:
+                has_lunch_break = ponto.has_lunch_break
+        if not has_lunch_break:
                 return max(0, minutes_between(ponto.arrival, ponto.departure))
         morning = max(0, minutes_between(ponto.arrival, ponto.lunch_start)) if (ponto.arrival and ponto.lunch_start) else 0
         afternoon = max(0, minutes_between(ponto.lunch_end, ponto.departure)) if (ponto.lunch_end and ponto.departure) else 0
@@ -473,7 +475,7 @@ def _entry_balance(ponto, target_minutes: int, schedule) -> int:
                 return _missing_balance(ponto, target_minutes)
         if ponto.status in (PontoStatus.DISMISSED, PontoStatus.JUSTIFIED):
                 if ponto.excused_minutes:
-                        return ponto.worked_minutes + ponto.excused_minutes - target_minutes
+                        return _worked_minutes_for_balance(ponto, schedule) + ponto.excused_minutes - target_minutes
                 return 0
         return _worked_for_balance(ponto, schedule) - target_minutes
 
@@ -487,7 +489,15 @@ def _missing_balance(ponto, target_minutes):
 def _worked_for_balance(ponto, schedule):
         if _has_approved_anomaly(ponto):
                 return _neutralized_worked_minutes(ponto, schedule)
-        return ponto.worked_minutes
+        return _worked_minutes_for_balance(ponto, schedule)
+
+
+def _has_lunch_for_balance(ponto, schedule) -> bool:
+        return schedule.has_lunch_break if schedule else ponto.has_lunch_break
+
+
+def _worked_minutes_for_balance(ponto, schedule):
+        return _worked_minutes(ponto, _has_lunch_for_balance(ponto, schedule))
 
 
 def _neutralized_worked_minutes(ponto, schedule):
@@ -495,7 +505,16 @@ def _neutralized_worked_minutes(ponto, schedule):
         lunch_start = _neutralized_time(ponto.lunch_start, schedule.expected_lunch_start, (ponto.lunch_start_late_approved or ponto.lunch_start_late_excused) and schedule.expected_lunch_start is not None)
         lunch_end = _neutralized_time(ponto.lunch_end, schedule.expected_lunch_end, (ponto.lunch_end_late_approved or ponto.lunch_end_late_excused) and schedule.expected_lunch_end is not None)
         departure = _neutralized_time(ponto.departure, schedule.expected_departure, ponto.departure_early_approved or ponto.departure_early_excused)
-        return _predicted_minutes(arrival, lunch_start, lunch_end, departure, ponto.has_lunch_break)
+        # A neutralized clock must never create an impossible timeline (e.g. a lunch
+        # return earlier than the clocked lunch out); otherwise it fabricates hours.
+        # Whenever a neutralization would break the order, fall back to the real clock.
+        if lunch_start and arrival and lunch_start < arrival:
+                lunch_start = ponto.lunch_start
+        if lunch_end and lunch_start and lunch_end < lunch_start:
+                lunch_end = ponto.lunch_end
+        if departure and lunch_end and departure < lunch_end:
+                departure = ponto.departure
+        return _predicted_minutes(arrival, lunch_start, lunch_end, departure, _has_lunch_for_balance(ponto, schedule))
 
 
 def _neutralized_time(actual, expected, neutralize):
