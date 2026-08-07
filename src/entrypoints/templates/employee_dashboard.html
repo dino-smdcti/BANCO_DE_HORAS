@@ -246,7 +246,7 @@
                                     data-lunch-end="{{ sched_data.expected_lunch_end if sched_data else '' }}"
                                     data-departure="{{ sched_data.expected_departure if sched_data else '' }}"
                                     onclick="showConfirmModalTrigger('{{ current_stage }}', '{{ next_time }}', {{ 'true' if sched_data and sched_data.has_lunch_break else 'false' }}, '{{ last_clock_time or '' }}', '{{ current_user.role }}')">
-                                <span class="fs-6 opacity-75">Registrar</span>
+                                <span class="fs-4">Registrar</span>
                             </button>
                 {% else %}
                     <button class="btn btn-lg w-100 py-4 fs-2 fw-bold btn-disabled-custom" disabled>
