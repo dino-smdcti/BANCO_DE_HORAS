@@ -26,7 +26,8 @@ def dashboard():
                 return redirect(url_for("complete_profile"))
         if current_user.role == "employee" and not current_user.has_schedule:
                 return redirect(url_for("choose_journey"))
-        filter_date_str = request.args.get("date")
+        start_date_str = request.args.get("start_date")
+        end_date_str = request.args.get("end_date")
         uow = new_uow()
         with uow:
                 user = uow.users.get_user_by_id(current_user.id)
@@ -34,7 +35,7 @@ def dashboard():
                         flash("Usuário não encontrado", "danger")
                         return redirect(url_for("logout"))
                 uow.session.refresh(user)
-                return _render_dashboard(user, filter_date_str)
+                return _render_dashboard(user, start_date_str, end_date_str)
 
 
 @login_required
@@ -122,18 +123,20 @@ def download_report(user_id):
         return _send_report(user_id, start_date, end_date)
 
 
-def _render_dashboard(user, filter_date_str):
-        filter_date = parse_date(filter_date_str)
+def _render_dashboard(user, start_date_str, end_date_str):
+        start_date = parse_date(start_date_str)
+        end_date = parse_date(end_date_str)
         today_date = date.today()
         ponto_hoje = _entry_for(user, today_date)
         expected_daily = _expected_daily(user.work_schedule)
         return render_template(
                 "employee_dashboard.html",
-                recent_entries=_recent_entries(user, filter_date),
+                recent_entries=_recent_entries(user, start_date, end_date),
                 current_stage=ponto_hoje.current_stage if ponto_hoje else "Chegada",
                 sched_data=_sched_data(user.work_schedule),
                 maps_url=_maps_url(ponto_hoje),
-                filter_date=filter_date_str,
+                filter_start_date=start_date_str,
+                filter_end_date=end_date_str,
                 saldo_dia=_saldo_dia(ponto_hoje, expected_daily),
                 expected_daily=expected_daily,
                 saldo_total=user.total_balance if user.work_schedule else 0,
@@ -247,10 +250,15 @@ def _entry_for(user, target_date):
         return next((entry for entry in user.time_entries if entry.entry_date == target_date), None)
 
 
-def _recent_entries(user, filter_date):
-        if filter_date:
-                return [entry for entry in user.time_entries if entry.entry_date == filter_date]
-        return sorted(user.time_entries, key=lambda entry: entry.entry_date, reverse=True)[:10]
+def _recent_entries(user, start_date, end_date):
+        entries = sorted(user.time_entries, key=lambda entry: entry.entry_date, reverse=True)
+        if start_date and end_date:
+                return [entry for entry in entries if start_date <= entry.entry_date <= end_date]
+        if start_date:
+                return [entry for entry in entries if entry.entry_date == start_date]
+        if end_date:
+                return [entry for entry in entries if entry.entry_date == end_date]
+        return entries[:10]
 
 
 def _minutes_between(t1, t2):

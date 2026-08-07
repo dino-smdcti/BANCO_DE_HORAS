@@ -627,9 +627,22 @@ def _render_employee_logs(uow, employee_id):
                 flash("Funcionário não encontrado.", "danger")
                 return redirect(url_for("dashboard"))
         uow.session.refresh(employee)
-        recent_entries = sorted(employee.time_entries, key=lambda entry: entry.entry_date, reverse=True)
+        start_date = parse_date(request.args.get("start_date"))
+        end_date = parse_date(request.args.get("end_date"))
+        recent_entries = _filter_log_entries(employee.time_entries, start_date, end_date)
         attestations = sorted(employee.attestations, key=lambda att: att.start_date, reverse=True)
         return render_template("view_employee_logs.html", employee=employee, recent_entries=recent_entries, attestations=attestations)
+
+
+def _filter_log_entries(entries, start_date, end_date):
+        sorted_entries = sorted(entries, key=lambda entry: entry.entry_date, reverse=True)
+        if start_date and end_date:
+                return [entry for entry in sorted_entries if start_date <= entry.entry_date <= end_date]
+        if start_date:
+                return [entry for entry in sorted_entries if entry.entry_date == start_date]
+        if end_date:
+                return [entry for entry in sorted_entries if entry.entry_date == end_date]
+        return sorted_entries
 
 
 def _apply_bulk_fixes(uow, employee_id):
