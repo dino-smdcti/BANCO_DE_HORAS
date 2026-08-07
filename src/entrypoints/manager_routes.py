@@ -406,11 +406,18 @@ def review_badge(employee_id, entry_date, stage, action):
 def save_manager_note():
         employee_id = int(request.form.get("employee_id"))
         entry_date = datetime.strptime(request.form.get("entry_date"), "%Y-%m-%d").date()
+        note_text = request.form.get("note_text")
         uow = new_uow()
-        services.manual_ponto_correction(
-                uow, current_user.id, employee_id, entry_date,
-                None, None, None, None, manager_notes=request.form.get("note_text"),
-        )
+        with uow:
+                user = uow.users.get_user_by_id(employee_id)
+                ponto = next((entry for entry in user.time_entries if entry.entry_date == entry_date), None)
+                if not ponto:
+                        return {"status": "error", "message": "Registro não encontrado."}, 404
+                services.manual_ponto_correction(
+                        uow, current_user.id, employee_id, entry_date,
+                        ponto.arrival, ponto.lunch_start, ponto.lunch_end, ponto.departure,
+                        manager_notes=note_text,
+                )
         return {"status": "success"}
 
 
@@ -638,7 +645,7 @@ def _apply_bulk_fixes(uow, employee_id):
 
 
 def _fix_emp_entry(uow, employee_id, entry_date_str, selected_points, prefix_fields):
-        key = f"{employee_id}_{entry_date_str}"
+        key = f"{employee_id}_{entry_date_str}" if prefix_fields else entry_date_str
         if key not in selected_points:
                 return
         entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
