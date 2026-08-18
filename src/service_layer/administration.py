@@ -81,14 +81,28 @@ def _unregister_vacation_day(uow, manager_id, employee_id, target_date):
         ponto = _ponto_for(employee, target_date)
         if not ponto:
                 raise ValueError("Registro não encontrado.")
+        ponto.status = PontoStatus.LATE if (ponto.arrival and ponto.arrival_late) else (PontoStatus.ON_TIME if ponto.arrival else PontoStatus.MISSING)
         ponto.manager_notes = None
         ponto.excused_minutes = 0
         _reset_all_excuses(ponto)
-        if ponto.arrival:
-                ponto.status = PontoStatus.LATE if ponto.arrival_late else PontoStatus.ON_TIME
-        else:
-                ponto.status = PontoStatus.MISSING
+        _split_vacation_record(uow, employee, target_date)
         log_action(uow, manager_id, "REMOVE_VACATION_DAY", target_id=employee_id, details=f"Data: {target_date}")
+
+
+def _split_vacation_record(uow, employee, target_date):
+        matching = [v for v in employee.vacations if v.start_date <= target_date <= v.end_date]
+        for vac in matching:
+                if vac.start_date == target_date and vac.end_date == target_date:
+                        employee.vacations.remove(vac)
+                        uow.session.delete(vac)
+                elif vac.start_date == target_date:
+                        vac.start_date = target_date + timedelta(days=1)
+                elif vac.end_date == target_date:
+                        vac.end_date = target_date - timedelta(days=1)
+                else:
+                        old_end = vac.end_date
+                        vac.end_date = target_date - timedelta(days=1)
+                        employee.vacations.append(Vacation(user_id=employee.user_id, start_date=target_date + timedelta(days=1), end_date=old_end))
 
 
 def _unregister_missing_excuse(uow, manager_id, employee_id, target_date):
