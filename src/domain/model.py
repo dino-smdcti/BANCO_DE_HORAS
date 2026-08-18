@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from typing import Optional
 from enum import Enum
+import re
 
 from src.domain.time_utils import minutes_between
 
@@ -109,9 +110,7 @@ class Attestation:
                 return self.start_time is None and self.end_time is None
 
         def covers(self, target_date: date) -> bool:
-                if not (self.start_date <= target_date <= self.end_date):
-                        return False
-                return self.covers_full_day
+                return self.start_date <= target_date <= self.end_date
 
 
 @dataclass
@@ -211,6 +210,14 @@ class DailyPonto:
         @property
         def is_complete(self) -> bool:
                 return _is_complete(self)
+
+        @property
+        def is_vacation(self) -> bool:
+                return self.status == PontoStatus.DISMISSED and self.manager_notes == "Férias"
+
+        @property
+        def has_location(self) -> bool:
+                return bool(re.search(r'-?\d+\.\d+\s*,\s*-?\d+\.\d+', self.location_data or ''))
 
         @property
         def status_label(self) -> str:

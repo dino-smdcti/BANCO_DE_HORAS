@@ -42,6 +42,21 @@ def add_attestation(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, 
                 _register_attestation(uow, manager_id, employee_id, start_date, end_date, cid, start_time, end_time)
 
 
+def remove_attestation_day(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, target_date: date):
+        with uow:
+                _unregister_attestation_day(uow, manager_id, employee_id, target_date)
+
+
+def remove_vacation_day(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, target_date: date):
+        with uow:
+                _unregister_vacation_day(uow, manager_id, employee_id, target_date)
+
+
+def remove_missing_excuse(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, target_date: date):
+        with uow:
+                _unregister_missing_excuse(uow, manager_id, employee_id, target_date)
+
+
 def add_facultativo(uow: AbstractUnitOfWork, manager_id: int, start_date: date, end_date: date, description: str = "", start_time: time = None, end_time: time = None):
         with uow:
                 _register_facultativo(uow, manager_id, start_date, end_date, description, start_time, end_time)
@@ -56,6 +71,48 @@ def get_start_analysis_date(uow: AbstractUnitOfWork) -> date:
         with uow:
                 settings = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
                 return settings.start_analysis_date if settings else date(2026, 1, 1)
+
+
+def _unregister_vacation_day(uow, manager_id, employee_id, target_date):
+        ensure_manager(uow, manager_id)
+        employee = uow.users.get_user_by_id(employee_id)
+        if not employee:
+                raise ValueError("Employee not found.")
+        ponto = _ponto_for(employee, target_date)
+        if not ponto:
+                raise ValueError("Registro não encontrado.")
+        ponto.manager_notes = None
+        ponto.excused_minutes = 0
+        _reset_all_excuses(ponto)
+        if ponto.arrival:
+                ponto.status = PontoStatus.LATE if ponto.arrival_late else PontoStatus.ON_TIME
+        else:
+                ponto.status = PontoStatus.MISSING
+        log_action(uow, manager_id, "REMOVE_VACATION_DAY", target_id=employee_id, details=f"Data: {target_date}")
+
+
+def _unregister_missing_excuse(uow, manager_id, employee_id, target_date):
+        ensure_manager(uow, manager_id)
+        employee = uow.users.get_user_by_id(employee_id)
+        if not employee:
+                raise ValueError("Employee not found.")
+        ponto = _ponto_for(employee, target_date)
+        if not ponto:
+                raise ValueError("Registro não encontrado.")
+        ponto.missing_reviewed = False
+        ponto.missing_approved = False
+        ponto.missing_excused = False
+        log_action(uow, manager_id, "REMOVE_MISSING_EXCUSE", target_id=employee_id, details=f"Data: {target_date}")
+
+
+def _reset_all_excuses(ponto):
+        for reviewed, approved, excused in _ANOMALY_FLAG_TRIPLES:
+                setattr(ponto, reviewed, False)
+                setattr(ponto, approved, False)
+                setattr(ponto, excused, False)
+        ponto.missing_reviewed = False
+        ponto.missing_approved = False
+        ponto.missing_excused = False
 
 
 def _register_vacation(uow, manager_id, employee_id, start_date, end_date):
@@ -114,6 +171,44 @@ def _register_attestation(uow, manager_id, employee_id, start_date, end_date, ci
         else:
                 details += ", Dia inteiro"
         log_action(uow, manager_id, "ADD_ATTESTATION", target_id=employee_id, details=details)
+
+
+def _unregister_attestation_day(uow, manager_id, employee_id, target_date):
+        ensure_manager(uow, manager_id)
+        employee = uow.users.get_user_by_id(employee_id)
+        if not employee:
+                raise ValueError("Employee not found.")
+        matching = [att for att in employee.attestations if att.start_date <= target_date <= att.end_date]
+        if not matching:
+                raise ValueError("Nenhum atestado encontrado para esta data.")
+        att = matching[0]
+        attestation_detail = f"CID {att.cid}" if att.cid else "sem CID"
+        attestation_detail += f", Período: {att.start_date} até {att.end_date}"
+        ponto = _ponto_for(employee, target_date)
+        if ponto:
+                employee.time_entries.remove(ponto)
+                uow.session.delete(ponto)
+        if att.start_date == att.end_date:
+                employee.attestations.remove(att)
+                uow.session.delete(att)
+        elif target_date == att.start_date:
+                att.start_date = target_date + timedelta(days=1)
+        elif target_date == att.end_date:
+                att.end_date = target_date - timedelta(days=1)
+        else:
+                new_start = target_date + timedelta(days=1)
+                new_end = att.end_date
+                att.end_date = target_date - timedelta(days=1)
+                employee.attestations.append(Attestation(
+                        user_id=employee_id,
+                        start_date=new_start,
+                        end_date=new_end,
+                        cid=att.cid,
+                        start_time=att.start_time,
+                        end_time=att.end_time,
+                ))
+        log_action(uow, manager_id, "REMOVE_ATTESTATION_DAY", target_id=employee_id,
+                        details=f"Data: {target_date}, Atestado removido ({attestation_detail})")
 
 
 def _register_facultativo(uow, manager_id, start_date, end_date, description, start_time, end_time):

@@ -165,16 +165,15 @@
                                 </td>
                                 </td>
                                 <td>
-                                    {% set loc = p.location_data %}
-                                    {% if loc and loc is string and loc.strip() and loc.lower() != 'none' %}
+                                    {% if p.has_location %}
                                         <button type="button" class="btn btn-sm btn-link p-0 text-info" 
-                                                onclick="openLocationModal('{{ p.entry_date }}', `{{ loc }}`)"
+                                                onclick="openLocationModal('{{ p.entry_date }}', `{{ p.location_data }}`)"
                                                 title="Ver Localização">
-                                            <i class="bi bi-geo-alt fs-5"></i>
+                                            <i class="bi bi-geo-alt-fill fs-5"></i>
                                         </button>
                                     {% else %}
-                                        <span class="text-danger" title="Sem localização (Valor: '{{ loc }}')">
-                                            <i class="bi bi-x-circle fs-5"></i> X
+                                        <span class="pin-no-location" title="Sem localização">
+                                            <i class="bi bi-geo-alt-fill fs-5"></i>
                                         </span>
                                     {% endif %}
                                 </td>
@@ -184,7 +183,17 @@
                                     {% elif p.status.value == 'Atrasado' %}
                                         <span class="badge {{ 'bg-warning text-dark' if p.arrival_late_reviewed or p.arrival_late_approved or p.arrival_late_excused else 'bg-danger text-white' }} mt-1" style="display: block;">{{ p.status_label }}</span>
                                     {% else %}
-                                        {% if current_user.role in ['admin', 'gestor', 'manager'] %}
+                                        {% if p.is_vacation %}
+                                            <span class="badge bg-success d-inline-flex align-items-center gap-1">
+                                                Férias
+                                                {% if current_user.role in ['admin', 'gestor', 'manager'] %}
+                                                    <button type="button" class="btn btn-sm p-0 border-0 bg-transparent text-white text-decoration-none fw-bold" 
+                                                            style="font-size: 0.7rem; line-height: 1;"
+                                                            onclick="confirmRemoveVacation('{{ employee.user_id }}', '{{ p.entry_date }}')"
+                                                            title="Remover Férias">&times;</button>
+                                                {% endif %}
+                                            </span>
+                                        {% elif current_user.role in ['admin', 'gestor', 'manager'] %}
                                             <span class="badge {{ 'bg-success' if p.status.value == 'No Horário' else ('bg-warning text-dark' if p.status.value == 'Corrigido' else 'bg-secondary') }} cursor-pointer"
                                                   style="cursor: pointer;"
                                                   onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'arrival', 'Status: {{ p.status_label }}')">
@@ -202,7 +211,15 @@
                                         {% if not (p.missing_approved or p.missing_excused) %}
                                         <span class="badge bg-danger clickable-badge mt-1" onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'missing', 'Falta')" style="cursor: pointer; display: block;">! Abonar Falta</span>
                                         {% else %}
-                                        <span class="badge bg-success mt-1" style="display: block;">Falta Abonada</span>
+                                        <span class="badge bg-success d-inline-flex align-items-center gap-1 mt-1" style="display: block;">
+                                            Falta Abonada
+                                            {% if current_user.role in ['admin', 'gestor', 'manager'] %}
+                                                <button type="button" class="btn btn-sm p-0 border-0 bg-transparent text-white text-decoration-none fw-bold"
+                                                        style="font-size: 0.7rem; line-height: 1;"
+                                                        onclick="confirmRemoveMissingExcuse('{{ employee.user_id }}', '{{ p.entry_date }}')"
+                                                        title="Remover Abono">&times;</button>
+                                            {% endif %}
+                                        </span>
                                         {% endif %}
                                     {% endif %}
 
@@ -210,7 +227,7 @@
                                     {% for att in attestations %}
                                         {% if att.start_date <= p.entry_date <= att.end_date %}
                                         <span class="badge bg-info text-dark clickable-badge mt-1" style="cursor: pointer; display: block;"
-                                              onclick="openAttestationModal('{{ att.start_date.strftime('%d/%m/%Y') }}', '{{ att.end_date.strftime('%d/%m/%Y') }}', '{{ att.cid or '' }}', '{{ att.start_time.strftime('%H:%M') if att.start_time else '' }}', '{{ att.end_time.strftime('%H:%M') if att.end_time else '' }}')">
+                                              onclick="openAttestationModal('{{ employee.user_id }}', '{{ p.entry_date }}', '{{ att.start_date.strftime('%d/%m/%Y') }}', '{{ att.end_date.strftime('%d/%m/%Y') }}', '{{ att.cid or '' }}', '{{ att.start_time.strftime('%H:%M') if att.start_time else '' }}', '{{ att.end_time.strftime('%H:%M') if att.end_time else '' }}')">
                                             <i class="bi bi-file-medical"></i> Atestado{% if att.cid %} (CID {{ att.cid }}){% endif %}
                                         </span>
                                         {% endif %}
@@ -412,7 +429,16 @@
                     </tbody>
                 </table>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer d-flex justify-content-between">
+                {% if current_user.role in ['admin', 'gestor', 'manager'] %}
+                <form id="att_remove_form" method="POST" onsubmit="return confirm('Remover o atestado deste dia?')">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-trash"></i> Remover Atestado deste dia
+                    </button>
+                </form>
+                {% else %}
+                <span></span>
+                {% endif %}
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
@@ -449,10 +475,14 @@ function openViewNoteModal(entryDate, noteText) {
     document.getElementById('note_view_text').value = noteText;
 }
 
-function openAttestationModal(startDate, endDate, cid, startTime, endTime) {
+function openAttestationModal(employeeId, entryDate, startDate, endDate, cid, startTime, endTime) {
     document.getElementById('att_view_cid').innerText = cid ? `CID ${cid}` : 'Não informado';
     document.getElementById('att_view_dates').innerText = startDate === endDate ? startDate : `${startDate} a ${endDate}`;
     document.getElementById('att_view_times').innerText = (startTime && endTime) ? `${startTime} às ${endTime}` : 'Dia inteiro';
+    var removeForm = document.getElementById('att_remove_form');
+    if (removeForm) {
+        removeForm.action = `/manager/remove-attestation-day/${employeeId}/${entryDate}`;
+    }
     new bootstrap.Modal(document.getElementById('attestationViewModal')).show();
 }
 
@@ -501,6 +531,26 @@ function openManagerNoteModal(entryDate, noteText) {
     document.getElementById('manager_note_entry_date').value = entryDate;
     document.getElementById('manager_note_edit_text').value = noteText;
     new bootstrap.Modal(modalEl).show();
+}
+
+function confirmRemoveVacation(employeeId, entryDate) {
+    if (confirm('Remover as férias deste dia? O registro voltará ao status original.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/manager/remove-vacation-day/${employeeId}/${entryDate}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function confirmRemoveMissingExcuse(employeeId, entryDate) {
+    if (confirm('Remover o abono deste dia? A falta voltará a ser pendente.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/manager/remove-missing-excuse/${employeeId}/${entryDate}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
 }
 
 function openReviewModal(employeeId, entryDate, stage, status) {

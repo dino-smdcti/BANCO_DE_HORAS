@@ -33,6 +33,9 @@ def register_routes(app):
         app.add_url_rule("/manager/fix-ponto/<int:employee_id>", "fix_ponto", fix_ponto, methods=["GET", "POST"])
         app.add_url_rule("/manager/add-vacation/<int:employee_id>", "add_vacation", add_vacation, methods=["POST"])
         app.add_url_rule("/manager/add-attestation/<int:employee_id>", "add_attestation", add_attestation, methods=["POST"])
+        app.add_url_rule("/manager/remove-attestation-day/<int:employee_id>/<string:entry_date>", "remove_attestation_day", remove_attestation_day, methods=["POST"])
+        app.add_url_rule("/manager/remove-vacation-day/<int:employee_id>/<string:entry_date>", "remove_vacation_day", remove_vacation_day, methods=["POST"])
+        app.add_url_rule("/manager/remove-missing-excuse/<int:employee_id>/<string:entry_date>", "remove_missing_excuse", remove_missing_excuse, methods=["POST"])
         app.add_url_rule("/manager/add-holiday", "add_holiday", add_holiday, methods=["POST"])
         app.add_url_rule("/manager/add-facultativo", "add_facultativo", add_facultativo, methods=["POST"])
         app.add_url_rule("/manager/delete-user/<int:user_id>", "delete_user", delete_user, methods=["POST"])
@@ -233,6 +236,54 @@ def add_attestation(employee_id):
                 flash(str(error), "danger")
                 return redirect(url_for("view_employee_logs", employee_id=employee_id))
         flash("Atestado lançado com sucesso.", "success")
+        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
+
+@login_required
+def remove_attestation_day(employee_id, entry_date):
+        denied = _role_guard()
+        if denied:
+                return denied
+        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        uow = new_uow()
+        try:
+                services.remove_attestation_day(uow, current_user.id, employee_id, entry_date)
+        except ValueError as error:
+                flash(str(error), "danger")
+                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        flash("Atestado removido para o dia.", "success")
+        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
+
+@login_required
+def remove_vacation_day(employee_id, entry_date):
+        denied = _role_guard()
+        if denied:
+                return denied
+        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        uow = new_uow()
+        try:
+                services.remove_vacation_day(uow, current_user.id, employee_id, entry_date)
+        except ValueError as error:
+                flash(str(error), "danger")
+                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        flash("Férias removida para o dia.", "success")
+        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
+
+@login_required
+def remove_missing_excuse(employee_id, entry_date):
+        denied = _role_guard()
+        if denied:
+                return denied
+        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        uow = new_uow()
+        try:
+                services.remove_missing_excuse(uow, current_user.id, employee_id, entry_date)
+        except ValueError as error:
+                flash(str(error), "danger")
+                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        flash("Abono de falta removido.", "success")
         return redirect(url_for("view_employee_logs", employee_id=employee_id))
 
 

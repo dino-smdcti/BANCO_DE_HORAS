@@ -5,6 +5,9 @@ from src.service_layer.administration import (
         add_holiday,
         add_vacation,
         get_start_analysis_date,
+        remove_attestation_day,
+        remove_missing_excuse,
+        remove_vacation_day,
         seed_holidays,
 )
 from src.service_layer.clock_service import (
@@ -63,6 +66,9 @@ __all__ = [
         "mark_notifications_as_read",
         "promote_to_manager",
         "register_user",
+        "remove_attestation_day",
+        "remove_missing_excuse",
+        "remove_vacation_day",
         "review_anomaly_badge",
         "review_correction_request",
         "seed_holidays",

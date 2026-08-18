@@ -48,7 +48,11 @@
                             {% elif p.status.value == 'Atrasado' %}
                                 <span class="badge bg-warning text-dark">{{ p.status_label }}</span>
                             {% elif p.status.value == 'Dispensado' %}
-                                <span class="badge bg-info text-dark">{{ p.status_label }}</span>
+                                {% if p.is_vacation %}
+                                    <span class="badge bg-success">Férias</span>
+                                {% else %}
+                                    <span class="badge bg-info text-dark">{{ p.status_label }}</span>
+                                {% endif %}
                             {% else %}
                                 <span class="badge bg-secondary">{{ p.status_label }}</span>
                             {% endif %}

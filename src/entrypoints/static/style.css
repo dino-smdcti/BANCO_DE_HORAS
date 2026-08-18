@@ -186,3 +186,23 @@ html, body {
     }
 }
 
+/* Pin without location: red with strikethrough */
+.pin-no-location {
+    position: relative;
+    display: inline-block;
+    color: var(--danger);
+    line-height: 1;
+}
+.pin-no-location::after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    top: 50%;
+    width: 120%;
+    height: 2px;
+    background: var(--danger);
+    transform: rotate(-45deg);
+    transform-origin: center;
+}
+
