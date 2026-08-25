@@ -346,34 +346,78 @@
                 </div>
                 <div class="modal-body">
                     <p class="text-muted small mb-3">
-                        Serão gerados registros de ponto para todos os <strong>dias úteis</strong> entre a data de início da análise 
+                        Serão processados registros de ponto para todos os <strong>dias úteis</strong> entre a data de início da análise 
                         (<strong>{{ employee.profile.start_analysis_date.strftime('%d/%m/%Y') if employee.profile.start_analysis_date else '01/01/2026' }}</strong>) 
-                        e a data informada abaixo.
-                    </p>
-                    <p class="text-muted small mb-3">
-                        Dias que já possuem registros, férias, atestados, feriados e pontos facultativos serão <strong>ignorados</strong>.
+                        e a data informada abaixo. Feriados, férias, atestados e pontos facultativos serão sempre ignorados.
                     </p>
                     <div class="mb-3">
                         <label for="retroactive_end_date" class="form-label fw-bold">Data Final</label>
                         <input type="date" name="end_date" id="retroactive_end_date" class="form-control" required>
                     </div>
+                    <hr>
+                    <p class="fw-bold small mb-2">Horários</p>
                     <div class="mb-3">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="fill_with_schedule" name="fill_with_schedule" checked>
+                            <input class="form-check-input" type="checkbox" id="fill_with_schedule" name="fill_with_schedule" checked onchange="toggleRetroactiveManualTimes()">
                             <label class="form-check-label" for="fill_with_schedule">
                                 Preencher com horários da jornada
                             </label>
                         </div>
                         <small class="text-muted d-block mt-1">
-                            Se ativado, os registros serão preenchidos automaticamente com os horários definidos na jornada de trabalho 
-                            e marcados como <span class="badge bg-success">No Horário</span>.
-                            Se desativado, os registros serão criados vazios e marcados como <span class="badge bg-secondary">Faltante</span>.
+                            Se ativado, usa os horários definidos na jornada de trabalho.
+                            Se desativado, informe os horários manualmente abaixo.
+                        </small>
+                    </div>
+                    <div id="retroactiveManualTimes" style="display: none;">
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label for="manual_arrival" class="form-label small">Chegada</label>
+                                <input type="time" name="manual_arrival" id="manual_arrival" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-6">
+                                <label for="manual_departure" class="form-label small">Fim de Jornada</label>
+                                <input type="time" name="manual_departure" id="manual_departure" class="form-control form-control-sm">
+                            </div>
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label for="manual_lunch_start" class="form-label small">Almoço (Saída)</label>
+                                <input type="time" name="manual_lunch_start" id="manual_lunch_start" class="form-control form-control-sm">
+                            </div>
+                            <div class="col-6">
+                                <label for="manual_lunch_end" class="form-label small">Almoço (Volta)</label>
+                                <input type="time" name="manual_lunch_end" id="manual_lunch_end" class="form-control form-control-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="fw-bold small mb-2">Registros Existentes</p>
+                    <div class="mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="fill_blank_existing" name="fill_blank_existing" checked>
+                            <label class="form-check-label" for="fill_blank_existing">
+                                Preencher registros em branco
+                            </label>
+                        </div>
+                        <small class="text-muted d-block ms-4">
+                            Registros criados automaticamente como <span class="badge bg-secondary">Faltante</span> ou sem horários serão preenchidos.
+                        </small>
+                    </div>
+                    <div class="mb-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="overwrite_existing" name="overwrite_existing">
+                            <label class="form-check-label" for="overwrite_existing">
+                                Sobrescrever registros já preenchidos
+                            </label>
+                        </div>
+                        <small class="text-muted d-block ms-4">
+                            Registros que já possuem horários serão substituídos pelos horários informados acima.
                         </small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-info text-white" onclick="return confirm('Deseja realmente completar os logs retroativamente? Esta ação criará registros para todos os dias úteis no período.');">
+                    <button type="submit" class="btn btn-info text-white" onclick="return confirm('Deseja realmente completar os logs retroativamente?');">
                         <i class="bi bi-clock-history"></i> Completar Logs
                     </button>
                 </div>
@@ -623,6 +667,12 @@ function openReviewModal(employeeId, entryDate, stage, status) {
         form.submit();
     };
     new bootstrap.Modal(modalEl).show();
+}
+
+function toggleRetroactiveManualTimes() {
+    const checkbox = document.getElementById('fill_with_schedule');
+    const manualDiv = document.getElementById('retroactiveManualTimes');
+    manualDiv.style.display = checkbox.checked ? 'none' : 'block';
 }
 
 function saveManagerNote() {

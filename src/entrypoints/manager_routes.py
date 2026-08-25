@@ -483,15 +483,34 @@ def complete_retroactive_logs_route(employee_id):
                 return redirect(url_for("view_employee_logs", employee_id=employee_id))
         end_date = parse_date(request.form.get("end_date"))
         fill_with_schedule = request.form.get("fill_with_schedule") == "on"
+        fill_blank_existing = request.form.get("fill_blank_existing") == "on"
+        overwrite_existing = request.form.get("overwrite_existing") == "on"
         if end_date is None or end_date is INVALID_DATE:
                 flash("Informe uma data final válida.", "danger")
                 return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        manual_arrival = parse_time(request.form.get("manual_arrival"))
+        manual_lunch_start = parse_time(request.form.get("manual_lunch_start"))
+        manual_lunch_end = parse_time(request.form.get("manual_lunch_end"))
+        manual_departure = parse_time(request.form.get("manual_departure"))
         uow = new_uow()
         try:
-                created, skipped = services.complete_retroactive_logs(
-                        uow, current_user.id, employee_id, end_date, fill_with_schedule
+                created, updated, skipped = services.complete_retroactive_logs(
+                        uow, current_user.id, employee_id, end_date, fill_with_schedule,
+                        fill_blank_existing=fill_blank_existing,
+                        overwrite_existing=overwrite_existing,
+                        manual_arrival=manual_arrival,
+                        manual_lunch_start=manual_lunch_start,
+                        manual_lunch_end=manual_lunch_end,
+                        manual_departure=manual_departure,
                 )
-                flash(f"Processo concluído: {created} registros criados, {skipped} ignorados.", "success")
+                parts = []
+                if created:
+                        parts.append(f"{created} criados")
+                if updated:
+                        parts.append(f"{updated} atualizados")
+                if skipped:
+                        parts.append(f"{skipped} ignorados")
+                flash(f"Processo concluído: {', '.join(parts)}.", "success")
         except ValueError as error:
                 flash(str(error), "danger")
         except Exception as error:

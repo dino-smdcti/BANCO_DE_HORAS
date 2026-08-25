@@ -1,5 +1,5 @@
-from datetime import date, timedelta
-from typing import Tuple
+from datetime import date, time, timedelta
+from typing import Optional, Tuple
 
 from sqlalchemy import select
 
@@ -14,12 +14,26 @@ def complete_retroactive_logs(
     employee_id: int,
     end_date: date,
     fill_with_schedule: bool,
-) -> Tuple[int, int]:
+    fill_blank_existing: bool = True,
+    overwrite_existing: bool = False,
+    manual_arrival: Optional[time] = None,
+    manual_lunch_start: Optional[time] = None,
+    manual_lunch_end: Optional[time] = None,
+    manual_departure: Optional[time] = None,
+) -> Tuple[int, int, int]:
     with uow:
-        return _do_complete_retroactive_logs(uow, actor_id, employee_id, end_date, fill_with_schedule)
+        return _do_complete_retroactive_logs(
+            uow, actor_id, employee_id, end_date, fill_with_schedule,
+            fill_blank_existing, overwrite_existing,
+            manual_arrival, manual_lunch_start, manual_lunch_end, manual_departure,
+        )
 
 
-def _do_complete_retroactive_logs(uow, actor_id, employee_id, end_date, fill_with_schedule):
+def _do_complete_retroactive_logs(
+    uow, actor_id, employee_id, end_date, fill_with_schedule,
+    fill_blank_existing, overwrite_existing,
+    manual_arrival, manual_lunch_start, manual_lunch_end, manual_departure,
+):
     ensure_manager(uow, actor_id)
 
     employee = uow.users.get_user_by_id(employee_id)
@@ -33,7 +47,7 @@ def _do_complete_retroactive_logs(uow, actor_id, employee_id, end_date, fill_wit
     if end_date < start_date:
         raise ValueError("A data final deve ser posterior à data de início da análise.")
 
-    existing_dates = {p.entry_date for p in employee.time_entries}
+    existing_by_date = {p.entry_date: p for p in employee.time_entries}
     holiday_dates = _mandatory_holidays(uow)
     facultativo_dates = _facultativo_dates(uow)
     vacation_dates = _vacation_dates(employee)
@@ -41,14 +55,11 @@ def _do_complete_retroactive_logs(uow, actor_id, employee_id, end_date, fill_wit
 
     schedule = employee.work_schedule
     created = 0
+    updated = 0
     skipped = 0
     current = start_date
 
     while current <= end_date:
-        if current in existing_dates:
-            skipped += 1
-            current += timedelta(days=1)
-            continue
         if current in vacation_dates:
             skipped += 1
             current += timedelta(days=1)
@@ -65,42 +76,133 @@ def _do_complete_retroactive_logs(uow, actor_id, employee_id, end_date, fill_wit
             skipped += 1
             current += timedelta(days=1)
             continue
-        if not schedule:
-            _add_entry(uow, employee, current, None, fill_with_schedule)
-            created += 1
-            current += timedelta(days=1)
-            continue
-        if not schedule.is_work_day(current):
+
+        is_work_day = True
+        if schedule and not schedule.is_work_day(current):
+            is_work_day = False
+
+        if not is_work_day:
             skipped += 1
             current += timedelta(days=1)
             continue
 
-        _add_entry(uow, employee, current, schedule, fill_with_schedule)
-        created += 1
+        existing_ponto = existing_by_date.get(current)
+        if existing_ponto:
+            is_blank = not existing_ponto.arrival and not existing_ponto.departure
+            should_fill = (is_blank and fill_blank_existing) or (not is_blank and overwrite_existing)
+            if should_fill and _fill_existing_entry(
+                existing_ponto, schedule, fill_with_schedule,
+                manual_arrival, manual_lunch_start,
+                manual_lunch_end, manual_departure,
+            ):
+                updated += 1
+            else:
+                skipped += 1
+        else:
+            _add_entry(uow, employee, current, schedule, fill_with_schedule,
+                       manual_arrival, manual_lunch_start,
+                       manual_lunch_end, manual_departure)
+            created += 1
+
         current += timedelta(days=1)
 
     log_action(
         uow, actor_id, "RETROACTIVE_LOGS_COMPLETE",
         target_id=employee_id,
-        details=f"Período {start_date} a {end_date}; preencher={fill_with_schedule}; criados={created}; ignorados={skipped}",
+        details=(
+            f"Período {start_date} a {end_date}; preencher_jornada={fill_with_schedule}; "
+            f"preencher_brancos={fill_blank_existing}; sobrescrever={overwrite_existing}; "
+            f"criados={created}; atualizados={updated}; ignorados={skipped}"
+        ),
     )
-    return created, skipped
+    return created, updated, skipped
 
 
-def _add_entry(uow, employee, entry_date, schedule, fill_with_schedule):
+def _resolve_times(schedule, fill_with_schedule,
+                   manual_arrival, manual_lunch_start,
+                   manual_lunch_end, manual_departure):
+    if fill_with_schedule and schedule:
+        return (
+            schedule.expected_arrival,
+            schedule.expected_lunch_start,
+            schedule.expected_lunch_end,
+            schedule.expected_departure,
+        )
+    return (
+        manual_arrival,
+        manual_lunch_start,
+        manual_lunch_end,
+        manual_departure,
+    )
+
+
+def _fill_existing_entry(ponto, schedule, fill_with_schedule,
+                         manual_arrival, manual_lunch_start,
+                         manual_lunch_end, manual_departure):
+    arrival, lunch_start, lunch_end, departure = _resolve_times(
+        schedule, fill_with_schedule,
+        manual_arrival, manual_lunch_start,
+        manual_lunch_end, manual_departure,
+    )
+
+    changed = False
+    if arrival:
+        ponto.arrival = arrival
+        changed = True
+    if lunch_start:
+        ponto.lunch_start = lunch_start
+        changed = True
+    if lunch_end:
+        ponto.lunch_end = lunch_end
+        changed = True
+    if departure:
+        ponto.departure = departure
+        changed = True
+
+    if changed:
+        if fill_with_schedule and schedule:
+            ponto.status = PontoStatus.ON_TIME
+        else:
+            ponto.status = PontoStatus.CORRECTED
+        ponto.notes = "Preenchido retroativamente."
+        ponto.location_data = ""
+
+    return changed
+
+
+def _add_entry(uow, employee, entry_date, schedule, fill_with_schedule,
+               manual_arrival, manual_lunch_start,
+               manual_lunch_end, manual_departure):
     has_lunch_break = schedule.has_lunch_break if schedule else True
+    arrival, lunch_start, lunch_end, departure = _resolve_times(
+        schedule, fill_with_schedule,
+        manual_arrival, manual_lunch_start,
+        manual_lunch_end, manual_departure,
+    )
 
     if fill_with_schedule and schedule:
         ponto = DailyPonto(
             user_id=employee.user_id,
             entry_date=entry_date,
-            arrival=schedule.expected_arrival,
-            lunch_start=schedule.expected_lunch_start,
-            lunch_end=schedule.expected_lunch_end,
-            departure=schedule.expected_departure,
+            arrival=arrival,
+            lunch_start=lunch_start,
+            lunch_end=lunch_end,
+            departure=departure,
             status=PontoStatus.ON_TIME,
             has_lunch_break=has_lunch_break,
             notes="Lançamento retroativo (horários da jornada).",
+        )
+    elif arrival or departure:
+        ponto = DailyPonto(
+            user_id=employee.user_id,
+            entry_date=entry_date,
+            arrival=arrival,
+            lunch_start=lunch_start,
+            lunch_end=lunch_end,
+            departure=departure,
+            status=PontoStatus.CORRECTED,
+            has_lunch_break=has_lunch_break,
+            notes="Lançamento retroativo (horários manuais).",
         )
     else:
         ponto = DailyPonto(
