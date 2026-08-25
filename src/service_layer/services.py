@@ -31,6 +31,7 @@ from src.service_layer.schedule_service import (
         set_work_schedule,
         update_journey_type,
 )
+from src.service_layer.retroactive_logs_service import complete_retroactive_logs
 from src.service_layer.user_service import (
         delete_user,
         demote_to_employee,
@@ -43,6 +44,7 @@ from src.service_layer.user_service import (
 
 __all__ = [
         "add_attestation",
+        "complete_retroactive_logs",
         "add_facultativo",
         "add_holiday",
         "add_notification",

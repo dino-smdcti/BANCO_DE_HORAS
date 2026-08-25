@@ -48,6 +48,7 @@ def register_routes(app):
         app.add_url_rule("/manager/delete-ponto/<int:employee_id>/<string:entry_date>", "delete_ponto", delete_ponto, methods=["POST"])
         app.add_url_rule("/manager/review-badge/<int:employee_id>/<string:entry_date>/<string:stage>/<string:action>", "review_badge", review_badge, methods=["POST"])
         app.add_url_rule("/manager/save-manager-note", "save_manager_note", save_manager_note, methods=["POST"])
+        app.add_url_rule("/manager/complete-retroactive-logs/<int:employee_id>", "complete_retroactive_logs_route", complete_retroactive_logs_route, methods=["POST"])
 
 
 @login_required
@@ -470,6 +471,32 @@ def save_manager_note():
                         manager_notes=note_text,
                 )
         return {"status": "success"}
+
+
+@login_required
+def complete_retroactive_logs_route(employee_id):
+        denied = _role_guard()
+        if denied:
+                return denied
+        if current_user.role not in ["admin", "gestor"]:
+                flash("Apenas administradores e gestores podem realizar esta ação.", "danger")
+                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        end_date = parse_date(request.form.get("end_date"))
+        fill_with_schedule = request.form.get("fill_with_schedule") == "on"
+        if end_date is None or end_date is INVALID_DATE:
+                flash("Informe uma data final válida.", "danger")
+                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        uow = new_uow()
+        try:
+                created, skipped = services.complete_retroactive_logs(
+                        uow, current_user.id, employee_id, end_date, fill_with_schedule
+                )
+                flash(f"Processo concluído: {created} registros criados, {skipped} ignorados.", "success")
+        except ValueError as error:
+                flash(str(error), "danger")
+        except Exception as error:
+                flash(f"Erro ao completar logs: {str(error)}", "danger")
+        return redirect(url_for("view_employee_logs", employee_id=employee_id))
 
 
 def _role_guard(message="Acesso não autorizado."):

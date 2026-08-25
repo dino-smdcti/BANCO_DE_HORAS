@@ -17,6 +17,11 @@
         <button class="btn btn-sm btn-secondary btn-compact" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
         <button class="btn btn-sm btn-secondary btn-compact" data-bs-toggle="modal" data-bs-target="#attestationModal">Lançar Atestado</button>
         <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-primary text-white btn-compact">Definir Horário</a>
+        {% if current_user.role in ['admin', 'gestor'] %}
+            <button class="btn btn-sm btn-info text-white btn-compact" data-bs-toggle="modal" data-bs-target="#retroactiveLogsModal">
+                <i class="bi bi-clock-history"></i> Completar Logs Retroativamente
+            </button>
+        {% endif %}
         
         {% if current_user.role in ['admin', 'gestor'] %}
             {% if employee.role.value == 'employee' %}
@@ -327,6 +332,52 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
                 <button type="button" class="btn btn-primary" onclick="saveManagerNote()">Salvar Nota</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="retroactiveLogsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('complete_retroactive_logs_route', employee_id=employee.user_id) }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Completar Logs Retroativamente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Serão gerados registros de ponto para todos os <strong>dias úteis</strong> entre a data de início da análise 
+                        (<strong>{{ employee.profile.start_analysis_date.strftime('%d/%m/%Y') if employee.profile.start_analysis_date else '01/01/2026' }}</strong>) 
+                        e a data informada abaixo.
+                    </p>
+                    <p class="text-muted small mb-3">
+                        Dias que já possuem registros, férias, atestados, feriados e pontos facultativos serão <strong>ignorados</strong>.
+                    </p>
+                    <div class="mb-3">
+                        <label for="retroactive_end_date" class="form-label fw-bold">Data Final</label>
+                        <input type="date" name="end_date" id="retroactive_end_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="fill_with_schedule" name="fill_with_schedule" checked>
+                            <label class="form-check-label" for="fill_with_schedule">
+                                Preencher com horários da jornada
+                            </label>
+                        </div>
+                        <small class="text-muted d-block mt-1">
+                            Se ativado, os registros serão preenchidos automaticamente com os horários definidos na jornada de trabalho 
+                            e marcados como <span class="badge bg-success">No Horário</span>.
+                            Se desativado, os registros serão criados vazios e marcados como <span class="badge bg-secondary">Faltante</span>.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info text-white" onclick="return confirm('Deseja realmente completar os logs retroativamente? Esta ação criará registros para todos os dias úteis no período.');">
+                        <i class="bi bi-clock-history"></i> Completar Logs
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
