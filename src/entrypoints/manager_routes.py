@@ -10,18 +10,20 @@ from src.entrypoints import flask_app
 from src.entrypoints.decorators import handle_errors, manager_required
 from src.entrypoints.forms import JourneyTypeForm, ProfileForm, RegisterForm, WorkScheduleForm
 from src.entrypoints.web_helpers import INVALID_DATE, is_management_role, new_uow, parse_date, parse_time
-from src.service_layer import services
+from src.service_layer import services, token_service
 from src.service_layer.audit import log_action
 from src.config import (
         ADMIN_ROLES,
         DATE_FORMAT,
+        INVITE_TOKEN_MAX_AGE,
+        PASSWORD_RESET_TOKEN_MAX_AGE,
         ROLE_ADMIN,
         ROLE_EMPLOYEE,
         ROLE_GESTOR,
         ROLE_MANAGER,
         TIME_FORMAT,
-        TOKEN_SALT_INVITE,
-        TOKEN_SALT_PASSWORD_RESET,
+        TOKEN_KIND_INVITE,
+        TOKEN_KIND_RESET,
 )
 
 _ScheduleValues = namedtuple("_ScheduleValues", ["arrival", "lunch_start", "lunch_end", "departure", "tolerance", "has_lunch_break", "schedule_type"])
@@ -558,12 +560,17 @@ def _register_or_none(form):
 
 
 def _send_invitation(form, is_new):
-        token = flask_app.serializer.dumps(form.email.data, salt=TOKEN_SALT_INVITE)
-        setup_url = url_for("accept_invite", token=token, _external=True)
-        html = render_template("emails/welcome_invite.html", setup_url=setup_url)
-        fallback = flask_app.send_email_with_fallback(
-                form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html
-        )
+        with new_uow() as uow:
+                user = uow.users.get_user_by_email(form.email.data)
+                if user is None:
+                        flash("Usuário não encontrado.", "danger")
+                        return redirect(url_for("dashboard"))
+                raw = token_service.issue_token(uow, user.user_id, TOKEN_KIND_INVITE, INVITE_TOKEN_MAX_AGE)
+                setup_url = url_for("accept_invite", token=raw, _external=True)
+                html = render_template("emails/welcome_invite.html", setup_url=setup_url)
+                fallback = flask_app.send_email_with_fallback(
+                        form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html
+                )
         if fallback is not None:
                 return fallback
         if is_new:
@@ -818,8 +825,8 @@ def _send_password_reset(uow, user_id):
         if not user:
                 flash("Usuário não encontrado.", "danger")
                 return redirect(url_for("management_panel"))
-        token = flask_app.serializer.dumps(user.email, salt=TOKEN_SALT_PASSWORD_RESET)
-        reset_url = url_for("reset_password", token=token, _external=True)
+        raw = token_service.issue_token(uow, user.user_id, TOKEN_KIND_RESET, PASSWORD_RESET_TOKEN_MAX_AGE)
+        reset_url = url_for("reset_password", token=raw, _external=True)
         html = render_template("emails/reset_password.html", reset_url=reset_url)
         fallback = flask_app.send_email_with_fallback(
                 user.email, "Redefinição de Senha Solicitada", html

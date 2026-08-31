@@ -327,9 +327,12 @@ class TestPasswordReset:
         assert r.status_code == 200
 
     def test_reset_password_page_valid_token(self, client, uow):
-        from src.entrypoints.flask_app import serializer
+        from src.service_layer import token_service
+        from src.config import TOKEN_KIND_RESET
         services.register_user(uow, "reset@test.com", "oldpass")
-        token = serializer.dumps("reset@test.com", salt="password-reset-salt")
+        with uow:
+            user = uow.users.get_user_by_email("reset@test.com")
+            token = token_service.issue_token(uow, user.user_id, TOKEN_KIND_RESET, 3600)
         r = client.get(f"/reset-password/{token}")
         assert r.status_code == 200
 

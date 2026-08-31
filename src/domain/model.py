@@ -147,6 +147,22 @@ class Notification:
         notification_id: Optional[int] = None
 
 
+@dataclass
+class AuthToken:
+        """A server-side, single-use, revocable token (reset / invite flows).
+
+        Only the SHA-256 hash of the raw token is persisted; the raw value is
+        handed to the user once in the emailed link and is never stored.
+        """
+        user_id: int
+        token_hash: str
+        kind: str
+        expires_at: datetime
+        used: bool = False
+        created_at: datetime = field(default_factory=datetime.now)
+        token_id: Optional[int] = None
+
+
 # (flag, reviewed, approved, excused) attribute names for each anomaly stage.
 _ANOMALY_STAGES = ANOMALY_STAGE_FLAGS
 

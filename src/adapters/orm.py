@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -27,6 +27,8 @@ from src.config import (
         REGISTRATION_NUMBER_COLUMN_LENGTH,
         ROLE_COLUMN_LENGTH,
         SECRETARIAT_COLUMN_LENGTH,
+        TOKEN_HASH_COLUMN_LENGTH,
+        TOKEN_KIND_COLUMN_LENGTH,
 )
 
 class UserRoleType(TypeDecorator):
@@ -226,6 +228,18 @@ notifications = Table(
     Column("is_read", Boolean, default=False),
 )
 
+auth_tokens = Table(
+    "auth_tokens",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("token_hash", String(TOKEN_HASH_COLUMN_LENGTH), unique=True, nullable=False),
+    Column("kind", String(TOKEN_KIND_COLUMN_LENGTH), nullable=False),
+    Column("expires_at", DateTime, nullable=False),
+    Column("used", Boolean, default=False),
+    Column("created_at", DateTime, default=datetime.now),
+)
+
 
 def _user_properties():
         return {
@@ -267,6 +281,7 @@ def start_mappers():
         mapper_registry.map_imperatively(Attestation, attestations, properties=_column_properties(attestations.c.id, "attestation_id"))
         mapper_registry.map_imperatively(Facultativo, facultativos, properties=_column_properties(facultativos.c.id, "facultativo_id"))
         mapper_registry.map_imperatively(Notification, notifications, properties=_column_properties(notifications.c.id, "notification_id"))
+        mapper_registry.map_imperatively(AuthToken, auth_tokens, properties=_column_properties(auth_tokens.c.id, "token_id"))
         mapper_registry.map_imperatively(Holiday, holidays)
         mapper_registry.map_imperatively(JourneyType, journey_types, properties=_column_properties(journey_types.c.id, "journey_id"))
         mapper_registry.map_imperatively(AuditLog, audit_logs, properties=_column_properties(audit_logs.c.id, "log_id"))

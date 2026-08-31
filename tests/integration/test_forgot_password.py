@@ -2,7 +2,8 @@ import pytest
 from unittest.mock import patch
 from src.entrypoints.flask_app import app, serializer
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
-from src.service_layer import services
+from src.service_layer import services, token_service
+from src.config import TOKEN_KIND_RESET
 
 @pytest.fixture
 def client(session_factory):
@@ -34,10 +35,15 @@ def test_forgot_password_sends_email(client, uow):
 
 def test_reset_password_updates_hash(client, uow):
     # Register a user
-    services.register_user(uow, "test@example.com", "password123")
-    
-    token = serializer.dumps("test@example.com", salt="password-reset-salt")
-    
+    uid = 0
+    with uow:
+        services.register_user(uow, "test@example.com", "password123")
+        user = uow.users.get_user_by_email("test@example.com")
+        uid = user.user_id
+
+    with uow:
+        token = token_service.issue_token(uow, uid, TOKEN_KIND_RESET, 3600)
+
     response = client.post(f"/reset-password/{token}", data={"password": "newpassword123"}, follow_redirects=True)
     
     assert response.status_code == 200

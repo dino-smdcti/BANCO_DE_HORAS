@@ -11,10 +11,11 @@ from src.config import (
         MAGIC_LOGIN_TOKEN_MAX_AGE,
         PASSWORD_RESET_TOKEN_MAX_AGE,
         ROLE_EMPLOYEE,
-        TOKEN_SALT_INVITE,
+        TOKEN_KIND_INVITE,
+        TOKEN_KIND_RESET,
         TOKEN_SALT_MAGIC_LOGIN,
-        TOKEN_SALT_PASSWORD_RESET,
 )
+from src.service_layer import token_service
 
 
 def register_routes(app):
@@ -57,35 +58,39 @@ def forgot_password():
 
 
 def reset_password(token):
-        email = _load_email_from_token(token)
-        if not email:
-                flash("O link de recuperação é inválido ou expirou.", "danger")
-                return redirect(url_for("forgot_password"))
-        if request.method == "POST":
-                password = request.form.get("password")
-                if not password:
-                        flash("A senha é obrigatória.", "danger")
-                        return render_template("reset_password.html", token=token)
-                _apply_new_password(email, password)
-                return redirect(url_for("login"))
-        return render_template("reset_password.html", token=token)
+        uow = new_uow()
+        with uow:
+                user = _validated_reset_user(uow, token, TOKEN_KIND_RESET)
+                if user is None:
+                        flash("O link de recuperação é inválido ou expirou.", "danger")
+                        return redirect(url_for("forgot_password"))
+                if request.method == "POST":
+                        password = request.form.get("password")
+                        if not password:
+                                flash("A senha é obrigatória.", "danger")
+                                return render_template("reset_password.html", token=token)
+                        _apply_new_password(uow, user, token, TOKEN_KIND_RESET, password)
+                        return redirect(url_for("login"))
+                return render_template("reset_password.html", token=token)
 
 
 def accept_invite(token):
-        """Set up a new password for an invited user. Uses a distinct salt from
-        password reset so an invite link cannot double as a reset (and vice versa)."""
-        email = _load_email_from_token(token, salt=TOKEN_SALT_INVITE)
-        if not email:
-                flash("O convite é inválido ou expirou.", "danger")
-                return redirect(url_for("forgot_password"))
-        if request.method == "POST":
-                password = request.form.get("password")
-                if not password:
-                        flash("A senha é obrigatória.", "danger")
-                        return render_template("reset_password.html", token=token)
-                _apply_new_password(email, password)
-                return redirect(url_for("login"))
-        return render_template("reset_password.html", token=token)
+        """Set up a new password for an invited user. Uses a distinct token kind
+        from password reset so an invite link cannot double as a reset (and vice versa)."""
+        uow = new_uow()
+        with uow:
+                user = _validated_reset_user(uow, token, TOKEN_KIND_INVITE)
+                if user is None:
+                        flash("O convite é inválido ou expirou.", "danger")
+                        return redirect(url_for("forgot_password"))
+                if request.method == "POST":
+                        password = request.form.get("password")
+                        if not password:
+                                flash("A senha é obrigatória.", "danger")
+                                return render_template("reset_password.html", token=token)
+                        _apply_new_password(uow, user, token, TOKEN_KIND_INVITE, password)
+                        return redirect(url_for("login"))
+                return render_template("reset_password.html", token=token)
 
 
 def magic_login():
@@ -130,13 +135,6 @@ def _post_login_redirect(user):
         return redirect(url_for("dashboard"))
 
 
-def _load_email_from_token(token, salt=TOKEN_SALT_PASSWORD_RESET):
-        try:
-                return flask_app.serializer.loads(token, salt=salt, max_age=PASSWORD_RESET_TOKEN_MAX_AGE)
-        except Exception:
-                return None
-
-
 def _load_magic_email(token):
         try:
                 return flask_app.serializer.loads(token, salt=TOKEN_SALT_MAGIC_LOGIN, max_age=MAGIC_LOGIN_TOKEN_MAX_AGE)
@@ -144,13 +142,20 @@ def _load_magic_email(token):
                 return None
 
 
+def _validated_reset_user(uow, token, kind):
+        user_id = token_service.peek_token(uow, token, kind)
+        if user_id is None:
+                return None
+        return uow.users.get_user_by_id(user_id)
+
+
 def _handle_forgot_post(email):
         uow = new_uow()
         with uow:
                 user = uow.users.get_user_by_email(email)
                 if user:
-                        token = flask_app.serializer.dumps(email, salt=TOKEN_SALT_PASSWORD_RESET)
-                        reset_url = url_for("reset_password", token=token, _external=True)
+                        raw = token_service.issue_token(uow, user.user_id, TOKEN_KIND_RESET, PASSWORD_RESET_TOKEN_MAX_AGE)
+                        reset_url = url_for("reset_password", token=raw, _external=True)
                         html = render_template("emails/reset_password.html", reset_url=reset_url)
                         _send_reset_email(email, html)
                 else:
@@ -169,14 +174,12 @@ def _flash_generic_reset_info():
         flash("Se o e-mail estiver cadastrado, você receberá um link de recuperação em instantes.", "info")
 
 
-def _apply_new_password(email, password):
-        uow = new_uow()
-        with uow:
-                user = uow.users.get_user_by_email(email)
-                if user:
-                        user.password_hash = generate_password_hash(password)
-                        uow.commit()
-                        flash("Sua senha foi atualizada com sucesso.", "success")
+def _apply_new_password(uow, user, token, kind, password):
+        token_service.consume_token(uow, token, kind)
+        user.password_hash = generate_password_hash(password)
+        uow.tokens.revoke_user_tokens(user.user_id, TOKEN_KIND_RESET)
+        uow.commit()
+        flash("Sua senha foi atualizada com sucesso.", "success")
 
 
 def _handle_magic_login(email):

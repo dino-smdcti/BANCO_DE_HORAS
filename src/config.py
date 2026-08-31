@@ -113,6 +113,7 @@ RETROACTIVE_NOTE_FILLED = "Preenchido retroativamente."
 # --------------------------------------------------------------------------
 PASSWORD_RESET_TOKEN_MAX_AGE = 3600  # 1 hour
 MAGIC_LOGIN_TOKEN_MAX_AGE = 600  # 10 minutes
+INVITE_TOKEN_MAX_AGE = 604800  # 7 days
 TOKEN_SALT_PASSWORD_RESET = "password-reset-salt"
 TOKEN_SALT_MAGIC_LOGIN = "magic-login-salt"
 TOKEN_SALT_INVITE = "invite-salt"
@@ -146,6 +147,10 @@ ATTESTATION_CID_COLUMN_LENGTH = 20
 FACULTATIVO_DESCRIPTION_COLUMN_LENGTH = 255
 HOLIDAY_DESCRIPTION_COLUMN_LENGTH = 255
 NOTIFICATION_MESSAGE_COLUMN_LENGTH = 500
+TOKEN_KIND_COLUMN_LENGTH = 20
+TOKEN_HASH_COLUMN_LENGTH = 64
+TOKEN_KIND_RESET = "reset"
+TOKEN_KIND_INVITE = "invite"
 
 # --------------------------------------------------------------------------
 # SMTP / email

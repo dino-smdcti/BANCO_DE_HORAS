@@ -1,10 +1,11 @@
 import pytest
 from unittest.mock import patch
 
-from src.entrypoints.flask_app import app, serializer, _resolve_secret_key
+from src.entrypoints.flask_app import app, _resolve_secret_key
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
+from src.service_layer import token_service
 from src.domain.model import User, UserRole
-from src.config import TOKEN_SALT_INVITE, TOKEN_SALT_PASSWORD_RESET
+from src.config import TOKEN_KIND_INVITE, TOKEN_KIND_RESET
 
 
 @pytest.fixture
@@ -27,40 +28,93 @@ def _create_user(uow, email):
         return user.user_id
 
 
-class TestDistinctInviteSalt:
+class TestKindSeparation:
     def test_invite_token_works_on_invite_route(self, client, uow):
         uid = _create_user(uow, "salt_inv@test.com")
-        token = serializer.dumps("salt_inv@test.com", salt=TOKEN_SALT_INVITE)
-        r = client.get("/invite/%s" % token)
+        with uow:
+            raw = token_service.issue_token(uow, uid, TOKEN_KIND_INVITE, 300)
+        r = client.get("/invite/%s" % raw)
         assert r.status_code == 200
 
     def test_invite_token_rejected_on_reset_route(self, client, uow):
         uid = _create_user(uow, "salt_inv2@test.com")
-        token = serializer.dumps("salt_inv2@test.com", salt=TOKEN_SALT_INVITE)
-        r = client.get("/reset-password/%s" % token, follow_redirects=False)
+        with uow:
+            raw = token_service.issue_token(uow, uid, TOKEN_KIND_INVITE, 300)
+        r = client.get("/reset-password/%s" % raw, follow_redirects=False)
         assert r.status_code == 302
 
     def test_reset_token_rejected_on_invite_route(self, client, uow):
         uid = _create_user(uow, "salt_inv3@test.com")
-        token = serializer.dumps("salt_inv3@test.com", salt=TOKEN_SALT_PASSWORD_RESET)
-        r = client.get("/invite/%s" % token, follow_redirects=False)
+        with uow:
+            raw = token_service.issue_token(uow, uid, TOKEN_KIND_RESET, 300)
+        r = client.get("/invite/%s" % raw, follow_redirects=False)
         assert r.status_code == 302
 
     def test_reset_token_works_on_reset_route(self, client, uow):
         uid = _create_user(uow, "salt_inv4@test.com")
-        token = serializer.dumps("salt_inv4@test.com", salt=TOKEN_SALT_PASSWORD_RESET)
-        r = client.get("/reset-password/%s" % token)
+        with uow:
+            raw = token_service.issue_token(uow, uid, TOKEN_KIND_RESET, 300)
+        r = client.get("/reset-password/%s" % raw)
         assert r.status_code == 200
 
     def test_invite_token_cannot_reset_password(self, client, uow):
         uid = _create_user(uow, "salt_inv5@test.com")
-        token = serializer.dumps("salt_inv5@test.com", salt=TOKEN_SALT_INVITE)
+        with uow:
+            raw = token_service.issue_token(uow, uid, TOKEN_KIND_INVITE, 300)
         r = client.post(
-            "/reset-password/%s" % token,
+            "/reset-password/%s" % raw,
             data={"password": "newsecret123"},
             follow_redirects=False,
         )
         assert r.status_code == 302
+
+
+class TestSingleUse:
+    def test_reset_token_consumed_after_use(self, client, uow):
+        uid = _create_user(uow, "single_use@test.com")
+        with uow:
+            raw = token_service.issue_token(uow, uid, TOKEN_KIND_RESET, 300)
+        r = client.post(
+            "/reset-password/%s" % raw,
+            data={"password": "newsecret123"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        with uow:
+            still_valid = token_service.peek_token(uow, raw, TOKEN_KIND_RESET)
+        assert still_valid is None
+
+    def test_reused_reset_token_rejected(self, client, uow):
+        uid = _create_user(uow, "reuse@test.com")
+        with uow:
+            raw = token_service.issue_token(uow, uid, TOKEN_KIND_RESET, 300)
+        client.post("/reset-password/%s" % raw, data={"password": "pass12345"}, follow_redirects=False)
+        r = client.post(
+            "/reset-password/%s" % raw,
+            data={"password": "otherpass123"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        with uow:
+            user = uow.users.get_user_by_id(uid)
+            stored_hash = user.password_hash
+        from werkzeug.security import check_password_hash
+        assert check_password_hash(stored_hash, "pass12345")
+        assert not check_password_hash(stored_hash, "otherpass123")
+
+    def test_invite_token_single_use(self, client, uow):
+        uid = _create_user(uow, "inv_single@test.com")
+        with uow:
+            raw = token_service.issue_token(uow, uid, TOKEN_KIND_INVITE, 300)
+        r = client.post(
+            "/invite/%s" % raw,
+            data={"password": "setpass123"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+        with uow:
+            still_valid = token_service.peek_token(uow, raw, TOKEN_KIND_INVITE)
+        assert still_valid is None
 
 
 class TestSecretKeyProductionGate:

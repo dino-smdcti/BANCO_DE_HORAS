@@ -22,6 +22,7 @@ DEFAULT_SESSION_FACTORY = None
 
 class AbstractUnitOfWork(ABC):
         users: AbstractRepository
+        tokens: AbstractRepository
         session: Session
 
         def __enter__(self):
@@ -75,6 +76,7 @@ def _start_session(uow):
         if uow._nested_count == 0:
                 uow.session = uow.session_factory()
                 uow.users = SqlAlchemyRepository(uow.session)
+                uow.tokens = SqlAlchemyRepository(uow.session)
 
 
 def _close_session(uow, exc_type):

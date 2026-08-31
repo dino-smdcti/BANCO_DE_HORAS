@@ -40,8 +40,8 @@ Command convention: run suite as
 
 ### 1.4 Secret key + token hygiene
 - [x] Remove "dev-secret-key" fallback; raise in production when unset (`_resolve_secret_key`, tested)
-- [ ] Server-side single-use, revocable tokens (hash + user + expiry in DB; invalidate on use/change)
-- [x] Distinct salts/lifetimes for invite vs reset (added `TOKEN_SALT_INVITE` + `/invite/<token>` route; invite token can no longer reset password)
+- [x] Server-side single-use, revocable tokens (DB `auth_tokens` table: sha256 hash + user + kind + expiry; burned on use and revoked on password change; `token_service`, `AuthToken` model, migration `create_auth_tokens_table.py`, `uow.tokens`)
+- [x] Distinct kinds/lifetimes for invite vs reset (`TOKEN_KIND_INVITE`/`TOKEN_KIND_RESET` + `/invite/<token>` route; invite token can no longer reset password)
 - [x] Stop flashing full reset URLs with tokens in HTML (reset/invite now use email fallback page; forgot/magic use generic flash)
 - [x] Tests: invite token cannot reset password; reset rejected on invite route; SECRET_KEY production gate (test_token_hygiene.py)
 
