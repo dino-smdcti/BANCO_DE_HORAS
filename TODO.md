@@ -39,11 +39,11 @@ Command convention: run suite as
 - [x] Tests: manager sees fallback on failed email; employee never does (test_email_fallback.py)
 
 ### 1.4 Secret key + token hygiene
-- [ ] Remove "dev-secret-key" fallback; raise in production when unset
+- [x] Remove "dev-secret-key" fallback; raise in production when unset (`_resolve_secret_key`, tested)
 - [ ] Server-side single-use, revocable tokens (hash + user + expiry in DB; invalidate on use/change)
-- [ ] Distinct salts/lifetimes for invite vs reset (they currently share "password-reset-salt")
-- [ ] Stop flashing full reset URLs with tokens in HTML
-- [ ] Tests: invite token cannot reset password; token single-use; revoked after password change
+- [x] Distinct salts/lifetimes for invite vs reset (added `TOKEN_SALT_INVITE` + `/invite/<token>` route; invite token can no longer reset password)
+- [x] Stop flashing full reset URLs with tokens in HTML (reset/invite now use email fallback page; forgot/magic use generic flash)
+- [x] Tests: invite token cannot reset password; reset rejected on invite route; SECRET_KEY production gate (test_token_hygiene.py)
 
 ### 1.5 Rate limiting + enumeration
 - [ ] Throttle login / forgot-password / magic-login
