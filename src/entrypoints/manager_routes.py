@@ -12,6 +12,15 @@ from src.entrypoints.forms import JourneyTypeForm, ProfileForm, RegisterForm, Wo
 from src.entrypoints.web_helpers import INVALID_DATE, is_management_role, new_uow, parse_date, parse_time
 from src.service_layer import services
 from src.service_layer.audit import log_action
+from src.config import (
+        ADMIN_ROLES,
+        DATE_FORMAT,
+        ROLE_ADMIN,
+        ROLE_EMPLOYEE,
+        ROLE_GESTOR,
+        ROLE_MANAGER,
+        TIME_FORMAT,
+)
 
 _ScheduleValues = namedtuple("_ScheduleValues", ["arrival", "lunch_start", "lunch_end", "departure", "tolerance", "has_lunch_break", "schedule_type"])
 
@@ -74,7 +83,7 @@ def edit_employee(employee_id):
 
 @login_required
 def promote_user(user_id):
-        if current_user.role != "admin":
+        if current_user.role != ROLE_ADMIN:
                 flash("Acesso não autorizado", "danger")
                 return redirect(url_for("dashboard"))
         uow = new_uow()
@@ -88,7 +97,7 @@ def change_user_role(user_id):
         if not is_management_role(current_user.role):
                 return {"success": False, "message": "Acesso não autorizado"}, 403
         new_role = request.json.get("role")
-        if new_role not in ["employee", "gestor", "manager", "admin"]:
+        if new_role not in [ROLE_EMPLOYEE, ROLE_GESTOR, ROLE_MANAGER, ROLE_ADMIN]:
                 return {"success": False, "message": "Perfil inválido"}, 400
         uow = new_uow()
         with uow:
@@ -97,7 +106,7 @@ def change_user_role(user_id):
 
 @login_required
 def demote_user(user_id):
-        if current_user.role != "admin":
+        if current_user.role != ROLE_ADMIN:
                 flash("Acesso não autorizado", "danger")
                 return redirect(url_for("dashboard"))
         uow = new_uow()
@@ -144,7 +153,7 @@ def update_user_analysis_date(employee_id):
         denied = _role_guard()
         if denied:
                 return denied
-        start_date = datetime.strptime(request.form.get("start_analysis_date"), "%Y-%m-%d").date()
+        start_date = datetime.strptime(request.form.get("start_analysis_date"), DATE_FORMAT).date()
         uow = new_uow()
         with uow:
                 _apply_analysis_date(uow, employee_id, start_date)
@@ -209,8 +218,8 @@ def add_vacation(employee_id):
         denied = _role_guard()
         if denied:
                 return denied
-        start_date = datetime.strptime(request.form.get("start_date"), "%Y-%m-%d").date()
-        end_date = datetime.strptime(request.form.get("end_date"), "%Y-%m-%d").date()
+        start_date = datetime.strptime(request.form.get("start_date"), DATE_FORMAT).date()
+        end_date = datetime.strptime(request.form.get("end_date"), DATE_FORMAT).date()
         uow = new_uow()
         services.add_vacation(uow, current_user.id, employee_id, start_date, end_date)
         flash("Período de férias adicionado.", "success")
@@ -245,7 +254,7 @@ def remove_attestation_day(employee_id, entry_date):
         denied = _role_guard()
         if denied:
                 return denied
-        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
         uow = new_uow()
         try:
                 services.remove_attestation_day(uow, current_user.id, employee_id, entry_date)
@@ -261,7 +270,7 @@ def remove_vacation_day(employee_id, entry_date):
         denied = _role_guard()
         if denied:
                 return denied
-        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
         uow = new_uow()
         try:
                 services.remove_vacation_day(uow, current_user.id, employee_id, entry_date)
@@ -277,7 +286,7 @@ def remove_missing_excuse(employee_id, entry_date):
         denied = _role_guard()
         if denied:
                 return denied
-        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
         uow = new_uow()
         try:
                 services.remove_missing_excuse(uow, current_user.id, employee_id, entry_date)
@@ -293,7 +302,7 @@ def add_holiday():
         denied = _role_guard()
         if denied:
                 return denied
-        holiday_date = datetime.strptime(request.form.get("holiday_date"), "%Y-%m-%d").date()
+        holiday_date = datetime.strptime(request.form.get("holiday_date"), DATE_FORMAT).date()
         description = request.form.get("description")
         mandatory = request.form.get("is_mandatory") == "on"
         uow = new_uow()
@@ -430,7 +439,7 @@ def delete_ponto(employee_id, entry_date):
         denied = _role_guard()
         if denied:
                 return denied
-        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
         uow = new_uow()
         services.delete_ponto_entry(uow, current_user.id, employee_id, entry_date)
         flash("Registro de ponto excluído.", "warning")
@@ -439,10 +448,10 @@ def delete_ponto(employee_id, entry_date):
 
 @login_required
 def review_badge(employee_id, entry_date, stage, action):
-        if current_user.role not in ["admin", "gestor"]:
+        if current_user.role not in ADMIN_ROLES:
                 flash("Apenas o Administrador pode realizar esta ação.", "danger")
                 return redirect(url_for("view_employee_logs", employee_id=employee_id))
-        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
         uow = new_uow()
         try:
                 services.review_anomaly_badge(uow, int(current_user.id), employee_id, entry_date, stage, action)
@@ -457,7 +466,7 @@ def review_badge(employee_id, entry_date, stage, action):
 @handle_errors
 def save_manager_note():
         employee_id = int(request.form.get("employee_id"))
-        entry_date = datetime.strptime(request.form.get("entry_date"), "%Y-%m-%d").date()
+        entry_date = datetime.strptime(request.form.get("entry_date"), DATE_FORMAT).date()
         note_text = request.form.get("note_text")
         uow = new_uow()
         with uow:
@@ -478,7 +487,7 @@ def complete_retroactive_logs_route(employee_id):
         denied = _role_guard()
         if denied:
                 return denied
-        if current_user.role not in ["admin", "gestor"]:
+        if current_user.role not in ADMIN_ROLES:
                 flash("Apenas administradores e gestores podem realizar esta ação.", "danger")
                 return redirect(url_for("view_employee_logs", employee_id=employee_id))
         end_date = parse_date(request.form.get("end_date"))
@@ -604,13 +613,13 @@ def _change_role_response(uow, user_id, new_role):
                 return {"success": False, "message": "Usuário não encontrado"}, 404
         old_role = employee.role.value if hasattr(employee.role, "value") else employee.role
         employee.role = UserRole(new_role)
-        action = "PROMOTE_USER" if new_role in ["gestor", "manager", "admin"] else "DEMOTE_USER"
+        action = "PROMOTE_USER" if new_role in [ROLE_GESTOR, ROLE_MANAGER, ROLE_ADMIN] else "DEMOTE_USER"
         log_action(uow, current_user.id, action, target_id=user_id, details=f"Perfil alterado de {old_role} para {new_role}")
         return {"success": True, "message": "Perfil atualizado com sucesso!"}
 
 
 def _archive_justification(employee_id, entry_date):
-        entry_date = datetime.strptime(entry_date, "%Y-%m-%d").date()
+        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
         uow = new_uow()
         services.dismiss_justification(uow, current_user.id, employee_id, entry_date)
         flash("Justificativa arquivada com sucesso.", "info")
@@ -625,7 +634,7 @@ def _render_archived(uow):
                 archived = [entry for entry in archived if entry["emp"].user_id == int(employee_id)]
         date_str = request.args.get("date")
         if date_str:
-                target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                target_date = datetime.strptime(date_str, DATE_FORMAT).date()
                 archived = [entry for entry in archived if entry["ponto"].entry_date == target_date]
         return render_template(
                 "archived_justifications.html",
@@ -663,7 +672,7 @@ def _absences(employees):
                 result = [item for item in result if item["emp"].user_id == int(emp_filter)]
         date_filter = request.args.get("date_filter")
         if date_filter:
-                target = datetime.strptime(date_filter, "%Y-%m-%d").date()
+                target = datetime.strptime(date_filter, DATE_FORMAT).date()
                 result = [item for item in result if item["ponto"].entry_date == target]
         return result
 
@@ -697,7 +706,7 @@ def _correction_row(uow, request):
 def _holidays_serialized(uow):
         from src.domain.model import Holiday
         holidays = uow.session.execute(select(Holiday).order_by(Holiday.holiday_date)).scalars().all()
-        return [{"date": holiday.holiday_date.strftime("%Y-%m-%d"), "description": holiday.description} for holiday in holidays]
+        return [{"date": holiday.holiday_date.strftime(DATE_FORMAT), "description": holiday.description} for holiday in holidays]
 
 
 def _apply_analysis_date(uow, employee_id, start_date):
@@ -758,7 +767,7 @@ def _fix_emp_entry(uow, employee_id, entry_date_str, selected_points, prefix_fie
         key = f"{employee_id}_{entry_date_str}" if prefix_fields else entry_date_str
         if key not in selected_points:
                 return
-        entry_date = datetime.strptime(entry_date_str, "%Y-%m-%d").date()
+        entry_date = datetime.strptime(entry_date_str, DATE_FORMAT).date()
         form_key = f"{employee_id}_{entry_date_str}" if prefix_fields else entry_date_str
         services.manual_ponto_correction(
                 uow,
@@ -787,7 +796,7 @@ def _ponto_redirect(employee_id):
 
 
 def _apply_fix(uow, employee_id):
-        entry_date = datetime.strptime(request.form.get("entry_date"), "%Y-%m-%d").date()
+        entry_date = datetime.strptime(request.form.get("entry_date"), DATE_FORMAT).date()
         services.manual_ponto_correction(
                 uow,
                 current_user.id,
@@ -885,7 +894,7 @@ def _parse_rotation_start(value):
         if not value:
                 return None
         try:
-                return datetime.strptime(value, "%Y-%m-%d").date()
+                return datetime.strptime(value, DATE_FORMAT).date()
         except ValueError:
                 return None
 
@@ -894,11 +903,11 @@ def _prefill_schedule_form(form, employee):
         if request.method == "POST" or not employee.work_schedule:
                 return
         schedule = employee.work_schedule
-        form.arrival.data = schedule.expected_arrival.strftime("%H:%M")
+        form.arrival.data = schedule.expected_arrival.strftime(TIME_FORMAT)
         form.has_lunch_break.data = schedule.has_lunch_break
-        form.lunch_start.data = schedule.expected_lunch_start.strftime("%H:%M") if schedule.expected_lunch_start else ""
-        form.lunch_end.data = schedule.expected_lunch_end.strftime("%H:%M") if schedule.expected_lunch_end else ""
-        form.departure.data = schedule.expected_departure.strftime("%H:%M")
+        form.lunch_start.data = schedule.expected_lunch_start.strftime(TIME_FORMAT) if schedule.expected_lunch_start else ""
+        form.lunch_end.data = schedule.expected_lunch_end.strftime(TIME_FORMAT) if schedule.expected_lunch_end else ""
+        form.departure.data = schedule.expected_departure.strftime(TIME_FORMAT)
         form.tolerance.data = str(schedule.tolerance_minutes)
 
 
@@ -917,11 +926,11 @@ def _create_journey_from_form(uow, form):
 
 def _journey_payload(journey):
         return {
-                "arrival": journey.expected_arrival.strftime("%H:%M"),
+                "arrival": journey.expected_arrival.strftime(TIME_FORMAT),
                 "has_lunch_break": journey.has_lunch_break,
-                "lunch_start": journey.expected_lunch_start.strftime("%H:%M") if journey.expected_lunch_start else "",
-                "lunch_end": journey.expected_lunch_end.strftime("%H:%M") if journey.expected_lunch_end else "",
-                "departure": journey.expected_departure.strftime("%H:%M"),
+                "lunch_start": journey.expected_lunch_start.strftime(TIME_FORMAT) if journey.expected_lunch_start else "",
+                "lunch_end": journey.expected_lunch_end.strftime(TIME_FORMAT) if journey.expected_lunch_end else "",
+                "departure": journey.expected_departure.strftime(TIME_FORMAT),
                 "tolerance": journey.tolerance_minutes,
                 "schedule_type": journey.schedule_type.value,
         }
@@ -949,9 +958,9 @@ def _update_journey_from_form(uow, journey_id, form):
 def _prefill_journey_form(form, journey):
         form.name.data = journey.name
         form.has_lunch_break.data = journey.has_lunch_break
-        form.arrival.data = journey.expected_arrival.strftime("%H:%M")
-        form.lunch_start.data = journey.expected_lunch_start.strftime("%H:%M") if journey.expected_lunch_start else ""
-        form.lunch_end.data = journey.expected_lunch_end.strftime("%H:%M") if journey.expected_lunch_end else ""
-        form.departure.data = journey.expected_departure.strftime("%H:%M")
+        form.arrival.data = journey.expected_arrival.strftime(TIME_FORMAT)
+        form.lunch_start.data = journey.expected_lunch_start.strftime(TIME_FORMAT) if journey.expected_lunch_start else ""
+        form.lunch_end.data = journey.expected_lunch_end.strftime(TIME_FORMAT) if journey.expected_lunch_end else ""
+        form.departure.data = journey.expected_departure.strftime(TIME_FORMAT)
         form.tolerance.data = str(journey.tolerance_minutes)
         form.schedule_type.data = journey.schedule_type.value

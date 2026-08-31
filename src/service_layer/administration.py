@@ -6,25 +6,24 @@ from src.domain.time_utils import minutes_between
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.service_layer.permissions import ensure_manager
 from src.service_layer.audit import log_action
+from src.config import (
+        ANOMALY_FLAG_TRIPLES,
+        EASTER_OFFSET_CARNAVAL,
+        EASTER_OFFSET_CORPUS_CHRISTI,
+        EASTER_OFFSET_GOOD_FRIDAY,
+        FALLBACK_ANALYSIS_DATE,
+        FIXED_NATIONAL_HOLIDAYS,
+        FIXED_VALADARES_HOLIDAYS,
+        HOLIDAY_SEED_YEAR_END,
+        HOLIDAY_SEED_YEAR_START,
+        MANAGER_NOTES_VACATION,
+)
 
-_FIXED_NATIONAL_HOLIDAYS = [
-        (1, 1, "Confraternização Universal (Ano Novo)"),
-        (4, 21, "Tiradentes"),
-        (5, 1, "Dia do Trabalhador"),
-        (9, 7, "Independência do Brasil"),
-        (10, 12, "Nossa Senhora Aparecida (Padroeira do Brasil)"),
-        (11, 2, "Finados"),
-        (11, 15, "Proclamação da República"),
-        (11, 20, "Dia Nacional de Zumbi e da Consciência Negra"),
-        (12, 25, "Natal"),
-]
+_FIXED_NATIONAL_HOLIDAYS = FIXED_NATIONAL_HOLIDAYS
 
-_FIXED_VALADARES_HOLIDAYS = [
-        (1, 30, "Aniversário de Governador Valadares"),
-        (6, 13, "Santo Antônio (Padroeiro de Governador Valadares)"),
-]
+_FIXED_VALADARES_HOLIDAYS = FIXED_VALADARES_HOLIDAYS
 
-_HOLIDAY_YEARS = range(2025, 2036)
+_HOLIDAY_YEARS = range(HOLIDAY_SEED_YEAR_START, HOLIDAY_SEED_YEAR_END)
 
 
 def add_vacation(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, start_date: date, end_date: date):
@@ -70,7 +69,7 @@ def seed_holidays(uow: AbstractUnitOfWork):
 def get_start_analysis_date(uow: AbstractUnitOfWork) -> date:
         with uow:
                 settings = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
-                return settings.start_analysis_date if settings else date(2026, 1, 1)
+                return settings.start_analysis_date if settings else FALLBACK_ANALYSIS_DATE
 
 
 def _unregister_vacation_day(uow, manager_id, employee_id, target_date):
@@ -120,7 +119,7 @@ def _unregister_missing_excuse(uow, manager_id, employee_id, target_date):
 
 
 def _reset_all_excuses(ponto):
-        for reviewed, approved, excused in _ANOMALY_FLAG_TRIPLES:
+        for reviewed, approved, excused in ANOMALY_FLAG_TRIPLES:
                 setattr(ponto, reviewed, False)
                 setattr(ponto, approved, False)
                 setattr(ponto, excused, False)
@@ -149,7 +148,7 @@ def _apply_vacation_day(employee, day):
         ponto.status = PontoStatus.DISMISSED
         ponto.excused_minutes = 0
         _excuse_all_stages(ponto)
-        ponto.manager_notes = "Férias"
+        ponto.manager_notes = MANAGER_NOTES_VACATION
 
 
 def _register_holiday(uow, manager_id, holiday_date, description, is_mandatory):
@@ -318,19 +317,11 @@ def _ponto_for(employee, day):
 
 
 def _excuse_all_stages(ponto):
-        for reviewed, approved, excused in _ANOMALY_FLAG_TRIPLES:
+        for reviewed, approved, excused in ANOMALY_FLAG_TRIPLES:
                 setattr(ponto, reviewed, True)
                 setattr(ponto, excused, True)
         setattr(ponto, "missing_reviewed", True)
         setattr(ponto, "missing_excused", True)
-
-
-_ANOMALY_FLAG_TRIPLES = [
-        ("arrival_late_reviewed", "arrival_late_approved", "arrival_late_excused"),
-        ("lunch_start_late_reviewed", "lunch_start_late_approved", "lunch_start_late_excused"),
-        ("lunch_end_late_reviewed", "lunch_end_late_approved", "lunch_end_late_excused"),
-        ("departure_early_reviewed", "departure_early_approved", "departure_early_excused"),
-]
 
 
 def _attestation_note(cid, start_time, end_time):
@@ -391,9 +382,9 @@ def _holidays_for_year(year):
         holidays = [_fixed_holiday(month, day, description, year) for month, day, description in _FIXED_NATIONAL_HOLIDAYS]
         holidays += [_fixed_holiday(month, day, description, year) for month, day, description in _FIXED_VALADARES_HOLIDAYS]
         easter = _easter_date(year)
-        holidays.append(_offset_holiday(easter, -47, "Carnaval"))
-        holidays.append(_offset_holiday(easter, -2, "Sexta-feira Santa (Paixão de Cristo)"))
-        holidays.append(_offset_holiday(easter, 60, "Corpus Christi"))
+        holidays.append(_offset_holiday(easter, EASTER_OFFSET_CARNAVAL, "Carnaval"))
+        holidays.append(_offset_holiday(easter, EASTER_OFFSET_GOOD_FRIDAY, "Sexta-feira Santa (Paixão de Cristo)"))
+        holidays.append(_offset_holiday(easter, EASTER_OFFSET_CORPUS_CHRISTI, "Corpus Christi"))
         return holidays
 
 

@@ -17,18 +17,18 @@
         <button class="btn btn-sm btn-secondary btn-compact" data-bs-toggle="modal" data-bs-target="#vacationModal">Lançar Férias</button>
         <button class="btn btn-sm btn-secondary btn-compact" data-bs-toggle="modal" data-bs-target="#attestationModal">Lançar Atestado</button>
         <a href="{{ url_for('set_schedule', employee_id=employee.user_id) }}" class="btn btn-sm btn-primary text-white btn-compact">Definir Horário</a>
-        {% if current_user.role in ['admin', 'gestor'] %}
+        {% if current_user.role in ADMIN_ROLES %}
             <button class="btn btn-sm btn-info text-white btn-compact" data-bs-toggle="modal" data-bs-target="#retroactiveLogsModal">
                 <i class="bi bi-clock-history"></i> Completar Logs Retroativamente
             </button>
         {% endif %}
         
-        {% if current_user.role in ['admin', 'gestor'] %}
-            {% if employee.role.value == 'employee' %}
+        {% if current_user.role in ADMIN_ROLES %}
+            {% if employee.role.value == ROLE_EMPLOYEE %}
                 <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="m-0">
                     <button type="submit" class="btn btn-sm btn-warning btn-compact" onclick="return confirm('Promover este usuário a Gestor?');">Promover</button>
                 </form>
-            {% elif employee.role.value == 'manager' %}
+            {% elif employee.role.value == ROLE_MANAGER %}
                 <form action="{{ url_for('demote_user', user_id=employee.user_id) }}" method="POST" class="m-0">
                     <button type="submit" class="btn btn-sm btn-warning btn-compact" onclick="return confirm('Rebaixar este gestor a funcionário?');">Demover</button>
                 </form>
@@ -191,14 +191,14 @@
                                         {% if p.is_vacation %}
                                             <span class="badge bg-success d-inline-flex align-items-center gap-1">
                                                 Férias
-                                                {% if current_user.role in ['admin', 'gestor', 'manager'] %}
+                                                {% if current_user.role in MANAGEMENT_ROLES %}
                                                     <button type="button" class="btn btn-sm p-0 border-0 bg-transparent text-white text-decoration-none fw-bold" 
                                                             style="font-size: 0.7rem; line-height: 1;"
                                                             onclick="confirmRemoveVacation('{{ employee.user_id }}', '{{ p.entry_date }}')"
                                                             title="Remover Férias">&times;</button>
                                                 {% endif %}
                                             </span>
-                                        {% elif current_user.role in ['admin', 'gestor', 'manager'] %}
+                                        {% elif current_user.role in MANAGEMENT_ROLES %}
                                             <span class="badge {{ 'bg-success' if p.status.value == 'No Horário' else ('bg-warning text-dark' if p.status.value == 'Corrigido' else 'bg-secondary') }} cursor-pointer"
                                                   style="cursor: pointer;"
                                                   onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'arrival', 'Status: {{ p.status_label }}')">
@@ -218,7 +218,7 @@
                                         {% else %}
                                         <span class="badge bg-success d-inline-flex align-items-center gap-1 mt-1" style="display: block;">
                                             Falta Abonada
-                                            {% if current_user.role in ['admin', 'gestor', 'manager'] %}
+                                            {% if current_user.role in MANAGEMENT_ROLES %}
                                                 <button type="button" class="btn btn-sm p-0 border-0 bg-transparent text-white text-decoration-none fw-bold"
                                                         style="font-size: 0.7rem; line-height: 1;"
                                                         onclick="confirmRemoveMissingExcuse('{{ employee.user_id }}', '{{ p.entry_date }}')"
@@ -525,7 +525,7 @@
                 </table>
             </div>
             <div class="modal-footer d-flex justify-content-between">
-                {% if current_user.role in ['admin', 'gestor', 'manager'] %}
+                {% if current_user.role in MANAGEMENT_ROLES %}
                 <form id="att_remove_form" method="POST" onsubmit="return confirm('Remover o atestado deste dia?')">
                     <button type="submit" class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-trash"></i> Remover Atestado deste dia

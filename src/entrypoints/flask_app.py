@@ -15,13 +15,35 @@ from src.entrypoints import admin_routes, auth_routes, employee_routes, manager_
 from src.service_layer import services
 from src.service_layer.absence_processor import process_daily_absences
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
+from src.config import (
+        ADMIN_ROLES,
+        DATE_FORMAT,
+        DEFAULT_SMTP_PORT,
+        DEFAULT_SMTP_SERVER,
+        EMAIL_FROM_NAME,
+        FALLBACK_ANALYSIS_DATE,
+        LOCAL_SQLITE_URL,
+        MANAGEMENT_ROLES,
+        MAX_NOTIFICATIONS_DISPLAYED,
+        MINUTES_PER_HOUR,
+        POSTGRES_SCHEME_POSTGRES,
+        POSTGRES_SCHEME_POSTGRESQL,
+        ROLE_ADMIN,
+        ROLE_EMPLOYEE,
+        ROLE_GESTOR,
+        ROLE_LABELS,
+        ROLE_MANAGER,
+        SMTP_SSL_PORT,
+        SMTP_TIMEOUT_SECONDS,
+        VERCEL_SQLITE_URL,
+)
 
 load_dotenv()
 
 app = Flask(__name__, template_folder="templates")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
-app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
+app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", DEFAULT_SMTP_SERVER)
+app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", DEFAULT_SMTP_PORT))
 app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
 app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 
@@ -34,10 +56,10 @@ def _database_url():
         database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
         if not database_url:
                 if os.environ.get("VERCEL"):
-                        return "sqlite:////tmp/banco_de_horas.db"
-                return "sqlite:///banco_de_horas.db"
-        if database_url.startswith("postgres://"):
-                return database_url.replace("postgres://", "postgresql://", 1)
+                        return VERCEL_SQLITE_URL
+                return LOCAL_SQLITE_URL
+        if database_url.startswith(POSTGRES_SCHEME_POSTGRES):
+                database_url = database_url.replace(POSTGRES_SCHEME_POSTGRES, POSTGRES_SCHEME_POSTGRESQL, 1)
         return database_url
 
 
@@ -142,15 +164,21 @@ def _run_absence_check():
 @app.context_processor
 def utility_processor():
         def get_role_label(role_value, user_email=None):
-                if role_value == "manager" and user_email == "nagelalima1307.smdcti@gmail.com":
+                if role_value == ROLE_MANAGER and user_email == "nagelalima1307.smdcti@gmail.com":
                         return "Gestor"
-                mapping = {
-                        "employee": "Funcionário",
-                        "manager": "Diretor",
-                        "admin": "Secretário",
-                }
-                return mapping.get(role_value, role_value)
-        return dict(get_role_label=get_role_label)
+                return ROLE_LABELS.get(role_value, role_value)
+        return dict(
+                get_role_label=get_role_label,
+                ROLE_ADMIN=ROLE_ADMIN,
+                ROLE_EMPLOYEE=ROLE_EMPLOYEE,
+                ROLE_GESTOR=ROLE_GESTOR,
+                ROLE_MANAGER=ROLE_MANAGER,
+                ADMIN_ROLES=ADMIN_ROLES,
+                MANAGEMENT_ROLES=MANAGEMENT_ROLES,
+                MINUTES_PER_HOUR=MINUTES_PER_HOUR,
+                FALLBACK_ANALYSIS_DATE=FALLBACK_ANALYSIS_DATE,
+                DATE_FORMAT=DATE_FORMAT,
+        )
 
 
 @app.context_processor
@@ -163,7 +191,7 @@ def inject_notifications():
                 if user:
                         notifs = [
                                 {"message": n.message, "is_read": n.is_read, "created_at": n.created_at}
-                                for n in user.notifications[:20]
+                                for n in user.notifications[:MAX_NOTIFICATIONS_DISPLAYED]
                         ]
                         return {"user_notifs": notifs, "user_notifs_count": user.unread_notifications_count}
         return {"user_notifs": [], "user_notifs_count": 0}
@@ -182,7 +210,7 @@ def send_email(to_email, subject, body_html):
                 return False
 
         msg = MIMEMultipart()
-        msg["From"] = f"Banco de Horas <{app.config['MAIL_USERNAME']}>"
+        msg["From"] = f"{EMAIL_FROM_NAME} <{app.config['MAIL_USERNAME']}>"
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body_html, "html"))
@@ -204,9 +232,9 @@ def send_email(to_email, subject, body_html):
 def _smtp_connect():
         port = app.config["MAIL_PORT"]
         server_host = app.config["MAIL_SERVER"]
-        if port == 465:
-                return smtplib.SMTP_SSL(server_host, port, timeout=8)
-        server = smtplib.SMTP(server_host, port, timeout=8)
+        if port == SMTP_SSL_PORT:
+                return smtplib.SMTP_SSL(server_host, port, timeout=SMTP_TIMEOUT_SECONDS)
+        server = smtplib.SMTP(server_host, port, timeout=SMTP_TIMEOUT_SECONDS)
         server.ehlo()
         server.starttls()
         server.ehlo()

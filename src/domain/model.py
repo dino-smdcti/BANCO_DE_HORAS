@@ -4,6 +4,13 @@ from typing import Optional
 from enum import Enum
 import re
 
+from src.config import (
+        ANOMALY_STAGE_FLAGS,
+        DEFAULT_ANALYSIS_START_DATE,
+        LAST_WORKDAY_WEEKDAY,
+        MANAGER_NOTES_VACATION,
+        ROTATION_CYCLE_DAYS,
+)
 from src.domain.time_utils import minutes_between
 
 
@@ -43,7 +50,7 @@ class PontoStatus(str, Enum):
 class CompanySettings:
         lat: float
         lon: float
-        start_analysis_date: date = date(2026, 5, 1)
+        start_analysis_date: date = DEFAULT_ANALYSIS_START_DATE
 
 
 @dataclass
@@ -141,12 +148,7 @@ class Notification:
 
 
 # (flag, reviewed, approved, excused) attribute names for each anomaly stage.
-_ANOMALY_STAGES = [
-        ("arrival_late", "arrival_late_reviewed", "arrival_late_approved", "arrival_late_excused"),
-        ("lunch_start_late", "lunch_start_late_reviewed", "lunch_start_late_approved", "lunch_start_late_excused"),
-        ("lunch_end_late", "lunch_end_late_reviewed", "lunch_end_late_approved", "lunch_end_late_excused"),
-        ("departure_early", "departure_early_reviewed", "departure_early_approved", "departure_early_excused"),
-]
+_ANOMALY_STAGES = ANOMALY_STAGE_FLAGS
 
 
 @dataclass
@@ -213,7 +215,7 @@ class DailyPonto:
 
         @property
         def is_vacation(self) -> bool:
-                return self.status == PontoStatus.DISMISSED and self.manager_notes == "Férias"
+                return self.status == PontoStatus.DISMISSED and self.manager_notes == MANAGER_NOTES_VACATION
 
         @property
         def has_location(self) -> bool:
@@ -244,7 +246,7 @@ class UserProfile:
         position: Optional[str] = None
         secretariat: Optional[str] = None
         full_name: Optional[str] = None
-        start_analysis_date: date = date(2026, 5, 1)
+        start_analysis_date: date = DEFAULT_ANALYSIS_START_DATE
         birth_date: Optional[date] = None
 
         def is_complete(self) -> bool:
@@ -336,7 +338,7 @@ def _resolve_schedule_type(enum_cls, value):
 
 def _is_work_day(schedule_type, rotation_start, target_date):
         if schedule_type == ScheduleType.STANDARD:
-                return target_date.weekday() < 5
+                return target_date.weekday() < LAST_WORKDAY_WEEKDAY
         if schedule_type == ScheduleType.ROTATION_12X36:
                 return _is_rotation_work_day(rotation_start, target_date)
         return True
@@ -345,7 +347,7 @@ def _is_work_day(schedule_type, rotation_start, target_date):
 def _is_rotation_work_day(rotation_start, target_date):
         if not rotation_start:
                 return True
-        return (target_date - rotation_start).days % 2 == 0
+        return (target_date - rotation_start).days % ROTATION_CYCLE_DAYS == 0
 
 
 def _daily_target(schedule, arrival, lunch_start, lunch_end, departure):

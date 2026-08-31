@@ -6,6 +6,14 @@ from sqlalchemy import select
 from src.domain.model import DailyPonto, Facultativo, Holiday, PontoStatus
 from src.service_layer.audit import log_action
 from src.service_layer.permissions import ensure_manager
+from src.config import (
+        FALLBACK_ANALYSIS_DATE,
+        RETROACTIVE_LOCATION_MISSING,
+        RETROACTIVE_NOTE_FILLED,
+        RETROACTIVE_NOTE_MANUAL,
+        RETROACTIVE_NOTE_SCHEDULE,
+        RETROACTIVE_NOTES_AUTO,
+)
 
 
 def complete_retroactive_logs(
@@ -42,7 +50,7 @@ def _do_complete_retroactive_logs(
 
     start_date = employee.profile.start_analysis_date
     if start_date is None:
-        start_date = date(2026, 1, 1)
+        start_date = FALLBACK_ANALYSIS_DATE
 
     if end_date < start_date:
         raise ValueError("A data final deve ser posterior à data de início da análise.")
@@ -164,7 +172,7 @@ def _fill_existing_entry(ponto, schedule, fill_with_schedule,
             ponto.status = PontoStatus.ON_TIME
         else:
             ponto.status = PontoStatus.CORRECTED
-        ponto.notes = "Preenchido retroativamente."
+        ponto.notes = RETROACTIVE_NOTE_FILLED
         ponto.location_data = ""
 
     return changed
@@ -190,7 +198,7 @@ def _add_entry(uow, employee, entry_date, schedule, fill_with_schedule,
             departure=departure,
             status=PontoStatus.ON_TIME,
             has_lunch_break=has_lunch_break,
-            notes="Lançamento retroativo (horários da jornada).",
+            notes=RETROACTIVE_NOTE_SCHEDULE,
         )
     elif arrival or departure:
         ponto = DailyPonto(
@@ -202,7 +210,7 @@ def _add_entry(uow, employee, entry_date, schedule, fill_with_schedule,
             departure=departure,
             status=PontoStatus.CORRECTED,
             has_lunch_break=has_lunch_break,
-            notes="Lançamento retroativo (horários manuais).",
+            notes=RETROACTIVE_NOTE_MANUAL,
         )
     else:
         ponto = DailyPonto(
@@ -210,8 +218,8 @@ def _add_entry(uow, employee, entry_date, schedule, fill_with_schedule,
             entry_date=entry_date,
             status=PontoStatus.MISSING,
             has_lunch_break=has_lunch_break,
-            location_data="Sistema: Lançamento retroativo (sem horários).",
-            notes="Ausência sem registro de ponto (lançamento retroativo).",
+            location_data=RETROACTIVE_LOCATION_MISSING,
+            notes=RETROACTIVE_NOTES_AUTO,
         )
     uow.session.add(ponto)
     employee.time_entries.append(ponto)

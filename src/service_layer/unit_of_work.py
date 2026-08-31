@@ -6,11 +6,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from src.adapters.repository import AbstractRepository, SqlAlchemyRepository
 from src.domain.model import AuditLog
+from src.config import LOCAL_SQLITE_URL, POSTGRES_SCHEME_POSTGRES, POSTGRES_SCHEME_POSTGRESQL
 
 def get_session_factory():
-        database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL") or "sqlite:///banco_de_horas.db"
-        if database_url and database_url.startswith("postgres://"):
-                database_url = database_url.replace("postgres://", "postgresql://", 1)
+        database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL") or LOCAL_SQLITE_URL
+        if database_url and database_url.startswith(POSTGRES_SCHEME_POSTGRES):
+                database_url = database_url.replace(POSTGRES_SCHEME_POSTGRES, POSTGRES_SCHEME_POSTGRESQL, 1)
         return sessionmaker(
                 bind=create_engine(database_url),
                 expire_on_commit=False

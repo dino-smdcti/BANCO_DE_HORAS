@@ -6,9 +6,32 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
 from src.service_layer.unit_of_work import AbstractUnitOfWork
+from src.config import (
+        MINUTES_PER_HOUR,
+        REPORT_COLUMN_WIDTHS,
+        REPORT_DATA_STARTROW,
+        REPORT_FIRST_DATA_ROW,
+        REPORT_FONT_NAME,
+        REPORT_HEADER_FILL_COLOR,
+        REPORT_HEADER_FONT_SIZE,
+        REPORT_HEADER_ROW,
+        REPORT_LABEL_FONT_SIZE,
+        REPORT_LAST_COLUMN,
+        REPORT_PERIOD_CELL,
+        REPORT_PERIOD_END_COLUMN,
+        REPORT_SHEET_NAME,
+        REPORT_SIGNATURE_EMPLOYEE_COLUMNS,
+        REPORT_SIGNATURE_GAP_ROWS,
+        REPORT_SIGNATURE_MANAGER_COLUMNS,
+        REPORT_TITLE_CELL,
+        REPORT_TITLE_END_COLUMN,
+        REPORT_TITLE_FONT_SIZE,
+        REPORT_TITLE_TEXT,
+        REPORT_VALUE_FONT_SIZE,
+)
 
-_SHEET_NAME = "Relatório de Ponto"
-_COLUMN_WIDTHS = [12, 12, 12, 12, 12, 12, 15, 30]
+_SHEET_NAME = REPORT_SHEET_NAME
+_COLUMN_WIDTHS = REPORT_COLUMN_WIDTHS
 
 
 def generate_excel_report(uow: AbstractUnitOfWork, user_id: int, start_date: date = None, end_date: date = None) -> io.BytesIO:
@@ -45,7 +68,7 @@ def _row_data(entry):
                 "Saída Almoço": _fmt_time(entry.lunch_start),
                 "Volta Almoço": _fmt_time(entry.lunch_end),
                 "Fim Jornada": _fmt_time(entry.departure),
-                "Horas Trab.": f"{entry.worked_minutes // 60:02d}:{entry.worked_minutes % 60:02d}",
+                "Horas Trab.": f"{entry.worked_minutes // MINUTES_PER_HOUR:02d}:{entry.worked_minutes % MINUTES_PER_HOUR:02d}",
                 "Status": entry.status.value,
                 "Observações": entry.notes or "",
         }
@@ -68,7 +91,7 @@ def _period_label(start_date, end_date):
 def _build_workbook(user, rows, period):
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                pd.DataFrame(rows).to_excel(writer, index=False, sheet_name=_SHEET_NAME, startrow=7)
+                pd.DataFrame(rows).to_excel(writer, index=False, sheet_name=_SHEET_NAME, startrow=REPORT_DATA_STARTROW)
                 sheet = writer.book[_SHEET_NAME]
                 styles = _report_styles()
                 _write_header(sheet, period, user, styles)
@@ -81,18 +104,18 @@ def _build_workbook(user, rows, period):
 def _report_styles():
         border = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
         return {
-                "title": Font(name="Arial", size=14, bold=True),
-                "header": Font(name="Arial", size=10, bold=True),
-                "label": Font(name="Arial", size=9, bold=True),
-                "value": Font(name="Arial", size=9),
+                "title": Font(name=REPORT_FONT_NAME, size=REPORT_TITLE_FONT_SIZE, bold=True),
+                "header": Font(name=REPORT_FONT_NAME, size=REPORT_HEADER_FONT_SIZE, bold=True),
+                "label": Font(name=REPORT_FONT_NAME, size=REPORT_LABEL_FONT_SIZE, bold=True),
+                "value": Font(name=REPORT_FONT_NAME, size=REPORT_VALUE_FONT_SIZE),
                 "border": border,
-                "fill_header": PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid"),
+                "fill_header": PatternFill(start_color=REPORT_HEADER_FILL_COLOR, end_color=REPORT_HEADER_FILL_COLOR, fill_type="solid"),
         }
 
 
 def _write_header(sheet, period, user, styles):
-        _write_centered(sheet, "A1", "H", "RELATÓRIO MENSAL DE FREQUÊNCIA", styles["title"])
-        _write_centered(sheet, "A2", "H", f"Período: {period}", styles["value"])
+        _write_centered(sheet, REPORT_TITLE_CELL, REPORT_TITLE_END_COLUMN, REPORT_TITLE_TEXT, styles["title"])
+        _write_centered(sheet, REPORT_PERIOD_CELL, REPORT_PERIOD_END_COLUMN, f"Período: {period}", styles["value"])
         for info in _employee_info(user):
                 _write_info_row(sheet, info, styles)
 
@@ -118,7 +141,7 @@ def _write_info_row(sheet, info, styles):
         _write_cell(sheet, label_cell, label, styles["label"])
         _write_merged_value(sheet, value_cell, "D", value, styles["value"])
         _write_cell(sheet, label2_cell, label2, styles["label"])
-        _write_merged_value(sheet, value2_cell, "H", value2, styles["value"])
+        _write_merged_value(sheet, value2_cell, REPORT_TITLE_END_COLUMN, value2, styles["value"])
 
 
 def _write_merged_value(sheet, cell, end_column, text, font):
@@ -133,7 +156,7 @@ def _write_cell(sheet, cell, text, font):
 
 
 def _style_table(sheet, row_count, styles):
-        for cell in sheet[8]:
+        for cell in sheet[REPORT_HEADER_ROW]:
                 cell.font = styles["header"]
                 cell.fill = styles["fill_header"]
                 cell.border = styles["border"]
@@ -143,7 +166,7 @@ def _style_table(sheet, row_count, styles):
 
 
 def _style_data_rows(sheet, row_count, styles):
-        for row in sheet.iter_rows(min_row=9, max_row=8 + row_count, min_col=1, max_col=8):
+        for row in sheet.iter_rows(min_row=REPORT_FIRST_DATA_ROW, max_row=REPORT_HEADER_ROW + row_count, min_col=1, max_col=REPORT_LAST_COLUMN):
                 for cell in row:
                         cell.font = styles["value"]
                         cell.border = styles["border"]
@@ -156,9 +179,9 @@ def _set_column_widths(sheet):
 
 
 def _write_signatures(sheet, row_count):
-        signature_row = 8 + row_count + 3
-        _write_signature_block(sheet, "A", "C", signature_row, "Assinatura do Funcionário")
-        _write_signature_block(sheet, "F", "H", signature_row, "Assinatura do Gestor / RH")
+        signature_row = REPORT_HEADER_ROW + row_count + REPORT_SIGNATURE_GAP_ROWS
+        _write_signature_block(sheet, REPORT_SIGNATURE_EMPLOYEE_COLUMNS[0], REPORT_SIGNATURE_EMPLOYEE_COLUMNS[1], signature_row, "Assinatura do Funcionário")
+        _write_signature_block(sheet, REPORT_SIGNATURE_MANAGER_COLUMNS[0], REPORT_SIGNATURE_MANAGER_COLUMNS[1], signature_row, "Assinatura do Gestor / RH")
 
 
 def _write_signature_block(sheet, start_column, end_column, row, label):
@@ -168,5 +191,5 @@ def _write_signature_block(sheet, start_column, end_column, row, label):
         label_cell = f"{start_column}{row + 1}"
         sheet.merge_cells(f"{label_cell}:{end_column}{row + 1}")
         sheet[label_cell] = label
-        sheet[label_cell].font = Font(name="Arial", size=9)
+        sheet[label_cell].font = Font(name=REPORT_FONT_NAME, size=REPORT_VALUE_FONT_SIZE)
         sheet[label_cell].alignment = Alignment(horizontal="center")

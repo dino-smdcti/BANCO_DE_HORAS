@@ -12,9 +12,40 @@
     --danger: #dc3545;
     --white: #ffffff;
 
+    /* Neutral / UI Colors */
+    --border-color: #dddddd;
+    --text-muted: #666666;
+    --hover-bg: #f8f9fa;
+    --nav-link-divider: rgba(255, 255, 255, 0.1);
+    --shadow-color: rgba(31, 111, 95, 0.3);
+    --pulse-primary-glow: rgba(111, 207, 151, 0.7);
+    --pulse-primary-glow-fade: rgba(111, 207, 151, 0);
+
     /* Spacing & Sizes */
     --base-spacing: 8px;
     --border-radius: 8px;
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 2rem;
+    --navbar-min-height: 56px;
+    --border-width: 1px;
+    --disabled-opacity: 0.6;
+    --hover-lift: -3px;
+    --letter-spacing: 1px;
+    --pulse-glow-size: 15px;
+    --strike-width: 120%;
+    --strike-height: 2px;
+    --strike-offset: -2px;
+
+    /* Font Sizes */
+    --font-xs: 0.75rem;
+    --font-sm: 0.85rem;
+    --font-md: 1rem;
+    --font-lg: 1.15rem;
+
+    /* Breakpoints */
+    --breakpoint-lg: 991.98px;
 }
 
 html, body {
@@ -30,15 +61,15 @@ html, body {
 
 .navbar {
     background-color: var(--accent) !important;
-    padding: 0.5rem 0 !important;
-    min-height: 56px;
+    padding: var(--spacing-sm) 0 !important;
+    min-height: var(--navbar-min-height);
     top: 0;
-    margin-bottom: 2rem !important; /* Restore the space below the navbar */
+    margin-bottom: var(--spacing-lg) !important; /* Restore the space below the navbar */
 }
 
 .navbar .container {
-    padding-top: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding-top: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
     margin: 0 auto;
 }
 
@@ -84,20 +115,20 @@ html, body {
 
 .btn-accent:disabled {
     background-color: var(--accent);
-    opacity: 0.6;
+    opacity: var(--disabled-opacity);
 }
 
 /* Stage Toggle Buttons */
 .stage-btn-group .btn {
-    border-color: #ddd;
-    color: #666;
-    font-size: 0.75rem;
-    padding: 0.5rem 0.25rem;
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    font-size: var(--font-xs);
+    padding: var(--spacing-sm) var(--spacing-xs);
     transition: all 0.2s;
 }
 
 .stage-btn-group .btn:hover {
-    background-color: #f8f9fa;
+    background-color: var(--hover-bg);
 }
 
 .stage-btn-group .btn.active {
@@ -116,13 +147,13 @@ html, body {
 .bg-accent { background-color: var(--accent) !important; }
 
 .btn-compact {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.85rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-sm);
 }
 
 .badge {
     padding: 0.2em 0.4em;
-    font-size: 0.85rem;
+    font-size: var(--font-sm);
     white-space: normal;
     display: inline-block;
     width: fit-content;
@@ -134,7 +165,7 @@ html, body {
     color: var(--white);
     border: none;
     font-weight: 800;
-    letter-spacing: 1px;
+    letter-spacing: var(--letter-spacing);
     transition: transform 0.2s, box-shadow 0.2s;
     animation: pulse-primary 2.5s infinite;
 }
@@ -142,25 +173,25 @@ html, body {
 .btn-grab-attention:hover {
     background: var(--accent);
     color: var(--white);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 15px rgba(31, 111, 95, 0.3);
+    transform: translateY(var(--hover-lift));
+    box-shadow: 0 8px 15px var(--shadow-color);
 }
 
 @keyframes pulse-primary {
-    0% { box-shadow: 0 0 0 0 rgba(111, 207, 151, 0.7); }
-    70% { box-shadow: 0 0 0 15px rgba(111, 207, 151, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(111, 207, 151, 0); }
+    0% { box-shadow: 0 0 0 0 var(--pulse-primary-glow); }
+    70% { box-shadow: 0 0 0 var(--pulse-glow-size) var(--pulse-primary-glow-fade); }
+    100% { box-shadow: 0 0 0 0 var(--pulse-primary-glow-fade); }
 }
 
 /* Mobile responsive adjustments */
-@media (max-width: 991.98px) {
+@media (max-width: var(--breakpoint-lg)) {
     /* The always-visible actions row (bell + Sair) */
     .navbar-actions {
         flex-shrink: 0;
     }
 
     .navbar-actions .btn {
-        font-size: 0.85rem;
+        font-size: var(--font-sm);
         padding: 0.35rem 0.75rem !important;
     }
 
@@ -170,9 +201,9 @@ html, body {
 
     /* Collapsible nav links - stack nicely with spacing */
     .navbar-collapse .navbar-nav .nav-link {
-        font-size: 1rem;
+        font-size: var(--font-md);
         padding: 0.6rem 0.75rem !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: var(--border-width) solid var(--nav-link-divider);
     }
 
     .navbar-collapse .navbar-nav .nav-link:last-child {
@@ -180,7 +211,7 @@ html, body {
     }
 
     .navbar-collapse .navbar-nav .nav-link i {
-        font-size: 1.15rem;
+        font-size: var(--font-lg);
         min-width: 1.5rem;
         text-align: center;
     }
@@ -196,11 +227,11 @@ html, body {
 .pin-no-location::after {
     content: '';
     position: absolute;
-    left: -2px;
-    right: -2px;
+    left: var(--strike-offset);
+    right: var(--strike-offset);
     top: 50%;
-    width: 120%;
-    height: 2px;
+    width: var(--strike-width);
+    height: var(--strike-height);
     background: var(--danger);
     transform: rotate(-45deg);
     transform-origin: center;

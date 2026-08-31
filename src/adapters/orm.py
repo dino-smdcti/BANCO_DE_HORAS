@@ -3,10 +3,35 @@ from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
 from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo
+from src.config import (
+        ATTESTATION_CID_COLUMN_LENGTH,
+        AUDIT_ACTION_COLUMN_LENGTH,
+        CORRECTION_STAGE_COLUMN_LENGTH,
+        CORRECTION_STATUS_COLUMN_LENGTH,
+        CORRECTION_STATUS_PENDING,
+        CPF_COLUMN_LENGTH,
+        DEFAULT_ANALYSIS_START_DATE,
+        DEFAULT_TOLERANCE_MINUTES,
+        DEPARTMENT_COLUMN_LENGTH,
+        EMAIL_COLUMN_LENGTH,
+        FACULTATIVO_DESCRIPTION_COLUMN_LENGTH,
+        FULL_NAME_COLUMN_LENGTH,
+        HOLIDAY_DESCRIPTION_COLUMN_LENGTH,
+        LOCATION_DATA_COLUMN_LENGTH,
+        MANAGER_NOTES_COLUMN_LENGTH,
+        NAME_COLUMN_LENGTH,
+        NOTES_COLUMN_LENGTH,
+        NOTIFICATION_MESSAGE_COLUMN_LENGTH,
+        PASSWORD_COLUMN_LENGTH,
+        POSITION_COLUMN_LENGTH,
+        REGISTRATION_NUMBER_COLUMN_LENGTH,
+        ROLE_COLUMN_LENGTH,
+        SECRETARIAT_COLUMN_LENGTH,
+)
 
 class UserRoleType(TypeDecorator):
     """SQLAlchemy type to store UserRole as lowercase string and load case-insensitively."""
-    impl = String(50)
+    impl = String(ROLE_COLUMN_LENGTH)
     cache_ok = True
 
     def process_bind_param(self, value, dialect):
@@ -17,7 +42,7 @@ class UserRoleType(TypeDecorator):
         val_lower = val_str.lower()
         if val_lower in ("admin", "manager", "employee"):
             return val_lower.upper()
-        if val_lower == "gestor":
+        if val_lower in ("gestor",):
             return "gestor"
         return val_str
 
@@ -38,7 +63,7 @@ audit_logs = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("user_id", Integer, ForeignKey("users.id")),
-    Column("action", String(255), nullable=False),
+    Column("action", String(AUDIT_ACTION_COLUMN_LENGTH), nullable=False),
     Column("target_id", Integer, nullable=True),
     Column("timestamp", DateTime, default=datetime.now),
     Column("details", String, nullable=True),
@@ -48,12 +73,12 @@ journey_types = Table(
     "journey_types",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("name", String(100), nullable=False, unique=True),
+    Column("name", String(NAME_COLUMN_LENGTH), nullable=False, unique=True),
     Column("expected_arrival", Time, nullable=False),
     Column("expected_lunch_start", Time, nullable=True),
     Column("expected_lunch_end", Time, nullable=True),
     Column("expected_departure", Time, nullable=False),
-    Column("tolerance_minutes", Integer, default=15),
+    Column("tolerance_minutes", Integer, default=DEFAULT_TOLERANCE_MINUTES),
     Column("has_lunch_break", Boolean, default=True),
     Column("schedule_type", SQLEnum(ScheduleType), default=ScheduleType.STANDARD),
 )
@@ -67,7 +92,7 @@ work_schedules = Table(
     Column("expected_lunch_start", Time, nullable=True),
     Column("expected_lunch_end", Time, nullable=True),
     Column("expected_departure", Time, nullable=False),
-    Column("tolerance_minutes", Integer, default=15),
+    Column("tolerance_minutes", Integer, default=DEFAULT_TOLERANCE_MINUTES),
     Column("has_lunch_break", Boolean, default=True),
     Column("schedule_type", SQLEnum(ScheduleType), default=ScheduleType.STANDARD),
     Column("rotation_start_date", Date, nullable=True),
@@ -77,17 +102,17 @@ users = Table(
     "users",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("email", String(255), unique=True, nullable=False),
-    Column("password_hash", String(255), nullable=False),
+    Column("email", String(EMAIL_COLUMN_LENGTH), unique=True, nullable=False),
+    Column("password_hash", String(PASSWORD_COLUMN_LENGTH), nullable=False),
     Column("role", UserRoleType(), nullable=False),
-    Column("registration_number", String(50), nullable=True),
-    Column("cpf", String(14), nullable=True),
-    Column("department", String(100), nullable=True),
-    Column("position", String(100), nullable=True),
-    Column("secretariat", String(100), nullable=True),
-    Column("full_name", String(255), nullable=True),
+    Column("registration_number", String(REGISTRATION_NUMBER_COLUMN_LENGTH), nullable=True),
+    Column("cpf", String(CPF_COLUMN_LENGTH), nullable=True),
+    Column("department", String(DEPARTMENT_COLUMN_LENGTH), nullable=True),
+    Column("position", String(POSITION_COLUMN_LENGTH), nullable=True),
+    Column("secretariat", String(SECRETARIAT_COLUMN_LENGTH), nullable=True),
+    Column("full_name", String(FULL_NAME_COLUMN_LENGTH), nullable=True),
     Column("email_notifications_enabled", Boolean, default=False),
-    Column("start_analysis_date", Date, default=date(2026, 1, 1)),
+    Column("start_analysis_date", Date, default=DEFAULT_ANALYSIS_START_DATE),
     Column("birth_date", Date, nullable=True),
 )
 
@@ -101,10 +126,10 @@ daily_pontos = Table(
     Column("lunch_start", Time, nullable=True),
     Column("lunch_end", Time, nullable=True),
     Column("departure", Time, nullable=True),
-    Column("location_data", String(1000), nullable=True),
+    Column("location_data", String(LOCATION_DATA_COLUMN_LENGTH), nullable=True),
     Column("status", SQLEnum(PontoStatus), default=PontoStatus.ON_TIME),
-    Column("notes", String(1000), nullable=True),
-    Column("manager_notes", String(1000), nullable=True),
+    Column("notes", String(NOTES_COLUMN_LENGTH), nullable=True),
+    Column("manager_notes", String(MANAGER_NOTES_COLUMN_LENGTH), nullable=True),
     Column("has_lunch_break", Boolean, default=True),
     Column("arrival_late", Boolean, default=False),
     Column("lunch_start_late", Boolean, default=False),
@@ -134,9 +159,9 @@ correction_requests = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
     Column("ponto_date", Date, nullable=False),
-    Column("stage", String(50), nullable=False),
+    Column("stage", String(CORRECTION_STAGE_COLUMN_LENGTH), nullable=False),
     Column("proposed_time", Time, nullable=False),
-    Column("status", String(20), default="pending"),
+    Column("status", String(CORRECTION_STATUS_COLUMN_LENGTH), default=CORRECTION_STATUS_PENDING),
     Column("created_at", DateTime, default=datetime.now),
 )
 
@@ -156,7 +181,7 @@ attestations = Table(
     Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
     Column("start_date", Date, nullable=False),
     Column("end_date", Date, nullable=False),
-    Column("cid", String(20), nullable=True),
+    Column("cid", String(ATTESTATION_CID_COLUMN_LENGTH), nullable=True),
     Column("start_time", Time, nullable=True),
     Column("end_time", Time, nullable=True),
     Column("created_at", DateTime, default=datetime.now),
@@ -168,7 +193,7 @@ facultativos = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("start_date", Date, nullable=False),
     Column("end_date", Date, nullable=False),
-    Column("description", String(255), nullable=True),
+    Column("description", String(FACULTATIVO_DESCRIPTION_COLUMN_LENGTH), nullable=True),
     Column("start_time", Time, nullable=True),
     Column("end_time", Time, nullable=True),
     Column("created_at", DateTime, default=datetime.now),
@@ -178,7 +203,7 @@ holidays = Table(
     "holidays",
     metadata,
     Column("holiday_date", Date, primary_key=True),
-    Column("description", String(255), nullable=False),
+    Column("description", String(HOLIDAY_DESCRIPTION_COLUMN_LENGTH), nullable=False),
     Column("is_mandatory", Boolean, default=True),
 )
 
@@ -188,7 +213,7 @@ company_settings = Table(
     Column("id", Integer, primary_key=True),
     Column("lat", Float, nullable=False),
     Column("lon", Float, nullable=False),
-    Column("start_analysis_date", Date, nullable=False, default=date(2026, 1, 1)),
+    Column("start_analysis_date", Date, nullable=False, default=DEFAULT_ANALYSIS_START_DATE),
 )
 
 notifications = Table(
@@ -196,7 +221,7 @@ notifications = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
-    Column("message", String(500), nullable=False),
+    Column("message", String(NOTIFICATION_MESSAGE_COLUMN_LENGTH), nullable=False),
     Column("created_at", DateTime, nullable=False),
     Column("is_read", Boolean, default=False),
 )

@@ -6,14 +6,15 @@ from src.domain.model import WorkSchedule, JourneyType, ScheduleType
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.service_layer.permissions import ensure_manager
 from src.service_layer.audit import log_action
+from src.config import DEFAULT_TOLERANCE_MINUTES
 
 
-def set_work_schedule(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, arrival: time, lunch_start: Optional[time], lunch_end: Optional[time], departure: time, tolerance: int = 15, has_lunch_break: bool = True, schedule_type: str = "standard", rotation_start_date: Optional[date] = None):
+def set_work_schedule(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, arrival: time, lunch_start: Optional[time], lunch_end: Optional[time], departure: time, tolerance: int = DEFAULT_TOLERANCE_MINUTES, has_lunch_break: bool = True, schedule_type: str = "standard", rotation_start_date: Optional[date] = None):
         with uow:
                 _apply_schedule(uow, manager_id, employee_id, arrival, lunch_start, lunch_end, departure, tolerance, has_lunch_break, schedule_type, rotation_start_date)
 
 
-def create_journey_type(uow: AbstractUnitOfWork, manager_id: int, name: str, arrival: time, lunch_start: Optional[time], lunch_end: Optional[time], departure: time, tolerance: int = 15, has_lunch_break: bool = True, schedule_type: str = "standard"):
+def create_journey_type(uow: AbstractUnitOfWork, manager_id: int, name: str, arrival: time, lunch_start: Optional[time], lunch_end: Optional[time], departure: time, tolerance: int = DEFAULT_TOLERANCE_MINUTES, has_lunch_break: bool = True, schedule_type: str = "standard"):
         with uow:
                 _create_journey(uow, manager_id, name, arrival, lunch_start, lunch_end, departure, tolerance, has_lunch_break, schedule_type)
 
@@ -28,7 +29,7 @@ def get_journey_type(uow: AbstractUnitOfWork, journey_id: int) -> Optional[Journ
                 return uow.session.execute(select(JourneyType).where(JourneyType.journey_id == journey_id)).scalar_one_or_none()
 
 
-def update_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: int, name: str, arrival: time, lunch_start: Optional[time], lunch_end: Optional[time], departure: time, tolerance: int = 15, has_lunch_break: bool = True, schedule_type: str = "standard"):
+def update_journey_type(uow: AbstractUnitOfWork, manager_id: int, journey_id: int, name: str, arrival: time, lunch_start: Optional[time], lunch_end: Optional[time], departure: time, tolerance: int = DEFAULT_TOLERANCE_MINUTES, has_lunch_break: bool = True, schedule_type: str = "standard"):
         with uow:
                 _apply_journey_update(uow, manager_id, journey_id, name, arrival, lunch_start, lunch_end, departure, tolerance, has_lunch_break, schedule_type)
 

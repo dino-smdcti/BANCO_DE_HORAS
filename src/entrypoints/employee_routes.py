@@ -6,6 +6,7 @@ from flask_login import current_user, login_required
 from src.entrypoints.forms import ProfileForm
 from src.entrypoints.web_helpers import INVALID_DATE, get_maps_url, is_management_role, new_uow, parse_date
 from src.service_layer import services
+from src.config import ADMIN_ROLES, DATE_FORMAT, MINUTES_PER_HOUR, RECENT_ENTRIES_DEFAULT_COUNT, ROLE_EMPLOYEE, TIME_FORMAT
 
 
 def register_routes(app):
@@ -24,7 +25,7 @@ def register_routes(app):
 def dashboard():
         if not current_user.is_profile_complete:
                 return redirect(url_for("complete_profile"))
-        if current_user.role == "employee" and not current_user.has_schedule:
+        if current_user.role == ROLE_EMPLOYEE and not current_user.has_schedule:
                 return redirect(url_for("choose_journey"))
         start_date_str = request.args.get("start_date")
         end_date_str = request.args.get("end_date")
@@ -40,7 +41,7 @@ def dashboard():
 
 @login_required
 def choose_journey():
-        if current_user.role != "employee":
+        if current_user.role != ROLE_EMPLOYEE:
                 return redirect(url_for("dashboard"))
         uow = new_uow()
         with uow:
@@ -69,8 +70,8 @@ def profile():
 @login_required
 def submit_correction():
         try:
-                ponto_date = datetime.strptime(request.form.get("ponto_date"), "%Y-%m-%d").date()
-                proposed_time = datetime.strptime(request.form.get("proposed_time"), "%H:%M").time()
+                ponto_date = datetime.strptime(request.form.get("ponto_date"), DATE_FORMAT).date()
+                proposed_time = datetime.strptime(request.form.get("proposed_time"), TIME_FORMAT).time()
                 uow = new_uow()
                 services.submit_correction_request(uow, current_user.id, ponto_date, request.form.get("stage"), proposed_time)
                 flash("Pedido de correção enviado para análise.", "success")
@@ -100,7 +101,7 @@ def clock():
 @login_required
 def update_note():
         try:
-                entry_date = datetime.strptime(request.form.get("entry_date"), "%Y-%m-%d").date()
+                entry_date = datetime.strptime(request.form.get("entry_date"), DATE_FORMAT).date()
                 _save_note(current_user.id, entry_date, request.form.get("notes"))
         except Exception as error:
                 flash(f"Erro ao salvar nota: {str(error)}", "danger")
@@ -217,7 +218,7 @@ def _update_own_profile(uow, user):
         password = request.form.get("password") or None
         email_notifications = bool(request.form.get("email_notifications"))
         services.update_credentials(uow, current_user.id, email, password, email_notifications)
-        if current_user.role in ["admin", "gestor"]:
+        if current_user.role in ADMIN_ROLES:
                 _update_professional_profile(uow, user)
 
 
@@ -238,12 +239,12 @@ def _update_professional_profile(uow, user):
 
 def _analysis_date():
         raw = request.form.get("start_analysis_date")
-        return datetime.strptime(raw, "%Y-%m-%d").date() if raw else None
+        return datetime.strptime(raw, DATE_FORMAT).date() if raw else None
 
 
 def _birth_date():
         raw = request.form.get("birth_date")
-        return datetime.strptime(raw, "%Y-%m-%d").date() if raw else None
+        return datetime.strptime(raw, DATE_FORMAT).date() if raw else None
 
 
 def _entry_for(user, target_date):
@@ -258,13 +259,13 @@ def _recent_entries(user, start_date, end_date):
                 return [entry for entry in entries if entry.entry_date == start_date]
         if end_date:
                 return [entry for entry in entries if entry.entry_date == end_date]
-        return entries[:10]
+        return entries[:RECENT_ENTRIES_DEFAULT_COUNT]
 
 
 def _minutes_between(t1, t2):
         if not t1 or not t2:
                 return 0
-        return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / 60)
+        return int((datetime.combine(date.min, t2) - datetime.combine(date.min, t1)).total_seconds() / MINUTES_PER_HOUR)
 
 
 def _expected_daily(schedule):
@@ -283,10 +284,10 @@ def _sched_data(schedule):
         if not schedule:
                 return None
         return {
-                "expected_arrival": schedule.expected_arrival.strftime("%H:%M"),
-                "expected_lunch_start": schedule.expected_lunch_start.strftime("%H:%M") if schedule.expected_lunch_start else None,
-                "expected_lunch_end": schedule.expected_lunch_end.strftime("%H:%M") if schedule.expected_lunch_end else None,
-                "expected_departure": schedule.expected_departure.strftime("%H:%M"),
+                "expected_arrival": schedule.expected_arrival.strftime(TIME_FORMAT),
+                "expected_lunch_start": schedule.expected_lunch_start.strftime(TIME_FORMAT) if schedule.expected_lunch_start else None,
+                "expected_lunch_end": schedule.expected_lunch_end.strftime(TIME_FORMAT) if schedule.expected_lunch_end else None,
+                "expected_departure": schedule.expected_departure.strftime(TIME_FORMAT),
                 "has_lunch_break": schedule.has_lunch_break,
         }
 

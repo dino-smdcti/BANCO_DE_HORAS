@@ -108,7 +108,7 @@
                                     </div>
                                 {% endif %}
                             </td>
-                                    <td class="fw-bold text-primary">{{ p.worked_minutes // 60 }}h {{ p.worked_minutes % 60 }}m</td>
+                                    <td class="fw-bold text-primary">{{ p.worked_minutes // MINUTES_PER_HOUR }}h {{ p.worked_minutes % MINUTES_PER_HOUR }}m</td>
                                 </tr>
                                 {% if p.justification or (p.has_Anomalia and not p.justification) or p.notes %}
                                 <tr class="table-light">
@@ -261,7 +261,7 @@
                     <div class="card-body text-center">
                         <h6 class="text-muted text-uppercase small">Saldo Dia</h6>
                         {% set total_worked = worked_hoje if worked_hoje is defined else 0 %}
-                        <h4 id="dynamic-worked-total" class="mb-1 text-muted small">({{ total_worked // 60 }}h {{ total_worked % 60 }}m)</h4>
+                        <h4 id="dynamic-worked-total" class="mb-1 text-muted small">({{ total_worked // MINUTES_PER_HOUR }}h {{ total_worked % MINUTES_PER_HOUR }}m)</h4>
                         <h3 id="dynamic-saldo-dia" class="fw-bold {{ 'text-success' if saldo_dia >= 0 else 'text-danger' }}"
                             data-arrival="{{ ponto_hoje.arrival.strftime('%H:%M:%S') if ponto_hoje and ponto_hoje.arrival else '' }}"
                             data-lunch-start="{{ ponto_hoje.lunch_start.strftime('%H:%M:%S') if ponto_hoje and ponto_hoje.lunch_start else '' }}"
@@ -269,7 +269,7 @@
                             data-departure="{{ ponto_hoje.departure.strftime('%H:%M:%S') if ponto_hoje and ponto_hoje.departure else '' }}"
                             data-expected-daily="{{ expected_daily }}"
                             data-has-lunch-break="{{ 'true' if not ponto_hoje or ponto_hoje.has_lunch_break else 'false' }}">
-                            {{ '+' if saldo_dia >= 0 else '-' }}{{ (saldo_dia|abs // 60) }}h {{ (saldo_dia|abs % 60) }}m
+                            {{ '+' if saldo_dia >= 0 else '-' }}{{ (saldo_dia|abs // MINUTES_PER_HOUR) }}h {{ (saldo_dia|abs % MINUTES_PER_HOUR) }}m
                         </h3>
                     </div>
                 </div>
@@ -280,7 +280,7 @@
                         <h6 class="text-muted text-uppercase small">Saldo total</h6>
                         <p class="small text-muted mb-1" style="font-size: 0.6rem;">(dias completos)</p>
                         <h3 class="fw-bold {{ 'text-success' if saldo_total >= 0 else 'text-danger' }}">
-                            {{ '+' if saldo_total >= 0 else '-' }}{{ (saldo_total|abs // 60) }}h {{ (saldo_total|abs % 60) }}m
+                            {{ '+' if saldo_total >= 0 else '-' }}{{ (saldo_total|abs // MINUTES_PER_HOUR) }}h {{ (saldo_total|abs % MINUTES_PER_HOUR) }}m
                         </h3>
                     </div>
                 </div>

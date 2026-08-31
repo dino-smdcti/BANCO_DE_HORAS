@@ -1,3 +1,26 @@
+// Central configuration / control center for client-side mask magic values.
+const MASK_CONSTANTS = {
+    // Maximum length (digits) for each masked field.
+    CPF_MAX_LENGTH: 11,
+    TIME_MAX_LENGTH: 6,
+    REGISTRATION_MAX_LENGTH: 10,
+
+    // Meta-flag used to mark inputs that already have an active mask.
+    MASKED_FLAG: 'true',
+
+    // Time input field names that receive the HH:MM[:SS] mask.
+    TIME_FIELDS: [
+        'arrival',
+        'lunch_start',
+        'lunch_end',
+        'departure',
+        'expected_arrival',
+        'expected_lunch_start',
+        'expected_lunch_end',
+        'expected_departure'
+    ]
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     const applyMask = (input, maskFunc) => {
         input.addEventListener('input', (e) => {
@@ -7,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const cpfMask = (v) => {
         v = v.replace(/\D/g, ""); // Remove tudo o que não é dígito
-        v = v.substring(0, 11); // Limita a 11 caracteres
+        v = v.substring(0, MASK_CONSTANTS.CPF_MAX_LENGTH); // Limita a 11 caracteres
         v = v.replace(/(\d{3})(\d)/, "$1.$2"); // Coloca ponto entre o terceiro e o quarto dígitos
         v = v.replace(/(\d{3})(\d)/, "$1.$2"); // Coloca ponto entre o sexto e o sétimo dígitos
         v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2"); // Coloca hífen entre o nono e o décimo dígitos
@@ -16,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const timeMask = (v) => {
         v = v.replace(/\D/g, ""); // Remove tudo o que não é dígito
-        v = v.substring(0, 6); // Limita a 6 dígitos (HHMMSS)
+        v = v.substring(0, MASK_CONSTANTS.TIME_MAX_LENGTH); // Limita a 6 dígitos (HHMMSS)
         
         if (v.length > 4) {
             v = v.replace(/(\d{2})(\d{2})(\d{1,2})/, "$1:$2:$3");
@@ -27,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const registrationMask = (v) => {
-        return v.replace(/\D/g, "").substring(0, 10); // Apenas números, limite de 10
+        return v.replace(/\D/g, "").substring(0, MASK_CONSTANTS.REGISTRATION_MAX_LENGTH); // Apenas números, limite de 10
     };
 
     // Aplicar a campos específicos por seletor ou classe
@@ -35,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('input[name="registration_number"]').forEach(el => applyMask(el, registrationMask));
     
     // Campos de tempo
-    const timeFields = ['arrival', 'lunch_start', 'lunch_end', 'departure', 'expected_arrival', 'expected_lunch_start', 'expected_lunch_end', 'expected_departure'];
+    const timeFields = MASK_CONSTANTS.TIME_FIELDS;
     timeFields.forEach(name => {
         document.querySelectorAll(`input[name="${name}"]`).forEach(el => applyMask(el, timeMask));
     });
@@ -46,13 +69,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const name = e.target.getAttribute('name');
             if (name === 'cpf' && !e.target.dataset.masked) {
                 applyMask(e.target, cpfMask);
-                e.target.dataset.masked = "true";
+                e.target.dataset.masked = MASK_CONSTANTS.MASKED_FLAG;
             } else if (name === 'registration_number' && !e.target.dataset.masked) {
                 applyMask(e.target, registrationMask);
-                e.target.dataset.masked = "true";
+                e.target.dataset.masked = MASK_CONSTANTS.MASKED_FLAG;
             } else if ((timeFields.some(f => name.startsWith(f)) || timeFields.includes(name)) && !e.target.dataset.masked) {
                 applyMask(e.target, timeMask);
-                e.target.dataset.masked = "true";
+                e.target.dataset.masked = MASK_CONSTANTS.MASKED_FLAG;
             }
         }
     });

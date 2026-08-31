@@ -8,13 +8,29 @@ from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.service_layer.permissions import ensure_manager, ensure_not_self
 from src.service_layer.notifications import add_notification
 from src.service_layer.audit import log_action
+from src.config import (
+        ANOMALY_ACTION_APPROVE,
+        ANOMALY_ACTION_EXCUSE,
+        ANOMALY_DECISION_FLAGS,
+        BRAZIL_UTC_OFFSET_HOURS,
+        CLOCK_LOCATION_NA,
+        CORRECTION_STATUS_APPROVED,
+        CORRECTION_STATUS_PENDING,
+        CORRECTION_STATUS_REJECTED,
+        LOCATION_PREFIX_ARRIVAL,
+        LOCATION_PREFIX_DEPARTURE,
+        LOCATION_PREFIX_LUNCH_END,
+        LOCATION_PREFIX_LUNCH_START,
+        LOCATION_SEPARATOR,
+        STAGE_ARRIVAL,
+        STAGE_DEPARTURE,
+        STAGE_LUNCH_END,
+        STAGE_LUNCH_START,
+        STAGE_MISSING,
+        STAGE_READY_MESSAGES,
+)
 
-_STAGE_MESSAGES = {
-        "arrival": "Chegada registrada",
-        "lunch_start": "Saída para almoço registrada",
-        "lunch_end": "Retorno do almoço registrado",
-        "departure": "Fim de jornada registrado",
-}
+_STAGE_MESSAGES = STAGE_READY_MESSAGES
 
 
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None, stage: Optional[str] = None, notes: Optional[str] = None) -> str:
@@ -23,7 +39,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                 now_time, today = _brazil_now()
                 ponto = _todays_ponto(user, today)
                 target_stage = stage or _next_stage(ponto)
-                _register_stage(user, ponto, target_stage, now_time, today, location or "Não obtida", notes)
+                _register_stage(user, ponto, target_stage, now_time, today, location or CLOCK_LOCATION_NA, notes)
                 message = _STAGE_MESSAGES[target_stage]
                 log_action(uow, user_id, "CLOCK_EVENT", target_id=user_id, details=f"{message} ({target_stage})")
                 return message
@@ -39,7 +55,7 @@ def submit_correction_request(uow: AbstractUnitOfWork, user_id: int, ponto_date,
 def list_pending_corrections(uow: AbstractUnitOfWork, manager_id: int) -> List[CorrectionRequest]:
         with uow:
                 ensure_manager(uow, manager_id)
-                return uow.session.execute(select(CorrectionRequest).where(CorrectionRequest.status == "pending")).scalars().all()
+                return uow.session.execute(select(CorrectionRequest).where(CorrectionRequest.status == CORRECTION_STATUS_PENDING)).scalars().all()
 
 
 def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_id: int, approved: bool):
@@ -83,7 +99,7 @@ def _require_user(uow, user_id):
 
 def _brazil_now():
         """Current clock in Brasília time (UTC-3)."""
-        now = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=3)
+        now = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=BRAZIL_UTC_OFFSET_HOURS)
         return now.time(), now.date()
 
 
@@ -103,24 +119,24 @@ def _ponto_for(user, entry_date):
 
 def _next_stage(ponto):
         if not ponto:
-                return "arrival"
+                return STAGE_ARRIVAL
         if ponto.has_lunch_break and not ponto.lunch_start:
-                return "lunch_start"
+                return STAGE_LUNCH_START
         if ponto.has_lunch_break and not ponto.lunch_end:
-                return "lunch_end"
+                return STAGE_LUNCH_END
         if not ponto.departure:
-                return "departure"
+                return STAGE_DEPARTURE
         raise ValueError("Jornada de hoje já está completa.")
 
 
 def _register_stage(user, ponto, stage, now_time, today, location, notes):
-        if stage == "arrival":
+        if stage == STAGE_ARRIVAL:
                 _register_arrival(user, ponto, now_time, today, location)
-        elif stage == "lunch_start":
+        elif stage == STAGE_LUNCH_START:
                 _register_lunch_start(user, ponto, now_time, today, location)
-        elif stage == "lunch_end":
+        elif stage == STAGE_LUNCH_END:
                 _register_lunch_end(user, ponto, now_time, today, location)
-        elif stage == "departure":
+        elif stage == STAGE_DEPARTURE:
                 _register_departure(user, ponto, now_time, today, location, notes)
         else:
                 raise ValueError("Estágio inválido.")
@@ -132,28 +148,28 @@ def _register_arrival(user, ponto, now_time, today, location):
                 user.time_entries.append(ponto)
         else:
                 ponto.arrival = now_time
-        _log_location(ponto, f"Chegada: {location}")
+        _log_location(ponto, f"{LOCATION_PREFIX_ARRIVAL}: {location}")
         _flag_if_arrival_late(ponto, user, today, now_time)
 
 
 def _register_lunch_start(user, ponto, now_time, today, location):
         _require_ponto(ponto)
         ponto.lunch_start = now_time
-        _log_location(ponto, f"Almoço (Sai): {location}")
+        _log_location(ponto, f"{LOCATION_PREFIX_LUNCH_START}: {location}")
         _flag_if_lunch_start_late(ponto, user, today, now_time)
 
 
 def _register_lunch_end(user, ponto, now_time, today, location):
         _require_ponto(ponto)
         ponto.lunch_end = now_time
-        _log_location(ponto, f"Almoço (Vol): {location}")
+        _log_location(ponto, f"{LOCATION_PREFIX_LUNCH_END}: {location}")
         _flag_if_lunch_end_late(ponto, user, today, now_time)
 
 
 def _register_departure(user, ponto, now_time, today, location, notes):
         _require_ponto(ponto)
         ponto.departure = now_time
-        _log_location(ponto, f"Fim: {location}")
+        _log_location(ponto, f"{LOCATION_PREFIX_DEPARTURE}: {location}")
         _flag_if_departure_early(ponto, user, today, now_time)
         if notes:
                 ponto.notes = notes
@@ -175,7 +191,7 @@ def _require_ponto(ponto):
 def _log_location(ponto, text):
         if ponto.location_data is None:
                 ponto.location_data = ""
-        ponto.location_data += f" | {text}"
+        ponto.location_data += f"{LOCATION_SEPARATOR}{text}"
 
 
 def _flag_if_arrival_late(ponto, user, today, now_time):
@@ -221,7 +237,7 @@ def _resolve_request(uow, request, approved, manager_id):
 
 
 def _approve_request(uow, request, manager_id):
-        request.status = "approved"
+        request.status = CORRECTION_STATUS_APPROVED
         user = _require_user(uow, request.user_id)
         ponto = _ponto_for(user, request.ponto_date)
         if not ponto:
@@ -237,18 +253,18 @@ def _approve_request(uow, request, manager_id):
 
 
 def _reject_request(uow, request):
-        request.status = "rejected"
+        request.status = CORRECTION_STATUS_REJECTED
         add_notification(uow, request.user_id, f"Sua solicitação de correção para {request.ponto_date} foi REJEITADA.")
 
 
 def _apply_proposed_times(ponto, request):
-        if request.stage == "arrival":
+        if request.stage == STAGE_ARRIVAL:
                 ponto.arrival = request.proposed_time
-        elif request.stage == "lunch_start":
+        elif request.stage == STAGE_LUNCH_START:
                 ponto.lunch_start = request.proposed_time
-        elif request.stage == "lunch_end":
+        elif request.stage == STAGE_LUNCH_END:
                 ponto.lunch_end = request.proposed_time
-        elif request.stage == "departure":
+        elif request.stage == STAGE_DEPARTURE:
                 ponto.departure = request.proposed_time
 
 
@@ -362,19 +378,13 @@ def _apply_anomaly_decision(uow, admin_id, employee_id, entry_date, stage, actio
         log_action(uow, admin_id, f"{action.upper()}_ANOMALY", target_id=employee_id, details=f"Data: {entry_date}, Estágio: {stage}")
 
 
-_ANOMALY_DECISIONS = {
-        "arrival": ("arrival_late_reviewed", "arrival_late_approved", "arrival_late_excused"),
-        "lunch_start": ("lunch_start_late_reviewed", "lunch_start_late_approved", "lunch_start_late_excused"),
-        "lunch_end": ("lunch_end_late_reviewed", "lunch_end_late_approved", "lunch_end_late_excused"),
-        "departure": ("departure_early_reviewed", "departure_early_approved", "departure_early_excused"),
-        "missing": ("missing_reviewed", "missing_approved", "missing_excused"),
-}
+_ANOMALY_DECISIONS = ANOMALY_DECISION_FLAGS
 
 
 def _decide_anomaly(ponto, stage, action):
         reviewed, approved, excused = _ANOMALY_DECISIONS[stage]
         setattr(ponto, reviewed, True)
-        if action == "approve":
+        if action == ANOMALY_ACTION_APPROVE:
                 setattr(ponto, approved, True)
-        elif action == "excuse":
+        elif action == ANOMALY_ACTION_EXCUSE:
                 setattr(ponto, excused, True)

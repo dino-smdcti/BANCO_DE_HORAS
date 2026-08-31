@@ -1,6 +1,8 @@
 from datetime import datetime
 
-MANAGEMENT_ROLES = ["manager", "admin", "gestor"]
+from src.config import DATE_FORMAT, MANAGEMENT_ROLES, MAPS_EMBED_URL, TIME_FORMAT
+
+MANAGEMENT_ROLES = MANAGEMENT_ROLES
 INVALID_DATE = object()
 
 
@@ -17,14 +19,14 @@ def is_management_role(role_value):
 def get_maps_url(location_str):
         if not location_str or "," not in location_str:
                 return None
-        return f"https://www.google.com/maps?q={location_str.strip()}&output=embed"
+        return MAPS_EMBED_URL.format(loc=location_str.strip())
 
 
 def parse_time(value):
         """Parse a time string, returning None when empty or unparseable."""
         if not value:
                 return None
-        for fmt in ("%H:%M:%S", "%H:%M"):
+        for fmt in (f"{TIME_FORMAT}:%S", TIME_FORMAT):
                 parsed = _try_parse_time(value, fmt)
                 if parsed is not None:
                         return parsed
@@ -43,6 +45,6 @@ def parse_date(value):
         if not value:
                 return None
         try:
-                return datetime.strptime(value, "%Y-%m-%d").date()
+                return datetime.strptime(value, DATE_FORMAT).date()
         except ValueError:
                 return INVALID_DATE

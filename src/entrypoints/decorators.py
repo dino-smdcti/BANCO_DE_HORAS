@@ -3,18 +3,19 @@ import traceback
 from functools import wraps
 from flask import flash, redirect, url_for
 from flask_login import current_user
+from src.config import ADMIN_ROLES, ADMIN_ROLE_VALUE, MANAGER_LEVEL_ROLES, MANAGER_ROLE_VALUE
 
 def admin_required(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-                return _guard_role(f, "admin", *args, **kwargs)
+                return _guard_role(f, ADMIN_ROLE_VALUE, *args, **kwargs)
         return decorated_function
 
 
 def manager_required(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-                return _guard_role(f, "manager", *args, **kwargs)
+                return _guard_role(f, MANAGER_ROLE_VALUE, *args, **kwargs)
         return decorated_function
 
 
@@ -43,12 +44,12 @@ def _run_guarded(f, *args, **kwargs):
 
 
 def _roles_for(level):
-        if level == "admin":
-                return ["admin", "gestor"]
-        return ["manager", "admin", "gestor"]
+        if level == ADMIN_ROLE_VALUE:
+                return ADMIN_ROLES
+        return MANAGER_LEVEL_ROLES
 
 
 def _denial_message(level):
-        if level == "admin":
+        if level == ADMIN_ROLE_VALUE:
                 return "Acesso restrito a administradores."
         return "Acesso restrito a gestores."

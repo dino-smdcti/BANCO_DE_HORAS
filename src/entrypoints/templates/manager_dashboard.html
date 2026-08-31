@@ -32,8 +32,8 @@
                             <td>{{ employee.profile.full_name or employee.email }}</td>
                             <td>
                                 <span class="badge cursor-pointer role-badge
-                                    {% if employee.role.value == 'admin' %}bg-accent text-white
-                                    {% elif employee.role.value == 'manager' %}bg-secondary text-white
+                                    {% if employee.role.value == ROLE_ADMIN %}bg-accent text-white
+                                    {% elif employee.role.value == ROLE_MANAGER %}bg-secondary text-white
                                     {% else %}bg-primary text-white{% endif %}"
                                     style="cursor: pointer;"
                                     onclick="changeRolePrompt({{ employee.user_id }}, '{{ employee.role.value }}')">
@@ -43,7 +43,7 @@
                             <td>
                                 <div class="d-flex flex-column gap-1">
                                     <span class="badge {{ 'bg-success' if employee.total_balance >= 0 else 'bg-danger' }} text-white">
-                                        {{ '+' if employee.total_balance >= 0 else '-' }}{{ (employee.total_balance|abs // 60) }}h {{ (employee.total_balance|abs % 60) }}m
+                                        {{ '+' if employee.total_balance >= 0 else '-' }}{{ (employee.total_balance|abs // MINUTES_PER_HOUR) }}h {{ (employee.total_balance|abs % MINUTES_PER_HOUR) }}m
                                     </span>
                                 </div>
                             </td>
@@ -117,7 +117,7 @@
     </div>
 </div>
 
-{% if current_user.role in ['admin', 'gestor'] %}
+{% if current_user.role in ADMIN_ROLES %}
 <!-- Holiday / Facultativo Modal -->
 <div class="modal fade" id="holidayModal" tabindex="-1">
     <div class="modal-dialog modal-lg">

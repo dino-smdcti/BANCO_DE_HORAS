@@ -6,6 +6,7 @@ from sqlalchemy import select
 
 from src.domain.model import AuditLog, CompanySettings, User
 from src.entrypoints.web_helpers import new_uow
+from src.config import ADMIN_ROLES, DATE_FORMAT
 
 
 def register_routes(app):
@@ -15,7 +16,7 @@ def register_routes(app):
 
 @login_required
 def audit_logs():
-        if current_user.role not in ["admin", "gestor"]:
+        if current_user.role not in ADMIN_ROLES:
                 flash("Acesso restrito ao Administrador.", "danger")
                 return redirect(url_for("dashboard"))
         uow = new_uow()
@@ -25,7 +26,7 @@ def audit_logs():
 
 @login_required
 def admin_settings():
-        if current_user.role not in ["admin", "gestor"]:
+        if current_user.role not in ADMIN_ROLES:
                 flash("Acesso restrito ao Administrador.", "danger")
                 return redirect(url_for("dashboard"))
         uow = new_uow()
@@ -83,10 +84,10 @@ def _apply_action_filter(query, action_type):
 def _apply_date_filters(query):
         start_date = request.args.get("start_date")
         if start_date:
-                query = query.where(AuditLog.timestamp >= datetime.strptime(start_date, "%Y-%m-%d"))
+                query = query.where(AuditLog.timestamp >= datetime.strptime(start_date, DATE_FORMAT))
         end_date = request.args.get("end_date")
         if end_date:
-                query = query.where(AuditLog.timestamp <= datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1))
+                query = query.where(AuditLog.timestamp <= datetime.strptime(end_date, DATE_FORMAT) + timedelta(days=1))
         return query
 
 
@@ -115,7 +116,7 @@ def _person_label(person, missing="Sistema"):
 def _update_settings(uow):
         lat = float(request.form.get("lat"))
         lon = float(request.form.get("lon"))
-        start_date = datetime.strptime(request.form.get("start_date"), "%Y-%m-%d").date()
+        start_date = datetime.strptime(request.form.get("start_date"), DATE_FORMAT).date()
         with uow:
                 settings = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
                 if settings:

@@ -1,13 +1,15 @@
 """Shared helpers for time arithmetic used across the domain and service layers."""
 from datetime import date, datetime, time, timedelta
 
+from src.config import MINUTES_PER_HOUR
+
 
 def minutes_between(start: time, end: time) -> int:
         """Return whole minutes between two times, ignoring the calendar day."""
         if not start or not end:
                 return 0
         diff = datetime.combine(date.min, end) - datetime.combine(date.min, start)
-        return int(diff.total_seconds() / 60)
+        return int(diff.total_seconds() / MINUTES_PER_HOUR)
 
 
 def limit_after(base: time, tolerance_minutes: int, day: date) -> time:

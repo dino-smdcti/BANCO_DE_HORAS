@@ -1,3 +1,37 @@
+// Central configuration / control center for client-side magic values.
+const APP_CONSTANTS = {
+    // Time conversions.
+    MS_PER_SECOND: 1000,
+    SECONDS_PER_MINUTE: 60,
+    SECONDS_PER_HOUR: 3600,
+
+    // Clock-ins closer than this many minutes apart are flagged as duplicates.
+    DUPLICATE_THRESHOLD_MINUTES: 15,
+
+    // Delay (ms) before disabling a submit button so the POST payload is sent.
+    SUBMIT_DISABLE_DELAY_MS: 10,
+
+    // Geolocation acquisition timeout (ms).
+    GEOLOCATION_TIMEOUT_MS: 10000,
+
+    // Loading label shown on buttons/inputs while a request is in flight.
+    LOADING_LABEL: 'Processando...',
+
+    // Management roles that always see every clock stage.
+    MANAGEMENT_ROLES: ['manager', 'admin'],
+
+    // Maps backend stage labels to form stage values.
+    STAGE_LABEL_TO_VALUE: {
+        'Chegada': 'arrival',
+        'Saída Almoço': 'lunch_start',
+        'Retorno Almoço': 'lunch_end',
+        'Fim Jornada': 'departure'
+    },
+
+    // Google Maps embed URL template used to render the clock location.
+    MAP_EMBED_URL: 'https://www.google.com/maps?q=${loc}&output=embed'
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // Universal form submit handler
     document.querySelectorAll('form').forEach(form => {
@@ -25,10 +59,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setLoadingState(element) {
-    const loadingHtml = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processando...`;
+    const loadingHtml = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> ${APP_CONSTANTS.LOADING_LABEL}`;
     
     if (element.tagName.toLowerCase() === 'input') {
-        element.value = "Processando...";
+        element.value = APP_CONSTANTS.LOADING_LABEL;
     } else {
         element.innerHTML = loadingHtml;
     }
@@ -36,7 +70,7 @@ function setLoadingState(element) {
     // Delay disabling slightly to ensure name/value is sent in POST request
     setTimeout(() => {
         element.disabled = true;
-    }, 10);
+    }, APP_CONSTANTS.SUBMIT_DISABLE_DELAY_MS);
 }
 
 function markRead(url) {
@@ -79,7 +113,7 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
     const now = new Date();
     timeSpan.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    // 15-minute Duplicate Check
+    // Duplicate Check threshold
     let isTooClose = false;
     if (lastClockTime) {
         const [lh, lm, ls] = lastClockTime.split(':').map(Number);
@@ -87,21 +121,16 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
         lastDate.setHours(lh, lm, ls, 0);
         
         const diffMs = Math.abs(now - lastDate);
-        const diffMins = diffMs / (1000 * 60);
+        const diffMins = diffMs / (APP_CONSTANTS.MS_PER_SECOND * APP_CONSTANTS.SECONDS_PER_MINUTE);
         
-        if (diffMins < 15) {
+        if (diffMins < APP_CONSTANTS.DUPLICATE_THRESHOLD_MINUTES) {
             isTooClose = true;
             duplicateWarning.classList.remove('d-none');
         }
     }
 
     // Map nextStage label (from backend) to value
-    const stageMap = {
-        'Chegada': 'arrival',
-        'Saída Almoço': 'lunch_start',
-        'Retorno Almoço': 'lunch_end',
-        'Fim Jornada': 'departure'
-    };
+    const stageMap = APP_CONSTANTS.STAGE_LABEL_TO_VALUE;
     
     let currentSelectedStage = stageMap[nextStage] || 'arrival';
 
@@ -111,7 +140,7 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
     const lunchStartLabel = document.querySelector('label[for="stage_lunch_start"]');
     const lunchEndLabel = document.querySelector('label[for="stage_lunch_end"]');
 
-    const isManagement = (userRole === 'manager' || userRole === 'admin');
+    const isManagement = APP_CONSTANTS.MANAGEMENT_ROLES.includes(userRole);
 
     if (hasLunchBreak === false && !isManagement) {
         if (lunchStartRadio) lunchStartRadio.classList.add('d-none');
@@ -166,7 +195,7 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
                 const lng = position.coords.longitude;
                 const locStr = `${lat},${lng}`;
                 locationInput.value = locStr;
-                modalMap.src = `https://www.google.com/maps?q=${locStr}&output=embed`;
+                modalMap.src = APP_CONSTANTS.MAP_EMBED_URL.replace('${loc}', locStr);
                 mapSection.classList.remove('d-none');
                 locStatus.classList.add('d-none');
                 
@@ -180,7 +209,7 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
                 
                 updateConfirmState(true);
             },
-            { enableHighAccuracy: true, timeout: 10000 }
+            { enableHighAccuracy: true, timeout: APP_CONSTANTS.GEOLOCATION_TIMEOUT_MS }
         );
     } else {
         const spinner = locStatus.querySelector('.spinner-border');
@@ -231,36 +260,36 @@ function updateDynamicTimer() {
         if (hasLunchBreak) {
             // Morning block
             if (lunchStart) {
-                workedSeconds += Math.max(0, (lunchStart - arrival) / 1000);
+                workedSeconds += Math.max(0, (lunchStart - arrival) / APP_CONSTANTS.MS_PER_SECOND);
             } else if (!departure) {
-                workedSeconds += Math.max(0, (now - arrival) / 1000);
+                workedSeconds += Math.max(0, (now - arrival) / APP_CONSTANTS.MS_PER_SECOND);
             }
 
             // Afternoon block
             if (lunchEnd) {
                 const endAfternoon = departure || now;
-                workedSeconds += Math.max(0, (endAfternoon - lunchEnd) / 1000);
+                workedSeconds += Math.max(0, (endAfternoon - lunchEnd) / APP_CONSTANTS.MS_PER_SECOND);
             }
         } else {
             // Continuous block
             const endDay = departure || now;
-            workedSeconds += Math.max(0, (endDay - arrival) / 1000);
+            workedSeconds += Math.max(0, (endDay - arrival) / APP_CONSTANTS.MS_PER_SECOND);
         }
     }
 
-    const workedMinutes = workedSeconds / 60;
+    const workedMinutes = workedSeconds / APP_CONSTANTS.SECONDS_PER_MINUTE;
     const saldoMinutes = workedMinutes - expectedDailyMinutes;
 
     // Update total worked display
-    const h = Math.floor(workedSeconds / 3600);
-    const m = Math.floor((workedSeconds % 3600) / 60);
+    const h = Math.floor(workedSeconds / APP_CONSTANTS.SECONDS_PER_HOUR);
+    const m = Math.floor((workedSeconds % APP_CONSTANTS.SECONDS_PER_HOUR) / APP_CONSTANTS.SECONDS_PER_MINUTE);
     totalWorkedElement.innerText = `(${h}h ${m}m)`;
 
     // Update balance display
     const absSaldo = Math.abs(saldoMinutes);
-    const sh = Math.floor(absSaldo / 60);
-    const sm = Math.floor(absSaldo % 60);
-    const ss = Math.floor((absSaldo * 60) % 60);
+    const sh = Math.floor(absSaldo / APP_CONSTANTS.SECONDS_PER_MINUTE);
+    const sm = Math.floor(absSaldo % APP_CONSTANTS.SECONDS_PER_MINUTE);
+    const ss = Math.floor((absSaldo * APP_CONSTANTS.SECONDS_PER_MINUTE) % APP_CONSTANTS.SECONDS_PER_MINUTE);
     
     timerElement.innerText = `${saldoMinutes >= 0 ? '+' : '-'}${sh}h ${sm}m ${ss}s`;
     timerElement.className = `fw-bold ${saldoMinutes >= 0 ? 'text-success' : 'text-danger'}`;

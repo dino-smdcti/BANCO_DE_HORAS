@@ -3,9 +3,21 @@ import sys
 from datetime import date, timedelta
 from sqlalchemy import select
 from src.domain.model import PontoStatus, DailyPonto, Holiday, Facultativo
+from src.config import (
+        ABSENCE_DEFAULT_LAST_CHECK_DATE,
+        ABSENCE_LAST_CHECK_FILE,
+        BLANK_SCHEDULE_MISSING_REASON,
+        DEFAULT_ANALYSIS_START_DATE,
+        EMPTY_ENTRY_MISSING_REASON,
+        MISSING_LOCATION_AUTOMATIC,
+        MISSING_NOTES_AUTOMATIC,
+        MONDAY_BACKLOG_DAYS,
+        MONDAY_WEEKDAY_INDEX,
+        PREVIOUS_DAY_OFFSET,
+)
 
 # Use persistent temporary directory for the last check date
-LAST_CHECK_FILE = r"C:\Users\SMDCTI\.gemini\tmp\banco-de-horas\last_check_date.txt"
+LAST_CHECK_FILE = ABSENCE_LAST_CHECK_FILE
 
 IS_TESTING = "pytest" in sys.modules or "unittest" in sys.modules
 _test_last_check = None
@@ -15,7 +27,7 @@ def get_last_check():
         global _test_last_check
         if IS_TESTING:
                 return _test_check_value()
-        return _read_last_check() or date(2026, 5, 10)
+        return _read_last_check() or ABSENCE_DEFAULT_LAST_CHECK_DATE
 
 
 def set_last_check(d):
@@ -32,7 +44,7 @@ def _test_check_value():
         if _test_last_check is not None:
                 return _test_last_check
         # Start from one day before the target analysis date in tests
-        return date(2026, 5, 10)
+        return ABSENCE_DEFAULT_LAST_CHECK_DATE
 
 
 def _read_last_check():
@@ -93,9 +105,9 @@ def _check_user(uow, user, dates_to_check, holiday_dates, facultativo_dates):
 
 def _dates_to_check(today):
         """Weekend-aware list of dates to verify (Mon covers Fri-Sun)."""
-        if today.weekday() == 0:
-                return [today - timedelta(days=3), today - timedelta(days=2), today - timedelta(days=1)]
-        return [today - timedelta(days=1)]
+        if today.weekday() == MONDAY_WEEKDAY_INDEX:
+                return [today - timedelta(days=MONDAY_BACKLOG_DAYS), today - timedelta(days=2), today - timedelta(days=1)]
+        return [today - timedelta(days=PREVIOUS_DAY_OFFSET)]
 
 
 def _mandatory_holidays(uow):
@@ -115,7 +127,7 @@ def _facultativo_dates(uow):
 
 
 def _analysis_start(user):
-        return user.profile.start_analysis_date if user.profile else date(2026, 5, 1)
+        return user.profile.start_analysis_date if user.profile else DEFAULT_ANALYSIS_START_DATE
 
 
 def _process_user_date(uow, user, user_entries, check_date, analysis_start, holiday_dates, facultativo_dates):
@@ -138,11 +150,11 @@ def _process_user_date(uow, user, user_entries, check_date, analysis_start, holi
         if not ponto:
                 _add_missing_entry(uow, user, check_date, user_entries)
         elif _is_empty_entry(ponto):
-                _mark_blank_entry_missing(ponto, reason="por ausência de registro.")
+                _mark_blank_entry_missing(ponto, reason=EMPTY_ENTRY_MISSING_REASON)
                 print(f"SUCCESS: Marked empty log as MISSING for {user.email} on {check_date}")
 
 
-def _mark_blank_entry_missing(ponto, reason="(Usuário sem escala definida)."):
+def _mark_blank_entry_missing(ponto, reason=BLANK_SCHEDULE_MISSING_REASON):
         if ponto and ponto.status == PontoStatus.ON_TIME and not ponto.is_complete:
                 ponto.status = PontoStatus.MISSING
                 ponto.location_data = f"Sistema: Falta automática {reason}"
@@ -159,8 +171,8 @@ def _add_missing_entry(uow, user, check_date, user_entries):
                 user_id=user.user_id,
                 entry_date=check_date,
                 status=PontoStatus.MISSING,
-                location_data="Sistema: Falta automática (Verificação diária).",
-                notes="Ausência sem registro de ponto.",
+                location_data=MISSING_LOCATION_AUTOMATIC,
+                notes=MISSING_NOTES_AUTOMATIC,
                 has_lunch_break=user.work_schedule.has_lunch_break)
         uow.session.add(new_ponto)
         user.time_entries.append(new_ponto)

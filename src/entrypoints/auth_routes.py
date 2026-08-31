@@ -7,6 +7,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from src.entrypoints import flask_app
 from src.entrypoints.forms import LoginForm
 from src.entrypoints.web_helpers import new_uow
+from src.config import (
+        MAGIC_LOGIN_TOKEN_MAX_AGE,
+        PASSWORD_RESET_TOKEN_MAX_AGE,
+        ROLE_EMPLOYEE,
+        TOKEN_SALT_MAGIC_LOGIN,
+        TOKEN_SALT_PASSWORD_RESET,
+)
 
 
 def register_routes(app):
@@ -99,21 +106,21 @@ def _login_post(form):
 def _post_login_redirect(user):
         if not user.is_profile_complete:
                 return redirect(url_for("complete_profile"))
-        if user.role == "employee" and not user.work_schedule:
+        if user.role == ROLE_EMPLOYEE and not user.work_schedule:
                 return redirect(url_for("choose_journey"))
         return redirect(url_for("dashboard"))
 
 
 def _load_email_from_token(token):
         try:
-                return flask_app.serializer.loads(token, salt="password-reset-salt", max_age=3600)
+                return flask_app.serializer.loads(token, salt=TOKEN_SALT_PASSWORD_RESET, max_age=PASSWORD_RESET_TOKEN_MAX_AGE)
         except Exception:
                 return None
 
 
 def _load_magic_email(token):
         try:
-                return flask_app.serializer.loads(token, salt="magic-login-salt", max_age=600)
+                return flask_app.serializer.loads(token, salt=TOKEN_SALT_MAGIC_LOGIN, max_age=MAGIC_LOGIN_TOKEN_MAX_AGE)
         except Exception:
                 return None
 
@@ -123,7 +130,7 @@ def _handle_forgot_post(email):
         with uow:
                 user = uow.users.get_user_by_email(email)
                 if user:
-                        token = flask_app.serializer.dumps(email, salt="password-reset-salt")
+                        token = flask_app.serializer.dumps(email, salt=TOKEN_SALT_PASSWORD_RESET)
                         reset_url = url_for("reset_password", token=token, _external=True)
                         html = render_template("emails/reset_password.html", reset_url=reset_url)
                         _send_reset_email(email, html)
@@ -158,7 +165,7 @@ def _handle_magic_login(email):
         with uow:
                 user = uow.users.get_user_by_email(email)
                 if user:
-                        token = flask_app.serializer.dumps(email, salt="magic-login-salt")
+                        token = flask_app.serializer.dumps(email, salt=TOKEN_SALT_MAGIC_LOGIN)
                         login_url = url_for("magic_link_login", token=token, _external=True)
                         html = render_template("emails/magic_link.html", login_url=login_url)
                         _send_magic_email(email, html)

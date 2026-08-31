@@ -7,9 +7,10 @@ from src.domain.model import User, UserRole, UserProfile, AuditLog
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.service_layer.permissions import ensure_manager
 from src.service_layer.audit import log_action
+from src.config import FALLBACK_ANALYSIS_DATE, ROLE_EMPLOYEE
 
 
-def register_user(uow: AbstractUnitOfWork, email: str, password: Optional[str] = None, role: str = "employee", registered_by_id: Optional[int] = None) -> bool:
+def register_user(uow: AbstractUnitOfWork, email: str, password: Optional[str] = None, role: str = ROLE_EMPLOYEE, registered_by_id: Optional[int] = None) -> bool:
         with uow:
                 _create_user(uow, email, password, role, registered_by_id)
         return True
@@ -80,7 +81,7 @@ def _apply_profile_update(uow, user_id, registration_number, cpf, department, po
 
 
 def _decide_analysis_date(current, provided):
-        return provided or current or date(2026, 1, 1)
+        return provided or current or FALLBACK_ANALYSIS_DATE
 
 
 def _decide_birth_date(existing, provided):
