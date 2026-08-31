@@ -41,8 +41,23 @@ from src.config import (
 
 load_dotenv()
 
+
+def _resolve_secret_key(environ):
+        """Return a usable SECRET_KEY, refusing a weak dev key in production.
+
+        A explicit value always wins; otherwise a clearly-labeled insecure key is
+        used for development/testing, but production (FLASK_ENV=production or
+        VERCEL) fails fast when SECRET_KEY is missing.
+        """
+        secret = environ.get("SECRET_KEY")
+        is_production = environ.get("FLASK_ENV") == "production" or bool(environ.get("VERCEL"))
+        if not secret and is_production:
+                raise RuntimeError("SECRET_KEY must be set via the SECRET_KEY environment variable in production.")
+        return secret or "dev-only-insecure-secret-key"
+
+
 app = Flask(__name__, template_folder="templates")
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
+app.config["SECRET_KEY"] = _resolve_secret_key(os.environ)
 app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", DEFAULT_SMTP_SERVER)
 app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", DEFAULT_SMTP_PORT))
 app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")

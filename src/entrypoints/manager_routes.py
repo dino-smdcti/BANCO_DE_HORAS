@@ -20,6 +20,8 @@ from src.config import (
         ROLE_GESTOR,
         ROLE_MANAGER,
         TIME_FORMAT,
+        TOKEN_SALT_INVITE,
+        TOKEN_SALT_PASSWORD_RESET,
 )
 
 _ScheduleValues = namedtuple("_ScheduleValues", ["arrival", "lunch_start", "lunch_end", "departure", "tolerance", "has_lunch_break", "schedule_type"])
@@ -556,8 +558,8 @@ def _register_or_none(form):
 
 
 def _send_invitation(form, is_new):
-        token = flask_app.serializer.dumps(form.email.data, salt="password-reset-salt")
-        setup_url = url_for("reset_password", token=token, _external=True)
+        token = flask_app.serializer.dumps(form.email.data, salt=TOKEN_SALT_INVITE)
+        setup_url = url_for("accept_invite", token=token, _external=True)
         html = render_template("emails/welcome_invite.html", setup_url=setup_url)
         fallback = flask_app.send_email_with_fallback(
                 form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html
@@ -816,7 +818,7 @@ def _send_password_reset(uow, user_id):
         if not user:
                 flash("Usuário não encontrado.", "danger")
                 return redirect(url_for("management_panel"))
-        token = flask_app.serializer.dumps(user.email, salt="password-reset-salt")
+        token = flask_app.serializer.dumps(user.email, salt=TOKEN_SALT_PASSWORD_RESET)
         reset_url = url_for("reset_password", token=token, _external=True)
         html = render_template("emails/reset_password.html", reset_url=reset_url)
         fallback = flask_app.send_email_with_fallback(

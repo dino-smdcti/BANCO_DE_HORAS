@@ -115,6 +115,7 @@ PASSWORD_RESET_TOKEN_MAX_AGE = 3600  # 1 hour
 MAGIC_LOGIN_TOKEN_MAX_AGE = 600  # 10 minutes
 TOKEN_SALT_PASSWORD_RESET = "password-reset-salt"
 TOKEN_SALT_MAGIC_LOGIN = "magic-login-salt"
+TOKEN_SALT_INVITE = "invite-salt"
 
 # --------------------------------------------------------------------------
 # Database

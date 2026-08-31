@@ -11,6 +11,7 @@ from src.config import (
         MAGIC_LOGIN_TOKEN_MAX_AGE,
         PASSWORD_RESET_TOKEN_MAX_AGE,
         ROLE_EMPLOYEE,
+        TOKEN_SALT_INVITE,
         TOKEN_SALT_MAGIC_LOGIN,
         TOKEN_SALT_PASSWORD_RESET,
 )
@@ -23,6 +24,7 @@ def register_routes(app):
         app.add_url_rule("/logout", "logout", logout)
         app.add_url_rule("/forgot-password", "forgot_password", forgot_password, methods=["GET", "POST"])
         app.add_url_rule("/reset-password/<token>", "reset_password", reset_password, methods=["GET", "POST"])
+        app.add_url_rule("/invite/<token>", "accept_invite", accept_invite, methods=["GET", "POST"])
         app.add_url_rule("/magic-login", "magic_login", magic_login, methods=["POST"])
         app.add_url_rule("/login-link/<token>", "magic_link_login", magic_link_login)
 
@@ -58,6 +60,23 @@ def reset_password(token):
         email = _load_email_from_token(token)
         if not email:
                 flash("O link de recuperação é inválido ou expirou.", "danger")
+                return redirect(url_for("forgot_password"))
+        if request.method == "POST":
+                password = request.form.get("password")
+                if not password:
+                        flash("A senha é obrigatória.", "danger")
+                        return render_template("reset_password.html", token=token)
+                _apply_new_password(email, password)
+                return redirect(url_for("login"))
+        return render_template("reset_password.html", token=token)
+
+
+def accept_invite(token):
+        """Set up a new password for an invited user. Uses a distinct salt from
+        password reset so an invite link cannot double as a reset (and vice versa)."""
+        email = _load_email_from_token(token, salt=TOKEN_SALT_INVITE)
+        if not email:
+                flash("O convite é inválido ou expirou.", "danger")
                 return redirect(url_for("forgot_password"))
         if request.method == "POST":
                 password = request.form.get("password")
@@ -111,9 +130,9 @@ def _post_login_redirect(user):
         return redirect(url_for("dashboard"))
 
 
-def _load_email_from_token(token):
+def _load_email_from_token(token, salt=TOKEN_SALT_PASSWORD_RESET):
         try:
-                return flask_app.serializer.loads(token, salt=TOKEN_SALT_PASSWORD_RESET, max_age=PASSWORD_RESET_TOKEN_MAX_AGE)
+                return flask_app.serializer.loads(token, salt=salt, max_age=PASSWORD_RESET_TOKEN_MAX_AGE)
         except Exception:
                 return None
 
