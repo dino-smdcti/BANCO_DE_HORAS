@@ -13,14 +13,17 @@ def add_notification(uow: AbstractUnitOfWork, user_id: int, message: str, email_
 
 def mark_notifications_as_read(uow: AbstractUnitOfWork, user_id: int):
         with uow:
-                _clear_notifications(uow, user_id)
+                _mark_read(uow, user_id)
 
 
-def _clear_notifications(uow, user_id):
-        """Delete the notifications once the user has visited their dashboard."""
+def _mark_read(uow, user_id):
+        """Mark all of a user's notifications as read when they visit their dashboard.
+
+        Notifications are preserved (not deleted) and only flagged as read, so the
+        user's unread count reflects genuinely unvisited entries.
+        """
         user = uow.users.get_user_by_id(user_id)
         if not user:
                 return
         for notification in user.notifications:
-                uow.session.delete(notification)
-        uow.commit()
+                notification.is_read = True

@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float
+from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float, UniqueConstraint
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
@@ -114,6 +114,7 @@ users = Table(
     Column("secretariat", String(SECRETARIAT_COLUMN_LENGTH), nullable=True),
     Column("full_name", String(FULL_NAME_COLUMN_LENGTH), nullable=True),
     Column("email_notifications_enabled", Boolean, default=False),
+    Column("password_set", Boolean, default=False, nullable=False),
     Column("start_analysis_date", Date, default=DEFAULT_ANALYSIS_START_DATE),
     Column("birth_date", Date, nullable=True),
 )
@@ -152,7 +153,12 @@ daily_pontos = Table(
     Column("lunch_end_late_excused", Boolean, default=False),
     Column("departure_early_excused", Boolean, default=False),
     Column("missing_excused", Boolean, default=False),
+    Column("lunch_start_early", Boolean, default=False),
+    Column("lunch_start_early_reviewed", Boolean, default=False),
+    Column("lunch_start_early_approved", Boolean, default=False),
+    Column("lunch_start_early_excused", Boolean, default=False),
     Column("excused_minutes", Integer, default=0),
+    UniqueConstraint("user_id", "entry_date", name="unique_user_entry_date"),
 )
 
 correction_requests = Table(

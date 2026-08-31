@@ -47,14 +47,16 @@ def get_all_employees(uow: AbstractUnitOfWork, requester_id: Optional[int] = Non
 def _create_user(uow, email, password, role, registered_by_id):
         if uow.users.get_user_by_email(email):
                 raise ValueError("Email already exists.")
-        user = User(email=email, password_hash=_password_hash(password), role=UserRole(role))
+        user = User(email=email, password_hash=_password_hash(password), role=UserRole(role), password_set=bool(password))
         user.profile.start_analysis_date = date.today()
         uow.users.add_user(user)
         log_action(uow, _actor_id(registered_by_id, user), "USER_REGISTERED", target_id=user.user_id, details=f"Nível: {role}")
 
 
 def _password_hash(password):
-        return generate_password_hash(password) if password else "!"
+        if password:
+                return generate_password_hash(password)
+        return "_unset_password_"
 
 
 def _actor_id(registered_by_id, user):
@@ -100,6 +102,7 @@ def _apply_credential_update(uow, user_id, email, password, email_notifications_
         user.email_notifications_enabled = email_notifications_enabled
         if password:
                 user.password_hash = generate_password_hash(password)
+                user.password_set = True
         log_action(uow, user_id, "UPDATE_CREDENTIALS", target_id=user_id)
 
 

@@ -57,14 +57,14 @@ Command convention: run suite as
 - [ ] Tests: malformed input returns 400 not 500; error message is generic
 
 ## Phase 2 — Correctness bugs
-- [ ] Atomicity: remove uow.commit() from log_action; single commit at with exit; remove redundant explicit commits
-- [ ] Notifications: mark_notifications_as_read actually sets is_read
-- [ ] Inverted lunch_start_late → lunch_start_early semantics + config constant + tests
-- [ ] UniqueConstraint(user_id, entry_date) on daily_pontos + migration + IntegrityError handling
-- [ ] _apply_proposed_times raises ValueError on unknown stage
-- [ ] Password sentinel "!" → real password_set flow
-- [ ] AbstractUnitOfWork.__exit__ raises NotImplementedError instead of silent rollback
-- [ ] Tests for each fix above
+- [x] Atomicity: remove uow.commit() from log_action; single commit at with exit; remove redundant explicit commits
+- [x] Notifications: mark_notifications_as_read actually sets is_read
+- [x] Inverted lunch_start_late → lunch_start_early semantics + config constant + tests
+- [x] UniqueConstraint(user_id, entry_date) on daily_pontos + migration + IntegrityError handling
+- [x] _apply_proposed_times raises ValueError on unknown stage
+- [x] Password sentinel "!" → real password_set flow
+- [x] AbstractUnitOfWork.__exit__ raises NotImplementedError instead of silent rollback
+- [x] Tests for each fix above
 
 ## Phase 3 — Database, performance & concurrency
 - [ ] Indexes migration: daily_pontos(user_id,entry_date) unique, daily_pontos(entry_date), audit_logs(user_id), audit_logs(timestamp), notifications(user_id,created_at), correction_requests(status), vacations(user_id,start_date,end_date), attestations(user_id,start_date,end_date), users(role)

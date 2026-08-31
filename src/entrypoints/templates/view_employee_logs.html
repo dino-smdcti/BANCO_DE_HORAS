@@ -156,6 +156,11 @@
                                     <span class="badge {{ 'bg-warning text-dark' if is_reviewed else 'bg-danger text-white' }} {{ '' if is_reviewed else 'clickable-badge' }} mt-1" 
                                           {% if not is_reviewed %}onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'lunch_start', 'Anomalia')" style="cursor: pointer; display: block;"{% else %}style="display: block;"{% endif %}>! Saída</span>
                                     {% endif %}
+                                    {% if p.lunch_start_early %}
+                                    {% set is_reviewed = p.lunch_start_early_approved or p.lunch_start_early_excused %}
+                                    <span class="badge {{ 'bg-warning text-dark' if is_reviewed else 'bg-danger text-white' }} {{ '' if is_reviewed else 'clickable-badge' }} mt-1" 
+                                          {% if not is_reviewed %}onclick="openReviewModal('{{ employee.user_id }}', '{{ p.entry_date }}', 'lunch_start_early', 'Anomalia')" style="cursor: pointer; display: block;"{% else %}style="display: block;"{% endif %}>! Saída Antecipada</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <input type="text" name="lunch_end_{{ p.entry_date }}" value="{{ p.lunch_end.strftime('%H:%M:%S') if p.lunch_end else '' }}" class="form-control form-control-sm btn-compact" style="width: 85px;" maxlength="8">

@@ -29,7 +29,7 @@ class AbstractUnitOfWork(ABC):
                 return self
 
         def __exit__(self, *args):
-                self.rollback()
+                raise NotImplementedError("Subclasses must implement __exit__")
 
         @abstractmethod
         def record_action(self, user_id: int, action: str, target_id: Optional[int] = None, details: Optional[str] = None):

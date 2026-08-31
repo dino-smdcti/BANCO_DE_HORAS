@@ -204,6 +204,11 @@ class DailyPonto:
         lunch_start_late_excused: bool = False
         lunch_end_late_excused: bool = False
         departure_early_excused: bool = False
+
+        lunch_start_early: bool = False
+        lunch_start_early_reviewed: bool = False
+        lunch_start_early_approved: bool = False
+        lunch_start_early_excused: bool = False
         missing_excused: bool = False
 
         def get_placeholder(self, field: str, schedule: Optional[WorkSchedule]) -> Optional[time]:
@@ -289,10 +294,12 @@ class User:
                 profile=None,
                 work_schedule=None,
                 email_notifications_enabled=False,
+                password_set=None,
         ):
                 self.user_id = user_id
                 self.email = email
                 self.password_hash = password_hash
+                self.password_set = password_set if password_set is not None else (bool(password_hash) and password_hash != "!")
                 self.role = role
                 self.profile = profile or UserProfile()
                 self.work_schedule = work_schedule
@@ -527,7 +534,7 @@ def _worked_minutes_for_balance(ponto, schedule):
 
 def _neutralized_worked_minutes(ponto, schedule):
         arrival = _neutralized_time(ponto.arrival, schedule.expected_arrival, ponto.arrival_late_approved or ponto.arrival_late_excused)
-        lunch_start = _neutralized_time(ponto.lunch_start, schedule.expected_lunch_start, (ponto.lunch_start_late_approved or ponto.lunch_start_late_excused) and schedule.expected_lunch_start is not None)
+        lunch_start = _neutralized_time(ponto.lunch_start, schedule.expected_lunch_start, ((ponto.lunch_start_late_approved or ponto.lunch_start_late_excused) or (ponto.lunch_start_early_approved or ponto.lunch_start_early_excused)) and schedule.expected_lunch_start is not None)
         lunch_end = _neutralized_time(ponto.lunch_end, schedule.expected_lunch_end, (ponto.lunch_end_late_approved or ponto.lunch_end_late_excused) and schedule.expected_lunch_end is not None)
         departure = _neutralized_time(ponto.departure, schedule.expected_departure, ponto.departure_early_approved or ponto.departure_early_excused)
         # A neutralized clock must never create an impossible timeline (e.g. a lunch
@@ -554,9 +561,11 @@ def _has_approved_anomaly(ponto) -> bool:
                 ponto.lunch_start_late_approved,
                 ponto.lunch_end_late_approved,
                 ponto.departure_early_approved,
+                ponto.lunch_start_early_approved,
                 ponto.arrival_late_excused,
                 ponto.lunch_start_late_excused,
                 ponto.lunch_end_late_excused,
                 ponto.departure_early_excused,
+                ponto.lunch_start_early_excused,
         ]
         return any(flags)

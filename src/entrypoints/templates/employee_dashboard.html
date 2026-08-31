@@ -75,6 +75,17 @@
                                         {% endif %}
                                     </div>
                                 {% endif %}
+                                {% if p.status.value != 'Corrigido' and p.lunch_start_early %}
+                                    <div class="mt-1">
+                                        {% if p.lunch_start_early_approved %}
+                                            <span class="badge bg-success" title="Anomalia Aprovada">
+                                                <i class="bi bi-check-circle"></i> Saída Antecipada
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Saída Antecipada</span>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
                             </td>
 
                             <!-- Volta Almoço -->

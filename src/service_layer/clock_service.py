@@ -1,6 +1,7 @@
 from datetime import datetime, time, timedelta, timezone
 from typing import List, Optional
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from src.domain.model import DailyPonto, CorrectionRequest, PontoStatus, UserRole
 from src.domain.time_utils import limit_after, limit_before
@@ -35,13 +36,17 @@ _STAGE_MESSAGES = STAGE_READY_MESSAGES
 
 def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] = None, stage: Optional[str] = None, notes: Optional[str] = None) -> str:
         with uow:
-                user = _require_user(uow, user_id)
-                now_time, today = _brazil_now()
-                ponto = _todays_ponto(user, today)
-                target_stage = stage or _next_stage(ponto)
-                _register_stage(user, ponto, target_stage, now_time, today, location or CLOCK_LOCATION_NA, notes)
-                message = _STAGE_MESSAGES[target_stage]
-                log_action(uow, user_id, "CLOCK_EVENT", target_id=user_id, details=f"{message} ({target_stage})")
+                try:
+                        user = _require_user(uow, user_id)
+                        now_time, today = _brazil_now()
+                        ponto = _todays_ponto(user, today)
+                        target_stage = stage or _next_stage(ponto)
+                        _register_stage(user, ponto, target_stage, now_time, today, location or CLOCK_LOCATION_NA, notes)
+                        message = _STAGE_MESSAGES[target_stage]
+                        log_action(uow, user_id, "CLOCK_EVENT", target_id=user_id, details=f"{message} ({target_stage})")
+                except IntegrityError:
+                        uow.rollback()
+                        raise ValueError("Registro do dia já existe.")
                 return message
 
 
@@ -157,6 +162,7 @@ def _register_lunch_start(user, ponto, now_time, today, location):
         ponto.lunch_start = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_LUNCH_START}: {location}")
         _flag_if_lunch_start_late(ponto, user, today, now_time)
+        _flag_if_lunch_start_early(ponto, user, today, now_time)
 
 
 def _register_lunch_end(user, ponto, now_time, today, location):
@@ -203,9 +209,16 @@ def _flag_if_arrival_late(ponto, user, today, now_time):
 
 def _flag_if_lunch_start_late(ponto, user, today, now_time):
         schedule = user.work_schedule
-        if schedule and schedule.expected_lunch_start and now_time < limit_before(schedule.expected_lunch_start, schedule.tolerance_minutes, today):
+        if schedule and schedule.expected_lunch_start and now_time > limit_after(schedule.expected_lunch_start, schedule.tolerance_minutes, today):
                 ponto.status = PontoStatus.LATE
                 ponto.lunch_start_late = True
+
+
+def _flag_if_lunch_start_early(ponto, user, today, now_time):
+        schedule = user.work_schedule
+        if schedule and schedule.expected_lunch_start and now_time < limit_before(schedule.expected_lunch_start, schedule.tolerance_minutes, today):
+                ponto.status = PontoStatus.LATE
+                ponto.lunch_start_early = True
 
 
 def _flag_if_lunch_end_late(ponto, user, today, now_time):
@@ -266,24 +279,34 @@ def _apply_proposed_times(ponto, request):
                 ponto.lunch_end = request.proposed_time
         elif request.stage == STAGE_DEPARTURE:
                 ponto.departure = request.proposed_time
+        else:
+                raise ValueError(f"Estágio de correção desconhecido: {request.stage}")
 
 
 def _mark_reviewed(ponto):
         ponto.arrival_late_reviewed = True
         ponto.lunch_start_late_reviewed = True
+        ponto.lunch_start_early_reviewed = True
         ponto.lunch_end_late_reviewed = True
         ponto.departure_early_reviewed = True
 
 
 def _re_evaluate_anomalies(ponto, schedule, day):
         ponto.arrival_late = _is_late_arrival(ponto.arrival, schedule, day)
-        ponto.lunch_start_late = _is_early_lunch_start(ponto.lunch_start, schedule, day)
+        ponto.lunch_start_late = _is_late_lunch_start(ponto.lunch_start, schedule, day)
+        ponto.lunch_start_early = _is_early_lunch_start(ponto.lunch_start, schedule, day)
         ponto.lunch_end_late = _is_late_lunch_end(ponto.lunch_end, schedule, day)
         ponto.departure_early = _is_early_departure(ponto.departure, schedule, day)
 
 
 def _is_late_arrival(arrival, schedule, day):
         return bool(arrival) and arrival > limit_after(schedule.expected_arrival, schedule.tolerance_minutes, day)
+
+
+def _is_late_lunch_start(lunch_start, schedule, day):
+        if not lunch_start or not schedule.expected_lunch_start:
+                return False
+        return lunch_start > limit_after(schedule.expected_lunch_start, schedule.tolerance_minutes, day)
 
 
 def _is_early_lunch_start(lunch_start, schedule, day):

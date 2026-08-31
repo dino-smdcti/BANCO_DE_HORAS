@@ -47,7 +47,6 @@ def _apply_schedule(uow, manager_id, employee_id, arrival, lunch_start, lunch_en
                 _overwrite_schedule(user.work_schedule, arrival, lunch_start, lunch_end, departure, tolerance, has_lunch_break, schedule_type, rotation_start_date)
         else:
                 user.work_schedule = _new_schedule(employee_id, arrival, lunch_start, lunch_end, departure, tolerance, has_lunch_break, schedule_type, rotation_start_date)
-        uow.commit()
 
 
 def _require_employee(uow, employee_id):

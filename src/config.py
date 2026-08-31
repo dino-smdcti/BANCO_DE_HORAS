@@ -246,6 +246,7 @@ EASTER_OFFSET_CORPUS_CHRISTI = 60
 ANOMALY_STAGE_FLAGS = [
         ("arrival_late", "arrival_late_reviewed", "arrival_late_approved", "arrival_late_excused"),
         ("lunch_start_late", "lunch_start_late_reviewed", "lunch_start_late_approved", "lunch_start_late_excused"),
+        ("lunch_start_early", "lunch_start_early_reviewed", "lunch_start_early_approved", "lunch_start_early_excused"),
         ("lunch_end_late", "lunch_end_late_reviewed", "lunch_end_late_approved", "lunch_end_late_excused"),
         ("departure_early", "departure_early_reviewed", "departure_early_approved", "departure_early_excused"),
 ]
@@ -254,6 +255,7 @@ ANOMALY_STAGE_FLAGS = [
 ANOMALY_DECISION_FLAGS = {
         "arrival": ("arrival_late_reviewed", "arrival_late_approved", "arrival_late_excused"),
         "lunch_start": ("lunch_start_late_reviewed", "lunch_start_late_approved", "lunch_start_late_excused"),
+        "lunch_start_early": ("lunch_start_early_reviewed", "lunch_start_early_approved", "lunch_start_early_excused"),
         "lunch_end": ("lunch_end_late_reviewed", "lunch_end_late_approved", "lunch_end_late_excused"),
         "departure": ("departure_early_reviewed", "departure_early_approved", "departure_early_excused"),
         "missing": ("missing_reviewed", "missing_approved", "missing_excused"),
@@ -264,6 +266,7 @@ ANOMALY_DECISION_FLAGS = {
 ANOMALY_FLAG_TRIPLES = [
         ("arrival_late_reviewed", "arrival_late_approved", "arrival_late_excused"),
         ("lunch_start_late_reviewed", "lunch_start_late_approved", "lunch_start_late_excused"),
+        ("lunch_start_early_reviewed", "lunch_start_early_approved", "lunch_start_early_excused"),
         ("lunch_end_late_reviewed", "lunch_end_late_approved", "lunch_end_late_excused"),
         ("departure_early_reviewed", "departure_early_approved", "departure_early_excused"),
 ]
@@ -273,6 +276,7 @@ ANOMALY_FLAG_TRIPLES = [
 # --------------------------------------------------------------------------
 STAGE_ARRIVAL = "arrival"
 STAGE_LUNCH_START = "lunch_start"
+STAGE_LUNCH_START_EARLY = "lunch_start_early"
 STAGE_LUNCH_END = "lunch_end"
 STAGE_DEPARTURE = "departure"
 STAGE_MISSING = "missing"

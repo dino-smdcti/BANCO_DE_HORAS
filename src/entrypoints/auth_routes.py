@@ -120,7 +120,7 @@ def _login_post(form):
         uow = new_uow()
         with uow:
                 user = uow.users.get_user_by_email(form.email.data)
-                if user and check_password_hash(user.password_hash, form.password.data):
+                if user and user.password_set and check_password_hash(user.password_hash, form.password.data):
                         login_user(flask_app.AuthenticatedUser(user))
                         return _post_login_redirect(user)
         flash("E-mail ou senha inválidos", "danger")
@@ -177,6 +177,7 @@ def _flash_generic_reset_info():
 def _apply_new_password(uow, user, token, kind, password):
         token_service.consume_token(uow, token, kind)
         user.password_hash = generate_password_hash(password)
+        user.password_set = True
         uow.tokens.revoke_user_tokens(user.user_id, TOKEN_KIND_RESET)
         uow.commit()
         flash("Sua senha foi atualizada com sucesso.", "success")

@@ -45,7 +45,18 @@ migrations = [
     "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS arrival_late_reviewed BOOLEAN DEFAULT FALSE;",
     "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_late_reviewed BOOLEAN DEFAULT FALSE;",
     "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_end_late_reviewed BOOLEAN DEFAULT FALSE;",
-    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS departure_early_reviewed BOOLEAN DEFAULT FALSE;"
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS departure_early_reviewed BOOLEAN DEFAULT FALSE;",
+
+    # Support early lunch start anomaly (independent from late lunch start)
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_early BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_early_approved BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_early_excused BOOLEAN DEFAULT FALSE;",
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_early_reviewed BOOLEAN DEFAULT FALSE;",
+
+    # Replace "!" password sentinel with an explicit password_set flag
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_set BOOLEAN NOT NULL DEFAULT FALSE;",
+    "UPDATE users SET password_set = TRUE WHERE password_hash <> '_unset_password_' AND password_hash <> '!';",
+    "UPDATE users SET password_hash = '_unset_password_' WHERE password_hash = '!';"
 ]
 
 print(f"Connecting to database...")
