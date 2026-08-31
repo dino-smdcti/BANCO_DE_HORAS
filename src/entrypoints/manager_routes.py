@@ -559,14 +559,15 @@ def _send_invitation(form, is_new):
         token = flask_app.serializer.dumps(form.email.data, salt="password-reset-salt")
         setup_url = url_for("reset_password", token=token, _external=True)
         html = render_template("emails/welcome_invite.html", setup_url=setup_url)
-        if flask_app.send_email(form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html):
-                if is_new:
-                        flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
-                else:
-                        flash("O usuário já estava cadastrado. O convite foi reenviado com sucesso.", "info")
+        fallback = flask_app.send_email_with_fallback(
+                form.email.data, "Bem-vindo ao Banco de Horas - Ative sua conta", html
+        )
+        if fallback is not None:
+                return fallback
+        if is_new:
+                flash("Usuário cadastrado! Um convite foi enviado por e-mail.", "success")
         else:
-                status_msg = "Usuário cadastrado, mas o e-mail falhou. " if is_new else "O usuário já existe, mas o e-mail falhou. "
-                flash(f"{status_msg} Copie o link de ativação: {setup_url}", "warning")
+                flash("O usuário já estava cadastrado. O convite foi reenviado com sucesso.", "info")
         return redirect(url_for("dashboard"))
 
 
@@ -818,10 +819,12 @@ def _send_password_reset(uow, user_id):
         token = flask_app.serializer.dumps(user.email, salt="password-reset-salt")
         reset_url = url_for("reset_password", token=token, _external=True)
         html = render_template("emails/reset_password.html", reset_url=reset_url)
-        if flask_app.send_email(user.email, "Redefinição de Senha Solicitada", html):
-                flash("Link de redefinição enviado para o e-mail do usuário.", "success")
-        else:
-                flash(f"Não foi possível enviar o e-mail. Link de redefinição: {reset_url}", "warning")
+        fallback = flask_app.send_email_with_fallback(
+                user.email, "Redefinição de Senha Solicitada", html
+        )
+        if fallback is not None:
+                return fallback
+        flash("Link de redefinição enviado para o e-mail do usuário.", "success")
         return redirect(url_for("view_employee_logs", employee_id=user_id))
 
 

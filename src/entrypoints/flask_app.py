@@ -4,7 +4,7 @@ import sys
 from dotenv import load_dotenv
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from flask import Flask, request
+from flask import Flask, render_template, request
 from flask_login import LoginManager, UserMixin, current_user
 from flask_wtf import CSRFProtect
 from itsdangerous import URLSafeTimedSerializer
@@ -209,7 +209,7 @@ def _load_authenticated_user(uow):
 
 def send_email(to_email, subject, body_html):
         if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
-                print("SMTP Error: MAIL_USERNAME or MAIL_PASSWORD not configured.", file=sys.stderr)
+                print("SMTP not configured.", file=sys.stderr)
                 return False
 
         msg = MIMEMultipart()
@@ -227,9 +227,27 @@ def send_email(to_email, subject, body_html):
                 except Exception:
                         pass
                 return True
-        except Exception as error:
-                print(f"Detailed SMTP Error for {to_email}: {str(error)}", file=sys.stderr)
+        except Exception:
+                # Log generically: never splash the recipient address or the raw
+                # error (both are PII / internal detail) to the console.
+                print("SMTP send failed.", file=sys.stderr)
                 return False
+
+
+def send_email_with_fallback(to_email, subject, body_html):
+        """Send an email; on failure render a secure HTML fallback page for
+        management users so a blocked reset/invite link stays usable. Returns
+        None when no fallback applies (caller keeps its default flow)."""
+        if send_email(to_email, subject, body_html):
+                return None
+        if current_user.is_authenticated and current_user.role in MANAGEMENT_ROLES:
+                return render_template(
+                        "email_fallback.html",
+                        subject=subject,
+                        recipient=to_email,
+                        content=body_html,
+                )
+        return None
 
 
 def _smtp_connect():

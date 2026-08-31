@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-envelope-exclamation me-2"></i>
+        <div>
+            <strong>E-mail não pôde ser entregue.</strong>
+            O envio automático falhou, então o conteúdo da mensagem é exibido abaixo
+            (acesso restrito a gestores/administradores).
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <strong>{{ subject }}</strong>
+            <span class="text-muted ms-2">para {{ recipient }}</span>
+        </div>
+        <div class="card-body">
+            {{ content | safe }}
+        </div>
+    </div>
+</div>
+{% endblock %}
