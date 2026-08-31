@@ -98,9 +98,11 @@
                                 <td><span class="badge bg-dark">{{ c.time.strftime('%H:%M') }}</span></td>
                                 <td>
                                     <form action="{{ url_for('review_correction', request_id=c.id, action='Aprovar') }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-xs btn-success py-0" style="font-size: 0.7rem;">Aprovar</button>
                                     </form>
                                     <form action="{{ url_for('review_correction', request_id=c.id, action='Rejeitar') }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                         <button type="submit" class="btn btn-xs btn-outline-danger py-0" style="font-size: 0.7rem;">Rejeitar</button>
                                     </form>
                                 </td>
@@ -141,6 +143,7 @@
                         <div class="tab-content">
                             <div class="tab-pane fade show active" id="feriadoPane" role="tabpanel">
                                 <form action="{{ url_for('add_holiday') }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Descrição</label>
                                         <input type="text" name="description" class="form-control" placeholder="Ex: Natal" required>
@@ -160,6 +163,7 @@
                             </div>
                             <div class="tab-pane fade" id="facultativoPane" role="tabpanel">
                                 <form action="{{ url_for('add_facultativo') }}" method="POST">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <p class="text-muted small">O período informado será dispensado para todos os funcionários. Deixe os horários em branco para dispensar o dia inteiro.</p>
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Descrição</label>
@@ -364,6 +368,7 @@ function changeRolePrompt(userId, currentRole) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
             },
             body: JSON.stringify({ role: newRole })
         })

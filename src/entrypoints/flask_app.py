@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import Flask, request
 from flask_login import LoginManager, UserMixin, current_user
+from flask_wtf import CSRFProtect
 from itsdangerous import URLSafeTimedSerializer
 import smtplib
 from sqlalchemy import create_engine
@@ -50,6 +51,8 @@ app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
+
+csrf = CSRFProtect(app)
 
 
 def _database_url():

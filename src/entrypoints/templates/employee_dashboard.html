@@ -195,6 +195,7 @@
                 <h6 class="small fw-bold">Seleção Manual de Estágio</h6>
                 <p class="small text-muted mb-2">Use isto apenas se a detecção automática falhar. O local não será validado com precisão.</p>
                 <form action="{{ url_for('clock') }}" method="POST" class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="location" value="Manual/Avançado">
                     <button type="submit" name="stage" value="arrival" class="btn btn-xs btn-outline-secondary py-0">Forçar Entrada</button>
                     <button type="submit" name="stage" value="lunch_start" class="btn btn-xs btn-outline-secondary py-0">Forçar Saída Almoço</button>
@@ -292,6 +293,7 @@
     <div class="modal fade" id="correctionModal" tabindex="-1">
         <div class="modal-dialog">
             <form action="{{ url_for('submit_correction') }}" method="POST" class="modal-content">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Solicitar Correção de Ponto</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -331,6 +333,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="clockForm" action="{{ url_for('clock') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="modal-body text-center">
                         <div class="mb-3">
                             <i class="bi bi-clock-history text-primary" style="font-size: 2.5rem;"></i>
@@ -452,6 +455,7 @@
 <div class="modal fade" id="noteModal" tabindex="-1">
     <div class="modal-dialog">
         <form action="{{ url_for('update_note') }}" method="POST" class="modal-content">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="modal-header">
                 <h5 class="modal-title">Nota do Ponto</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

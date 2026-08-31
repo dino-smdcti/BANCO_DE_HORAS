@@ -32,6 +32,23 @@ const APP_CONSTANTS = {
     MAP_EMBED_URL: 'https://www.google.com/maps?q=${loc}&output=embed'
 };
 
+// Reads the CSRF token emitted by the server's meta tag so fetch() POSTs can
+// include the X-CSRFToken header required by Flask-WTF's CSRFProtect.
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
+// Adds the CSRF header to any fetch() request when a token is available.
+function csrfFetch(url, options) {
+    const opts = options || {};
+    const token = getCsrfToken();
+    if (token && opts.method && opts.method.toUpperCase() !== 'GET') {
+        opts.headers = Object.assign({}, opts.headers, { 'X-CSRFToken': token });
+    }
+    return fetch(url, opts);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Universal form submit handler
     document.querySelectorAll('form').forEach(form => {
@@ -74,7 +91,7 @@ function setLoadingState(element) {
 }
 
 function markRead(url) {
-    fetch(url, { method: 'POST' })
+    csrfFetch(url, { method: 'POST' })
     .then(r => {
         if(r.ok) {
             const badge = document.getElementById('notifBadge');

@@ -8,6 +8,7 @@
             <p class="text-muted mb-0">Funcionário: <strong>{{ employee.profile.full_name or employee.email }}</strong></p>
             <a href="{{ url_for('edit_employee', employee_id=employee.user_id) }}" class="btn btn-link btn-sm p-0 text-muted ms-2" style="font-size: 0.75rem; line-height: 1;">(editar)</a>
             <form action="{{ url_for('reset_user_password', user_id=employee.user_id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-link btn-sm p-0 text-muted ms-2" style="font-size: 0.75rem; line-height: 1;" onclick="return confirm('Deseja realmente enviar um e-mail de redefinição de senha para este usuário?');">(redefinir senha)</button>
             </form>
         </div>
@@ -26,16 +27,19 @@
         {% if current_user.role in ADMIN_ROLES %}
             {% if employee.role.value == ROLE_EMPLOYEE %}
                 <form action="{{ url_for('promote_user', user_id=employee.user_id) }}" method="POST" class="m-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-warning btn-compact" onclick="return confirm('Promover este usuário a Gestor?');">Promover</button>
                 </form>
             {% elif employee.role.value == ROLE_MANAGER %}
                 <form action="{{ url_for('demote_user', user_id=employee.user_id) }}" method="POST" class="m-0">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-warning btn-compact" onclick="return confirm('Rebaixar este gestor a funcionário?');">Demover</button>
                 </form>
             {% endif %}
         {% endif %}
         
         <form action="{{ url_for('delete_user', user_id=employee.user_id) }}" method="POST" class="m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-sm btn-danger btn-compact" onclick="return confirm('Deseja realmente excluir este funcionário?');">Remover Funcionário</button>
         </form>
         
@@ -91,6 +95,7 @@
         </div>
     </div>
     <form id="bulkFixForm" action="{{ url_for('bulk_fix_ponto', employee_id=employee.user_id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="card-body">
             <div class="table-responsive table-container">
                 <table class="table table-hover mb-0">
@@ -259,6 +264,7 @@
     </div>
     <div class="card-body">
         <form action="{{ url_for('update_user_analysis_date', employee_id=employee.user_id) }}" method="POST" class="row g-3 align-items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="col-md-6">
                 <label class="form-label">Data de Início da Análise</label>
                 <input type="date" name="start_analysis_date" class="form-control" value="{{ employee.profile.start_analysis_date.strftime('%Y-%m-%d') if employee.profile.start_analysis_date else '2026-01-01' }}">
@@ -286,6 +292,7 @@
             </div>
             <div class="modal-footer">
                 <form id="reviewBadgeForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" name="action" value="reject" class="btn btn-danger">Manter</button>
                     <button type="submit" name="action" value="excuse" class="btn btn-success">Abonar</button>
                 </form>
@@ -340,6 +347,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{{ url_for('complete_retroactive_logs_route', employee_id=employee.user_id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Completar Logs Retroativamente</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -430,6 +438,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{{ url_for('add_vacation', employee_id=employee.user_id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Lançar Férias</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -458,6 +467,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <form action="{{ url_for('add_attestation', employee_id=employee.user_id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Lançar Atestado</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -527,6 +537,7 @@
             <div class="modal-footer d-flex justify-content-between">
                 {% if current_user.role in MANAGEMENT_ROLES %}
                 <form id="att_remove_form" method="POST" onsubmit="return confirm('Remover o atestado deste dia?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-outline-danger btn-sm">
                         <i class="bi bi-trash"></i> Remover Atestado deste dia
                     </button>
@@ -684,6 +695,7 @@ function saveManagerNote() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCsrfToken(),
         },
         body: `employee_id=${employeeId}&entry_date=${entryDate}&note_text=${encodeURIComponent(noteText)}`
     })
