@@ -94,7 +94,7 @@ def promote_user(user_id):
 
 @login_required
 def change_user_role(user_id):
-        if not is_management_role(current_user.role):
+        if current_user.role != ROLE_ADMIN:
                 return {"success": False, "message": "Acesso não autorizado"}, 403
         new_role = request.json.get("role")
         if new_role not in [ROLE_EMPLOYEE, ROLE_GESTOR, ROLE_MANAGER, ROLE_ADMIN]:
