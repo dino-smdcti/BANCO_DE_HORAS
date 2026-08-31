@@ -18,20 +18,25 @@ Command convention: run suite as
 
 ## Phase 1 — Critical security fixes
 ### 1.1 Purge tracked DB backup (remove + scrub history)
-- [ ] `git rm --cached banco_de_horas.db.bak`; add `*.db`, `*.db.bak`, `*.sqlite*` to `.gitignore`
-- [ ] Scrub history with `git filter-repo` (remove blob from all commits), then force-push (phase end)
+- [x] `git rm --cached banco_de_horas.db.bak`; add `*.db`, `*.db.bak`, `*.sqlite*` to `.gitignore`
+- [ ] Scrub history with `git filter-repo` (remove blob from all commits), then force-push (commit 373904f, scrub deferred to phase push)
 - [ ] Rotate `SECRET_KEY` + Neon DB password after scrub
-- [ ] Add test: assert no `*.db`/`*.db.bak` files are tracked
+- [x] Add test: assert no `*.db`/`*.db.bak` files are tracked
 
 ### 1.2 CSRF everywhere
-- [ ] Register `CSRFProtect(app)` in flask_app
-- [ ] Add hidden token to every unprotected POST form (clock, profile, magic-login, forgot, reset, admin_settings, all manager/admin forms, base delete-ponto)
-- [ ] Send `X-CSRFToken` on all JS fetch POSTs (main.js markRead, manager_dashboard changeUserRole, view_employee_logs saveManagerNote, set_schedule)
-- [ ] Tests: CSRF token required on state-changing routes; POST without token rejected
+- [x] Register `CSRFProtect(app)` in flask_app
+- [x] Add hidden token to every unprotected POST form (clock, profile, magic-login, forgot, reset, admin_settings, all manager/admin forms, base delete-ponto)
+- [x] Send `X-CSRFToken` on all JS fetch POSTs (main.js markRead, manager_dashboard changeUserRole, view_employee_logs saveManagerNote)
+- [x] Tests: CSRF token required on state-changing routes; POST without token rejected (test_csrf_protection.py)
 
 ### 1.3 Fix privilege escalation in change_user_role
-- [ ] Restrict change_user_role to ROLE_ADMIN (match promote/demote)
-- [ ] Tests: manager/gestor cannot change roles or promote to admin
+- [x] Restrict change_user_role to ROLE_ADMIN (match promote/demote)
+- [x] Tests: manager/gestor cannot change roles or promote to admin (test_role_escalation.py)
+
+### 1.3b Secure HTML email fallback (working-agreement item)
+- [x] Fall back to a secure HTML page (managers/admins only) when SMTP fails (reset + invite paths)
+- [x] Stop printing recipient/PII + raw SMTP errors to stderr
+- [x] Tests: manager sees fallback on failed email; employee never does (test_email_fallback.py)
 
 ### 1.4 Secret key + token hygiene
 - [ ] Remove "dev-secret-key" fallback; raise in production when unset
