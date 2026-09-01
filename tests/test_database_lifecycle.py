@@ -73,7 +73,7 @@ class TestDatabaseLifecycle(unittest.TestCase):
         # 5. READ: Verify all data consistency
         with self.uow:
             user = self.uow.users.get_user_by_id(user_id)
-            self.assertTrue(user.is_profile_complete or True) # dummy check
+            self.assertFalse(user.is_profile_complete)
             self.assertIsNotNone(user.work_schedule)
             self.assertEqual(len(user.time_entries), 1)
 
