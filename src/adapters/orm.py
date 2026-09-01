@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, Team
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -59,6 +59,14 @@ class UserRoleType(TypeDecorator):
 
 metadata = MetaData()
 mapper_registry = registry(metadata=metadata)
+
+teams = Table(
+    "teams",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("name", String(NAME_COLUMN_LENGTH), unique=True, nullable=False),
+    Column("secretariat", String(SECRETARIAT_COLUMN_LENGTH), nullable=True),
+)
 
 audit_logs = Table(
     "audit_logs",
@@ -117,6 +125,7 @@ users = Table(
     Column("password_set", Boolean, default=False, nullable=False),
     Column("start_analysis_date", Date, default=DEFAULT_ANALYSIS_START_DATE),
     Column("birth_date", Date, nullable=True),
+    Column("team_id", Integer, ForeignKey("teams.id"), nullable=True),
 )
 
 daily_pontos = Table(
@@ -264,6 +273,7 @@ Index("ix_correction_requests_status", correction_requests.c.status)
 Index("ix_vacations_user_dates", vacations.c.user_id, vacations.c.start_date, vacations.c.end_date)
 Index("ix_attestations_user_dates", attestations.c.user_id, attestations.c.start_date, attestations.c.end_date)
 Index("ix_users_role", users.c.role)
+Index("ix_users_team_id", users.c.team_id)
 
 
 def _user_properties():
@@ -298,6 +308,7 @@ def start_mappers():
                 return
 
         mapper_registry.map_imperatively(CompanySettings, company_settings)
+        mapper_registry.map_imperatively(Team, teams, properties=_column_properties(teams.c.id, "team_id"))
         mapper_registry.map_imperatively(User, users, properties=_user_properties())
         mapper_registry.map_imperatively(WorkSchedule, work_schedules, properties=_column_properties(work_schedules.c.id, "schedule_id"))
         mapper_registry.map_imperatively(DailyPonto, daily_pontos, properties=_column_properties(daily_pontos.c.id, "ponto_id"))

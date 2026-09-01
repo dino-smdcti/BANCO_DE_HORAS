@@ -13,6 +13,7 @@ INDEX_MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS ix_vacations_user_dates ON vacations (user_id, start_date, end_date);",
     "CREATE INDEX IF NOT EXISTS ix_attestations_user_dates ON attestations (user_id, start_date, end_date);",
     "CREATE INDEX IF NOT EXISTS ix_users_role ON users (role);",
+    "CREATE INDEX IF NOT EXISTS ix_users_team_id ON users (team_id);",
 ]
 
 

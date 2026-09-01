@@ -45,6 +45,11 @@ BASE_MIGRATIONS = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_set BOOLEAN NOT NULL DEFAULT FALSE;",
     "UPDATE users SET password_set = TRUE WHERE password_hash <> '_unset_password_' AND password_hash <> '!';",
     "UPDATE users SET password_hash = '_unset_password_' WHERE password_hash = '!';",
+
+    # Team ownership model (manager scoping / IDOR hardening). The teams table is
+    # created by metadata.create_all on fresh databases; this covers existing ones.
+    "CREATE TABLE IF NOT EXISTS teams (id SERIAL PRIMARY KEY, name VARCHAR(100) UNIQUE NOT NULL, secretariat VARCHAR(100));",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS team_id INTEGER REFERENCES teams(id);",
 ]
 
 

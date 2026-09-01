@@ -54,6 +54,13 @@ class CompanySettings:
 
 
 @dataclass
+class Team:
+        name: str
+        secretariat: Optional[str] = None
+        team_id: Optional[int] = None
+
+
+@dataclass
 class WorkSchedule:
         user_id: int
         expected_arrival: time
@@ -303,8 +310,10 @@ class User:
                 work_schedule=None,
                 email_notifications_enabled=False,
                 password_set=None,
+                team_id=None,
         ):
                 self.user_id = user_id
+                self.team_id = team_id
                 self.email = email
                 self.password_hash = password_hash
                 self.password_set = password_set if password_set is not None else (bool(password_hash) and password_hash != "!")
