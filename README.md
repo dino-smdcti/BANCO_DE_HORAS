@@ -24,7 +24,7 @@ A full-featured employee time bank / hour management web application with role-b
 - **Holiday Calendar** — auto-seeded Brazilian holidays (2025–2035) with Easter calculation
 - **Excel Reports** — formatted time reports with employee info, period filtering, signature lines
 - **Audit Logging** — every action recorded with user, timestamp, details
-- **Notifications** — in-app + optional email via SMTP
+- **Notifications** — in-app + optional email via SMTP (falls back to the Brevo API)
 - **Admin Tools** — promote/demote users, bulk fix entries, manage journey types
 
 ## Tech Stack
