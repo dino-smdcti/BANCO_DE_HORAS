@@ -11,11 +11,12 @@ from itsdangerous import URLSafeTimedSerializer
 import smtplib
 from sqlalchemy import create_engine
 
-from src.adapters.orm import start_mappers, metadata
+from src.adapters.orm import start_mappers
 from src.entrypoints import admin_routes, auth_routes, employee_routes, manager_routes
 from src.service_layer import services
 from src.service_layer.absence_processor import process_daily_absences
-from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
+from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork, resolve_database_url
+from scripts.run_migrations import run_all_migrations
 from src.config import (
         ADMIN_ROLES,
         DATE_FORMAT,
@@ -23,12 +24,9 @@ from src.config import (
         DEFAULT_SMTP_SERVER,
         EMAIL_FROM_NAME,
         FALLBACK_ANALYSIS_DATE,
-        LOCAL_SQLITE_URL,
         MANAGEMENT_ROLES,
         MAX_NOTIFICATIONS_DISPLAYED,
         MINUTES_PER_HOUR,
-        POSTGRES_SCHEME_POSTGRES,
-        POSTGRES_SCHEME_POSTGRESQL,
         ROLE_ADMIN,
         ROLE_EMPLOYEE,
         ROLE_GESTOR,
@@ -36,7 +34,6 @@ from src.config import (
         ROLE_MANAGER,
         SMTP_SSL_PORT,
         SMTP_TIMEOUT_SECONDS,
-        VERCEL_SQLITE_URL,
 )
 
 load_dotenv()
@@ -71,14 +68,7 @@ csrf = CSRFProtect(app)
 
 
 def _database_url():
-        database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
-        if not database_url:
-                if os.environ.get("VERCEL"):
-                        return VERCEL_SQLITE_URL
-                return LOCAL_SQLITE_URL
-        if database_url.startswith(POSTGRES_SCHEME_POSTGRES):
-                database_url = database_url.replace(POSTGRES_SCHEME_POSTGRES, POSTGRES_SCHEME_POSTGRESQL, 1)
-        return database_url
+        return resolve_database_url()
 
 
 app.config["SQLALCHEMY_DATABASE_URI"] = _database_url()
@@ -90,7 +80,7 @@ try:
 except Exception:
         pass
 
-metadata.create_all(_engine)
+run_all_migrations(_engine)
 
 try:
         with SqlAlchemyUnitOfWork() as init_uow:

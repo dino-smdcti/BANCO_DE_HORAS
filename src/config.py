@@ -65,9 +65,6 @@ MONDAY_WEEKDAY_INDEX = 0
 MONDAY_BACKLOG_DAYS = 3  # on Monday: check today-back this far
 PREVIOUS_DAY_OFFSET = 1  # on other weekdays: check yesterday only
 
-# Persisted file that records the last date the daily absence check completed.
-ABSENCE_LAST_CHECK_FILE = r"C:\Users\SMDCTI\.gemini\tmp\banco-de-horas\last_check_date.txt"
-
 # --------------------------------------------------------------------------
 # Roles
 # --------------------------------------------------------------------------
@@ -199,7 +196,6 @@ REPORT_TITLE_END_COLUMN = "H"
 REPORT_PERIOD_CELL = "A2"
 REPORT_PERIOD_END_COLUMN = "H"
 REPORT_TITLE_TEXT = "RELATÓRIO MENSAL DE FREQUÊNCIA"
-REPORT_DATA_STARTROW = 7  # pandas writes rows starting one row below header block
 REPORT_HEADER_ROW = 8  # the styled column header row (1-indexed)
 REPORT_FIRST_DATA_ROW = 9
 REPORT_LAST_COLUMN = 8

@@ -67,17 +67,17 @@ Command convention: run suite as
 - [x] Tests for each fix above
 
 ## Phase 3 — Database, performance & concurrency
-- [ ] Indexes migration: daily_pontos(user_id,entry_date) unique, daily_pontos(entry_date), audit_logs(user_id), audit_logs(timestamp), notifications(user_id,created_at), correction_requests(status), vacations(user_id,start_date,end_date), attestations(user_id,start_date,end_date), users(role)
-- [ ] Eager-load time_entries/vacations/attestations/notifications in absence processor + dashboards (fix N+1)
-- [ ] Replace day-by-day range expansion with O(1) start/end comparisons
-- [ ] Replace audit-log load-and-rewrite with single bulk UPDATE
-- [ ] DB-backed last-check lock for daily absence processing (replace file flag)
+- [x] Indexes migration: daily_pontos(user_id,entry_date) unique, daily_pontos(entry_date), audit_logs(user_id), audit_logs(timestamp), notifications(user_id,created_at), correction_requests(status), vacations(user_id,start_date,end_date), attestations(user_id,start_date,end_date), users(role)
+- [x] Eager-load time_entries/vacations/attestations/notifications in absence processor + dashboards (fix N+1)
+- [x] Replace day-by-day range expansion with O(1) start/end comparisons
+- [x] Replace audit-log load-and-rewrite with single bulk UPDATE
+- [x] DB-backed last-check lock for daily absence processing (replace file flag)
 
 ## Phase 4 — Portability & deployment
-- [ ] ABSENCE_LAST_CHECK_FILE → DB row or env-driven path
-- [ ] Vercel SQLite /tmp fallback: legal-guard/log loudly
-- [ ] Automated migration runner on deploy
-- [ ] Drop pandas+numpy (use openpyxl), move dev tools to requirements-dev.txt, remove librt, pin psycopg2, pin Python version
+- [x] ABSENCE_LAST_CHECK_FILE → DB row or env-driven path
+- [x] Vercel SQLite /tmp fallback: legal-guard/log loudly
+- [x] Automated migration runner on deploy
+- [x] Drop pandas+numpy (use openpyxl), move dev tools to requirements-dev.txt, remove librt, pin psycopg2, pin Python version
 
 ## Phase 5 — Architecture / clean-up
 - [ ] Split administration.py god module (vacation/holiday/attestation/facultativo services)

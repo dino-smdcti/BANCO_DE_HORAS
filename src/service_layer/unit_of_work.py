@@ -1,4 +1,5 @@
 import os
+import sys
 from abc import ABC, abstractmethod
 from typing import Optional
 from datetime import datetime
@@ -6,12 +7,34 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from src.adapters.repository import AbstractRepository, SqlAlchemyRepository
 from src.domain.model import AuditLog
-from src.config import LOCAL_SQLITE_URL, POSTGRES_SCHEME_POSTGRES, POSTGRES_SCHEME_POSTGRESQL
+from src.config import LOCAL_SQLITE_URL, POSTGRES_SCHEME_POSTGRES, POSTGRES_SCHEME_POSTGRESQL, VERCEL_SQLITE_URL
+
+
+def resolve_database_url(environ=None):
+        """Resolve the active database URL with portability guards.
+
+        Precedence: DATABASE_URL, POSTGRES_URL, Vercel /tmp SQLite (guarded,
+        warning logged), then the local development SQLite file. The Vercel
+        /tmp SQLite fallback is ephemeral (data is lost between cold starts),
+        so it is only allowed with an explicit ALLOW_EPHEMERAL_SQLITE opt-in
+        and it logs the durability caveat loudly to stderr.
+        """
+        environ = environ if environ is not None else os.environ
+        database_url = environ.get("DATABASE_URL") or environ.get("POSTGRES_URL")
+        if database_url:
+                if database_url.startswith(POSTGRES_SCHEME_POSTGRES):
+                        database_url = database_url.replace(POSTGRES_SCHEME_POSTGRES, POSTGRES_SCHEME_POSTGRESQL, 1)
+                return database_url
+        if environ.get("VERCEL"):
+                if not environ.get("ALLOW_EPHEMERAL_SQLITE"):
+                        raise RuntimeError("VERCEL detected without DATABASE_URL: configure a Postgres database, or set ALLOW_EPHEMERAL_SQLITE=1 to use the ephemeral /tmp SQLite fallback.")
+                print("WARNING: Using ephemeral /tmp SQLite on Vercel; data is lost on cold start. Set DATABASE_URL for persistent storage.", file=sys.stderr)
+                return VERCEL_SQLITE_URL
+        return LOCAL_SQLITE_URL
+
 
 def get_session_factory():
-        database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL") or LOCAL_SQLITE_URL
-        if database_url and database_url.startswith(POSTGRES_SCHEME_POSTGRES):
-                database_url = database_url.replace(POSTGRES_SCHEME_POSTGRES, POSTGRES_SCHEME_POSTGRESQL, 1)
+        database_url = resolve_database_url()
         return sessionmaker(
                 bind=create_engine(database_url),
                 expire_on_commit=False

@@ -1,7 +1,7 @@
 import io
 from datetime import date, datetime
 
-import pandas as pd
+from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
@@ -9,14 +9,12 @@ from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.config import (
         MINUTES_PER_HOUR,
         REPORT_COLUMN_WIDTHS,
-        REPORT_DATA_STARTROW,
         REPORT_FIRST_DATA_ROW,
         REPORT_FONT_NAME,
         REPORT_HEADER_FILL_COLOR,
         REPORT_HEADER_FONT_SIZE,
         REPORT_HEADER_ROW,
         REPORT_LABEL_FONT_SIZE,
-        REPORT_LAST_COLUMN,
         REPORT_PERIOD_CELL,
         REPORT_PERIOD_END_COLUMN,
         REPORT_SHEET_NAME,
@@ -32,6 +30,8 @@ from src.config import (
 
 _SHEET_NAME = REPORT_SHEET_NAME
 _COLUMN_WIDTHS = REPORT_COLUMN_WIDTHS
+
+_REPORT_HEADERS = ["Data", "Chegada", "Saída Almoço", "Volta Almoço", "Fim Jornada", "Horas Trab.", "Status", "Observações"]
 
 
 def generate_excel_report(uow: AbstractUnitOfWork, user_id: int, start_date: date = None, end_date: date = None) -> io.BytesIO:
@@ -89,14 +89,17 @@ def _period_label(start_date, end_date):
 
 
 def _build_workbook(user, rows, period):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = _SHEET_NAME
+        styles = _report_styles()
+        _write_column_headers(sheet, styles)
+        _write_data_rows(sheet, rows, styles)
+        _write_header(sheet, period, user, styles)
+        _set_column_widths(sheet)
+        _write_signatures(sheet, len(rows))
         output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                pd.DataFrame(rows).to_excel(writer, index=False, sheet_name=_SHEET_NAME, startrow=REPORT_DATA_STARTROW)
-                sheet = writer.book[_SHEET_NAME]
-                styles = _report_styles()
-                _write_header(sheet, period, user, styles)
-                _style_table(sheet, len(rows), styles)
-                _write_signatures(sheet, len(rows))
+        workbook.save(output)
         output.seek(0)
         return output
 
@@ -155,19 +158,19 @@ def _write_cell(sheet, cell, text, font):
         sheet[cell].font = font
 
 
-def _style_table(sheet, row_count, styles):
-        for cell in sheet[REPORT_HEADER_ROW]:
+def _write_column_headers(sheet, styles):
+        for column, header in enumerate(_REPORT_HEADERS, start=1):
+                cell = sheet.cell(row=REPORT_HEADER_ROW, column=column, value=header)
                 cell.font = styles["header"]
                 cell.fill = styles["fill_header"]
                 cell.border = styles["border"]
                 cell.alignment = Alignment(horizontal="center")
-        _style_data_rows(sheet, row_count, styles)
-        _set_column_widths(sheet)
 
 
-def _style_data_rows(sheet, row_count, styles):
-        for row in sheet.iter_rows(min_row=REPORT_FIRST_DATA_ROW, max_row=REPORT_HEADER_ROW + row_count, min_col=1, max_col=REPORT_LAST_COLUMN):
-                for cell in row:
+def _write_data_rows(sheet, rows, styles):
+        for offset, row in enumerate(rows):
+                for column, header in enumerate(_REPORT_HEADERS):
+                        cell = sheet.cell(row=REPORT_FIRST_DATA_ROW + offset, column=column + 1, value=row[header])
                         cell.font = styles["value"]
                         cell.border = styles["border"]
                         cell.alignment = Alignment(horizontal="center")

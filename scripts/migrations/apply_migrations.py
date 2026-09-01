@@ -1,21 +1,9 @@
-
 import os
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
+from src.service_layer.unit_of_work import resolve_database_url
 
-load_dotenv()
-
-database_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
-if database_url and database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
-
-if not database_url:
-    print("DATABASE_URL not found. Please set it in your environment or .env file.")
-    exit(1)
-
-engine = create_engine(database_url)
-
-migrations = [
+BASE_MIGRATIONS = [
     # Support optional lunch breaks in work_schedules
     "ALTER TABLE work_schedules ADD COLUMN IF NOT EXISTS has_lunch_break BOOLEAN DEFAULT TRUE;",
     "ALTER TABLE work_schedules ALTER COLUMN expected_lunch_start DROP NOT NULL;",
@@ -56,19 +44,30 @@ migrations = [
     # Replace "!" password sentinel with an explicit password_set flag
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_set BOOLEAN NOT NULL DEFAULT FALSE;",
     "UPDATE users SET password_set = TRUE WHERE password_hash <> '_unset_password_' AND password_hash <> '!';",
-    "UPDATE users SET password_hash = '_unset_password_' WHERE password_hash = '!';"
+    "UPDATE users SET password_hash = '_unset_password_' WHERE password_hash = '!';",
 ]
 
-print(f"Connecting to database...")
-with engine.connect() as conn:
-    for sql in migrations:
-        try:
-            print(f"Executing: {sql}")
-            conn.execute(text(sql))
-            conn.commit()
-            print("Success.")
-        except Exception as e:
-            print(f"Error executing migration: {e}")
-            conn.rollback()
 
-print("Migrations completed.")
+def run_base_migrations(engine):
+    with engine.connect() as conn:
+        for sql in BASE_MIGRATIONS:
+            try:
+                print(f"Executing: {sql}")
+                conn.execute(text(sql))
+                conn.commit()
+                print("Success.")
+            except Exception as e:
+                print(f"Error executing migration: {e}")
+                conn.rollback()
+
+
+def main():
+    load_dotenv()
+    print(f"Connecting to database...")
+    engine = create_engine(resolve_database_url())
+    run_base_migrations(engine)
+    print("Migrations completed.")
+
+
+if __name__ == "__main__":
+    main()
