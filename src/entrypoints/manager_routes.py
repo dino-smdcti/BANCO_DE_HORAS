@@ -1,5 +1,5 @@
 from collections import namedtuple
-from datetime import date, datetime
+from datetime import date
 
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -9,12 +9,20 @@ from src.domain.model import JourneyType, PontoStatus, UserProfile, UserRole
 from src.entrypoints import flask_app
 from src.entrypoints.decorators import handle_errors, manager_required
 from src.entrypoints.forms import JourneyTypeForm, ProfileForm, RegisterForm, WorkScheduleForm
-from src.entrypoints.web_helpers import INVALID_DATE, is_management_role, new_uow, parse_date, parse_time
+from src.entrypoints.web_helpers import (
+        INVALID_DATE,
+        flash_redirect,
+        is_management_role,
+        new_uow,
+        parse_date,
+        parse_date_arg,
+        parse_time,
+        redirect_to_employee_logs,
+)
 from src.service_layer import services, token_service
 from src.service_layer.audit import log_action
 from src.config import (
         ADMIN_ROLES,
-        DATE_FORMAT,
         INVITE_TOKEN_MAX_AGE,
         PASSWORD_RESET_TOKEN_MAX_AGE,
         ROLE_ADMIN,
@@ -157,11 +165,11 @@ def update_user_analysis_date(employee_id):
         denied = _role_guard()
         if denied:
                 return denied
-        start_date = datetime.strptime(request.form.get("start_analysis_date"), DATE_FORMAT).date()
+        start_date = parse_date_arg(request.form.get("start_analysis_date"))
         uow = new_uow()
         with uow:
                 _apply_analysis_date(uow, employee_id, start_date)
-        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        return redirect_to_employee_logs(employee_id)
 
 
 @login_required
@@ -211,7 +219,7 @@ def fix_ponto(employee_id):
         if request.method == "POST":
                 _apply_fix(uow, employee_id)
                 flash("Registro corrigido manualmente.", "success")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         with uow:
                 employee = uow.users.get_user_by_id(employee_id)
                 return render_template("fix_ponto.html", employee=employee, today=date.today())
@@ -222,8 +230,8 @@ def add_vacation(employee_id):
         denied = _role_guard()
         if denied:
                 return denied
-        start_date = datetime.strptime(request.form.get("start_date"), DATE_FORMAT).date()
-        end_date = datetime.strptime(request.form.get("end_date"), DATE_FORMAT).date()
+        start_date = parse_date_arg(request.form.get("start_date"))
+        end_date = parse_date_arg(request.form.get("end_date"))
         uow = new_uow()
         services.add_vacation(uow, current_user.id, employee_id, start_date, end_date)
         flash("Período de férias adicionado.", "success")
@@ -242,15 +250,15 @@ def add_attestation(employee_id):
         end_time = parse_time(request.form.get("end_time"))
         if start_date is None or end_date is None or start_date is INVALID_DATE or end_date is INVALID_DATE:
                 flash("Informe o período do atestado.", "danger")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         uow = new_uow()
         try:
                 services.add_attestation(uow, current_user.id, employee_id, start_date, end_date, cid or None, start_time, end_time)
         except ValueError as error:
                 flash(str(error), "danger")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         flash("Atestado lançado com sucesso.", "success")
-        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        return redirect_to_employee_logs(employee_id)
 
 
 @login_required
@@ -258,15 +266,15 @@ def remove_attestation_day(employee_id, entry_date):
         denied = _role_guard()
         if denied:
                 return denied
-        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
+        entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         try:
                 services.remove_attestation_day(uow, current_user.id, employee_id, entry_date)
         except ValueError as error:
                 flash(str(error), "danger")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         flash("Atestado removido para o dia.", "success")
-        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        return redirect_to_employee_logs(employee_id)
 
 
 @login_required
@@ -274,15 +282,15 @@ def remove_vacation_day(employee_id, entry_date):
         denied = _role_guard()
         if denied:
                 return denied
-        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
+        entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         try:
                 services.remove_vacation_day(uow, current_user.id, employee_id, entry_date)
         except ValueError as error:
                 flash(str(error), "danger")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         flash("Férias removida para o dia.", "success")
-        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        return redirect_to_employee_logs(employee_id)
 
 
 @login_required
@@ -290,15 +298,15 @@ def remove_missing_excuse(employee_id, entry_date):
         denied = _role_guard()
         if denied:
                 return denied
-        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
+        entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         try:
                 services.remove_missing_excuse(uow, current_user.id, employee_id, entry_date)
         except ValueError as error:
                 flash(str(error), "danger")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         flash("Abono de falta removido.", "success")
-        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        return redirect_to_employee_logs(employee_id)
 
 
 @login_required
@@ -306,7 +314,7 @@ def add_holiday():
         denied = _role_guard()
         if denied:
                 return denied
-        holiday_date = datetime.strptime(request.form.get("holiday_date"), DATE_FORMAT).date()
+        holiday_date = parse_date_arg(request.form.get("holiday_date"))
         description = request.form.get("description")
         mandatory = request.form.get("is_mandatory") == "on"
         uow = new_uow()
@@ -443,7 +451,7 @@ def delete_ponto(employee_id, entry_date):
         denied = _role_guard()
         if denied:
                 return denied
-        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
+        entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         services.delete_ponto_entry(uow, current_user.id, employee_id, entry_date)
         flash("Registro de ponto excluído.", "warning")
@@ -454,15 +462,15 @@ def delete_ponto(employee_id, entry_date):
 def review_badge(employee_id, entry_date, stage, action):
         if current_user.role not in ADMIN_ROLES:
                 flash("Apenas o Administrador pode realizar esta ação.", "danger")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
-        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
+                return redirect_to_employee_logs(employee_id)
+        entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         try:
                 services.review_anomaly_badge(uow, int(current_user.id), employee_id, entry_date, stage, action)
                 flash("Badge de anomalia atualizado com sucesso.", "success")
         except Exception as error:
                 flash(str(error), "danger")
-        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        return redirect_to_employee_logs(employee_id)
 
 
 @login_required
@@ -470,7 +478,7 @@ def review_badge(employee_id, entry_date, stage, action):
 @handle_errors
 def save_manager_note():
         employee_id = int(request.form.get("employee_id"))
-        entry_date = datetime.strptime(request.form.get("entry_date"), DATE_FORMAT).date()
+        entry_date = parse_date_arg(request.form.get("entry_date"))
         note_text = request.form.get("note_text")
         uow = new_uow()
         with uow:
@@ -493,14 +501,14 @@ def complete_retroactive_logs_route(employee_id):
                 return denied
         if current_user.role not in ADMIN_ROLES:
                 flash("Apenas administradores e gestores podem realizar esta ação.", "danger")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         end_date = parse_date(request.form.get("end_date"))
         fill_with_schedule = request.form.get("fill_with_schedule") == "on"
         fill_blank_existing = request.form.get("fill_blank_existing") == "on"
         overwrite_existing = request.form.get("overwrite_existing") == "on"
         if end_date is None or end_date is INVALID_DATE:
                 flash("Informe uma data final válida.", "danger")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         manual_arrival = parse_time(request.form.get("manual_arrival"))
         manual_lunch_start = parse_time(request.form.get("manual_lunch_start"))
         manual_lunch_end = parse_time(request.form.get("manual_lunch_end"))
@@ -528,7 +536,7 @@ def complete_retroactive_logs_route(employee_id):
                 flash(str(error), "danger")
         except Exception as error:
                 flash(f"Erro ao completar logs: {str(error)}", "danger")
-        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        return redirect_to_employee_logs(employee_id)
 
 
 def _role_guard(message="Acesso não autorizado."):
@@ -629,7 +637,7 @@ def _change_role_response(uow, user_id, new_role):
 
 
 def _archive_justification(employee_id, entry_date):
-        entry_date = datetime.strptime(entry_date, DATE_FORMAT).date()
+        entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         services.dismiss_justification(uow, current_user.id, employee_id, entry_date)
         flash("Justificativa arquivada com sucesso.", "info")
@@ -644,7 +652,7 @@ def _render_archived(uow):
                 archived = [entry for entry in archived if entry["emp"].user_id == int(employee_id)]
         date_str = request.args.get("date")
         if date_str:
-                target_date = datetime.strptime(date_str, DATE_FORMAT).date()
+                target_date = parse_date_arg(date_str)
                 archived = [entry for entry in archived if entry["ponto"].entry_date == target_date]
         return render_template(
                 "archived_justifications.html",
@@ -682,7 +690,7 @@ def _absences(employees):
                 result = [item for item in result if item["emp"].user_id == int(emp_filter)]
         date_filter = request.args.get("date_filter")
         if date_filter:
-                target = datetime.strptime(date_filter, DATE_FORMAT).date()
+                target = parse_date_arg(date_filter)
                 result = [item for item in result if item["ponto"].entry_date == target]
         return result
 
@@ -777,7 +785,7 @@ def _fix_emp_entry(uow, employee_id, entry_date_str, selected_points, prefix_fie
         key = f"{employee_id}_{entry_date_str}" if prefix_fields else entry_date_str
         if key not in selected_points:
                 return
-        entry_date = datetime.strptime(entry_date_str, DATE_FORMAT).date()
+        entry_date = parse_date_arg(entry_date_str)
         form_key = f"{employee_id}_{entry_date_str}" if prefix_fields else entry_date_str
         services.manual_ponto_correction(
                 uow,
@@ -794,7 +802,7 @@ def _fix_emp_entry(uow, employee_id, entry_date_str, selected_points, prefix_fie
 
 def _bulk_redirect(employee_id):
         if employee_id != 0:
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         return redirect(url_for("management_panel"))
 
 
@@ -802,11 +810,11 @@ def _ponto_redirect(employee_id):
         referrer = request.referrer or ""
         if "management" in referrer:
                 return redirect(url_for("management_panel"))
-        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+        return redirect_to_employee_logs(employee_id)
 
 
 def _apply_fix(uow, employee_id):
-        entry_date = datetime.strptime(request.form.get("entry_date"), DATE_FORMAT).date()
+        entry_date = parse_date_arg(request.form.get("entry_date"))
         services.manual_ponto_correction(
                 uow,
                 current_user.id,
@@ -834,7 +842,7 @@ def _send_password_reset(uow, user_id):
         if fallback is not None:
                 return fallback
         flash("Link de redefinição enviado para o e-mail do usuário.", "success")
-        return redirect(url_for("view_employee_logs", employee_id=user_id))
+        return redirect_to_employee_logs(user_id)
 
 
 def _load_journey_choices(uow, form):
@@ -860,7 +868,7 @@ def _apply_schedule_form(uow, employee_id, form):
                 if journey_id == 0 and form.save_as_new.data:
                         _save_journey_template(uow, form, values)
                 flash("Horário de trabalho configurado.", "success")
-                return redirect(url_for("view_employee_logs", employee_id=employee_id))
+                return redirect_to_employee_logs(employee_id)
         except Exception as error:
                 flash(f"Erro: {str(error)}", "danger")
                 return None
@@ -906,7 +914,7 @@ def _parse_rotation_start(value):
         if not value:
                 return None
         try:
-                return datetime.strptime(value, DATE_FORMAT).date()
+                return parse_date_arg(value)
         except ValueError:
                 return None
 

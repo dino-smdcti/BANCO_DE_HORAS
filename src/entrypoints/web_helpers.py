@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from flask import flash, redirect, url_for
+
 from src.config import DATE_FORMAT, MANAGEMENT_ROLES, MAPS_EMBED_URL, TIME_FORMAT
 
 MANAGEMENT_ROLES = MANAGEMENT_ROLES
@@ -48,3 +50,30 @@ def parse_date(value):
                 return datetime.strptime(value, DATE_FORMAT).date()
         except ValueError:
                 return INVALID_DATE
+
+
+def parse_date_arg(value):
+        """Parse a date string that must be present and valid.
+
+        Matches ``datetime.strptime(value, DATE_FORMAT).date()`` semantics:
+        raises ValueError when the value is empty or malformed. Callers that
+        expect the value to be well-formed should use this instead of the
+        lenient ``parse_date``.
+        """
+        return datetime.strptime(value, DATE_FORMAT).date()
+
+
+def parse_time_arg(value):
+        """Parse a time string that must be present and valid (raises ValueError otherwise)."""
+        return datetime.strptime(value, TIME_FORMAT).time()
+
+
+def redirect_to_employee_logs(employee_id):
+        """Redirect to the employee logs page for the given employee."""
+        return redirect(url_for("view_employee_logs", employee_id=employee_id))
+
+
+def flash_redirect(endpoint, message, category="danger", **values):
+        """Flash ``message`` and redirect to ``endpoint`` (standard error/notice idiom)."""
+        flash(message, category)
+        return redirect(url_for(endpoint, **values))

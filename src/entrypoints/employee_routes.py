@@ -4,9 +4,9 @@ from flask import flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from src.entrypoints.forms import ProfileForm
-from src.entrypoints.web_helpers import INVALID_DATE, get_maps_url, is_management_role, new_uow, parse_date
+from src.entrypoints.web_helpers import INVALID_DATE, flash_redirect, get_maps_url, is_management_role, new_uow, parse_date, parse_date_arg, parse_time_arg
 from src.service_layer import services
-from src.config import ADMIN_ROLES, DATE_FORMAT, MINUTES_PER_HOUR, RECENT_ENTRIES_DEFAULT_COUNT, ROLE_EMPLOYEE, TIME_FORMAT
+from src.config import ADMIN_ROLES, MINUTES_PER_HOUR, RECENT_ENTRIES_DEFAULT_COUNT, ROLE_EMPLOYEE, TIME_FORMAT
 
 
 def register_routes(app):
@@ -70,14 +70,13 @@ def profile():
 @login_required
 def submit_correction():
         try:
-                ponto_date = datetime.strptime(request.form.get("ponto_date"), DATE_FORMAT).date()
-                proposed_time = datetime.strptime(request.form.get("proposed_time"), TIME_FORMAT).time()
+                ponto_date = parse_date_arg(request.form.get("ponto_date"))
+                proposed_time = parse_time_arg(request.form.get("proposed_time"))
                 uow = new_uow()
                 services.submit_correction_request(uow, current_user.id, ponto_date, request.form.get("stage"), proposed_time)
                 flash("Pedido de correção enviado para análise.", "success")
         except Exception as error:
-                flash(f"Erro ao enviar correção: {str(error)}", "danger")
-        return redirect(url_for("dashboard"))
+                return flash_redirect("dashboard", f"Erro ao enviar correção: {str(error)}")
 
 
 @login_required
@@ -101,26 +100,22 @@ def clock():
 @login_required
 def update_note():
         try:
-                entry_date = datetime.strptime(request.form.get("entry_date"), DATE_FORMAT).date()
+                entry_date = parse_date_arg(request.form.get("entry_date"))
                 _save_note(current_user.id, entry_date, request.form.get("notes"))
         except Exception as error:
-                flash(f"Erro ao salvar nota: {str(error)}", "danger")
-        return redirect(url_for("dashboard"))
+                return flash_redirect("dashboard", f"Erro ao salvar nota: {str(error)}")
 
 
 @login_required
 def download_report(user_id):
         if current_user.id != user_id and not is_management_role(current_user.role):
-                flash("Acesso não autorizado.", "danger")
-                return redirect(url_for("dashboard"))
+                return flash_redirect("dashboard", "Acesso não autorizado.")
         start_date = _report_date("start_date")
         if start_date is INVALID_DATE:
-                flash("Formato de data inválido.", "danger")
-                return redirect(url_for("dashboard"))
+                return flash_redirect("dashboard", "Formato de data inválido.")
         end_date = _report_date("end_date")
         if end_date is INVALID_DATE:
-                flash("Formato de data inválido.", "danger")
-                return redirect(url_for("dashboard"))
+                return flash_redirect("dashboard", "Formato de data inválido.")
         return _send_report(user_id, start_date, end_date)
 
 
@@ -239,12 +234,12 @@ def _update_professional_profile(uow, user):
 
 def _analysis_date():
         raw = request.form.get("start_analysis_date")
-        return datetime.strptime(raw, DATE_FORMAT).date() if raw else None
+        return parse_date_arg(raw) if raw else None
 
 
 def _birth_date():
         raw = request.form.get("birth_date")
-        return datetime.strptime(raw, DATE_FORMAT).date() if raw else None
+        return parse_date_arg(raw) if raw else None
 
 
 def _entry_for(user, target_date):

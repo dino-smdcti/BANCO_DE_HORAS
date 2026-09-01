@@ -1,0 +1,76 @@
+import unittest
+from datetime import date, time
+from flask import Flask, session
+from src.entrypoints.web_helpers import (
+        INVALID_DATE,
+        flash_redirect,
+        parse_date,
+        parse_date_arg,
+        parse_time,
+        parse_time_arg,
+        redirect_to_employee_logs,
+)
+from src.config import DATE_FORMAT, TIME_FORMAT
+
+
+class TestDateHelpers(unittest.TestCase):
+        def test_parse_date_arg_parses_valid(self):
+                value = date(2026, 9, 1).strftime(DATE_FORMAT)
+                self.assertEqual(parse_date_arg(value), date(2026, 9, 1))
+
+        def test_parse_date_arg_raises_on_empty(self):
+                with self.assertRaises(ValueError):
+                        parse_date_arg("")
+
+        def test_parse_date_arg_raises_on_malformed(self):
+                with self.assertRaises(ValueError):
+                        parse_date_arg("01-99-2026")
+
+        def test_parse_date_lenient_semantics_unchanged(self):
+                self.assertIsNone(parse_date(""))
+                self.assertIs(parse_date("not-a-date"), INVALID_DATE)
+                self.assertEqual(parse_date(date(2026, 9, 1).strftime(DATE_FORMAT)), date(2026, 9, 1))
+
+        def test_parse_time_arg_parses_valid(self):
+                self.assertEqual(parse_time_arg("14:30"), time(14, 30))
+
+        def test_parse_time_arg_raises_on_malformed(self):
+                with self.assertRaises(ValueError):
+                        parse_time_arg("not-a-time")
+
+        def test_parse_time_lenient_semantics_unchanged(self):
+                self.assertIsNone(parse_time(""))
+                self.assertEqual(parse_time("09:05"), time(9, 5))
+                self.assertEqual(parse_time("09:05:07"), time(9, 5, 7))
+
+
+class TestRedirectHelpers(unittest.TestCase):
+        def setUp(self):
+                self.app = Flask(__name__)
+                self.app.config["TESTING"] = True
+                self.app.secret_key = "test"
+
+                @self.app.route("/manager/view-logs/<int:employee_id>")
+                def view_employee_logs(employee_id):
+                        return "logs"
+
+                @self.app.route("/dashboard")
+                def dashboard():
+                        return "dashboard"
+
+        def test_redirect_to_employee_logs(self):
+                with self.app.test_request_context():
+                        response = redirect_to_employee_logs(42)
+                        self.assertEqual(response.status_code, 302)
+                        self.assertIn("/manager/view-logs/42", response.headers["Location"])
+
+        def test_flash_redirect_flashes_and_redirects(self):
+                with self.app.test_request_context():
+                        response = flash_redirect("dashboard", "Ops", category="warning")
+                        self.assertEqual(response.status_code, 302)
+                        self.assertIn("/dashboard", response.headers["Location"])
+                        self.assertIn(("warning", "Ops"), list(session.get("_flashes", [])))
+
+
+if __name__ == "__main__":
+        unittest.main()

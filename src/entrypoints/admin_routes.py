@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from src.domain.model import AuditLog, CompanySettings, User
 from src.entrypoints.decorators import admin_required, handle_errors
-from src.entrypoints.web_helpers import new_uow
+from src.entrypoints.web_helpers import new_uow, parse_date_arg
 from src.config import DATE_FORMAT
 
 
@@ -115,7 +115,7 @@ def _person_label(person, missing="Sistema"):
 def _update_settings(uow):
         lat = float(request.form.get("lat"))
         lon = float(request.form.get("lon"))
-        start_date = datetime.strptime(request.form.get("start_date"), DATE_FORMAT).date()
+        start_date = parse_date_arg(request.form.get("start_date"))
         with uow:
                 settings = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
                 if settings:
