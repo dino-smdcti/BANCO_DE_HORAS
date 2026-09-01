@@ -34,9 +34,12 @@
                             {{ user_notifs_count }}
                         </span>
                     </a>
-                    <a class="btn btn-danger btn-sm d-flex align-items-center gap-1 text-white px-3 py-2" href="{{ url_for('logout') }}">
-                        <i class="bi bi-box-arrow-right"></i> <span>Sair</span>
-                    </a>
+                    <form action="{{ url_for('logout') }}" method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm d-flex align-items-center gap-1 text-white px-3 py-2">
+                            <i class="bi bi-box-arrow-right"></i> <span>Sair</span>
+                        </button>
+                    </form>
                 {% else %}
                     <a class="btn btn-outline-light btn-sm d-flex align-items-center gap-1 px-3 py-2" href="{{ url_for('login') }}">
                         <i class="bi bi-box-arrow-in-right"></i> <span>Login</span>

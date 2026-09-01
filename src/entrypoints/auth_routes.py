@@ -24,7 +24,7 @@ def register_routes(app):
         app.add_url_rule("/", "index", index)
         app.add_url_rule("/favicon.ico", "favicon", favicon)
         app.add_url_rule("/login", "login", login, methods=["GET", "POST"])
-        app.add_url_rule("/logout", "logout", logout)
+        app.add_url_rule("/logout", "logout", logout, methods=["POST"])
         app.add_url_rule("/forgot-password", "forgot_password", forgot_password, methods=["GET", "POST"])
         app.add_url_rule("/reset-password/<token>", "reset_password", reset_password, methods=["GET", "POST"])
         app.add_url_rule("/invite/<token>", "accept_invite", accept_invite, methods=["GET", "POST"])
