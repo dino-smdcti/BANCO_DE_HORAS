@@ -23,6 +23,19 @@ def ensure_admin(uow: AbstractUnitOfWork, actor_id: int):
         return user
 
 
+def ensure_admin_role(uow: AbstractUnitOfWork, actor_id: int):
+        """Return the user if they hold an admin-level role (admin or gestor).
+
+        Mirrors ``ADMIN_ROLES`` semantics for administration functions shared
+        between admin and gestor, as opposed to ``ensure_admin`` which is
+        reserved to the admin role only.
+        """
+        user = uow.users.get_user_by_id(actor_id)
+        if not user or user.role not in [UserRole.ADMIN, UserRole.GESTOR]:
+                raise PermissionError("Acesso restrito a administradores.")
+        return user
+
+
 def ensure_not_self(uow: AbstractUnitOfWork, manager_id: int, employee_id: int):
         """Block reviewers from acting on their own time logs unless admin/gestor."""
         if manager_id == employee_id:

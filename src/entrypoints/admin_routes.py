@@ -7,12 +7,16 @@ from sqlalchemy import select
 from src.domain.model import AuditLog, CompanySettings, User
 from src.entrypoints.decorators import admin_required, handle_errors
 from src.entrypoints.web_helpers import new_uow, parse_date_arg
+from src.service_layer import services
 from src.config import DATE_FORMAT
 
 
 def register_routes(app):
         app.add_url_rule("/admin/audit-logs", "audit_logs", audit_logs)
         app.add_url_rule("/admin/settings", "admin_settings", admin_settings, methods=["GET", "POST"])
+        app.add_url_rule("/admin/teams", "teams_page", teams_page)
+        app.add_url_rule("/admin/teams/create", "create_team", create_team_route, methods=["POST"])
+        app.add_url_rule("/admin/teams/assign", "assign_user_team", assign_team_route, methods=["POST"])
 
 
 @login_required
@@ -35,6 +39,43 @@ def admin_settings():
         with uow:
                 settings = uow.session.execute(select(CompanySettings)).scalar_one_or_none()
                 return render_template("admin_settings.html", settings=settings)
+
+
+@login_required
+@admin_required
+@handle_errors
+def teams_page():
+        uow = new_uow()
+        with uow:
+                teams = services.list_teams(uow)
+                users = sorted(uow.users.list_all(), key=lambda u: (u.profile.full_name or u.email).lower())
+                return render_template("teams.html", teams=teams, users=users)
+
+
+@login_required
+@admin_required
+@handle_errors
+def create_team_route():
+        uow = new_uow()
+        try:
+                services.create_team(uow, current_user.id, request.form.get("name"), request.form.get("secretariat"))
+                flash("Time criado.", "success")
+        except ValueError as error:
+                flash(str(error), "danger")
+        return redirect(url_for("teams_page"))
+
+
+@login_required
+@admin_required
+@handle_errors
+def assign_team_route():
+        uow = new_uow()
+        try:
+                services.assign_user_team(uow, current_user.id, int(request.form.get("user_id")), request.form.get("team_id") or None)
+                flash("Time do usuário atualizado.", "success")
+        except ValueError as error:
+                flash(str(error), "danger")
+        return redirect(url_for("teams_page"))
 
 
 def _render_audit_logs(uow):

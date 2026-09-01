@@ -3,6 +3,7 @@ from src.service_layer.attestation_service import add_attestation, remove_attest
 from src.service_layer.facultativo_service import add_facultativo
 from src.service_layer.holiday_service import add_holiday, seed_holidays
 from src.service_layer.settings_service import get_start_analysis_date
+from src.service_layer.team_service import assign_user_team, create_team, list_team_members, list_teams
 from src.service_layer.vacation_service import add_vacation, remove_vacation_day
 from src.service_layer.clock_service import (
         clock_in_out,
@@ -39,6 +40,7 @@ from src.service_layer.user_service import (
 
 __all__ = [
         "add_attestation",
+        "assign_user_team",
         "complete_retroactive_logs",
         "add_facultativo",
         "add_holiday",
@@ -46,6 +48,7 @@ __all__ = [
         "add_vacation",
         "clock_in_out",
         "create_journey_type",
+        "create_team",
         "delete_journey_type",
         "delete_ponto_entry",
         "delete_user",
@@ -60,6 +63,8 @@ __all__ = [
         "get_start_analysis_date",
         "list_journey_types",
         "list_pending_corrections",
+        "list_team_members",
+        "list_teams",
         "manual_ponto_correction",
         "mark_notifications_as_read",
         "promote_to_manager",

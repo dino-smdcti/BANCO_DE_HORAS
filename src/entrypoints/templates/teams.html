@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card shadow mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Times</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted mb-0">Cada gestor enxerga e opera somente os membros do seu próprio time. Administradores e gestores globais veem todos os usuários.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0">Criar Time</h6></div>
+            <div class="card-body">
+                <form action="{{ url_for('create_team') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label">Nome</label>
+                        <input type="text" name="name" class="form-control" required maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Secretaria</label>
+                        <input type="text" name="secretariat" class="form-control" maxlength="100">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Criar Time</button>
+                </form>
+            </div>
+        </div>
+        <div class="card shadow mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0">Times existentes</h6></div>
+            <div class="card-body">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr><th>Nome</th><th>Secretaria</th><th>Membros</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for team in teams %}
+                        <tr>
+                            <td>{{ team.name }}</td>
+                            <td>{{ team.secretariat or '—' }}</td>
+                            <td>{{ users|selectattr('team_id', 'equalto', team.team_id)|list|length }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="3" class="text-muted">Nenhum time criado ainda.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0">Atribuir Time aos usuários</h6></div>
+            <div class="card-body">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr><th>Usuário</th><th>Perfil</th><th>Time</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td>{{ user.profile.full_name or user.email }}</td>
+                            <td>{{ user.role }}</td>
+                            <td>
+                                <form action="{{ url_for('assign_user_team') }}" method="POST" class="d-flex gap-2 align-items-center">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="user_id" value="{{ user.user_id }}">
+                                    <select name="team_id" class="form-select form-select-sm" style="max-width: 220px;">
+                                        <option value="">— sem time —</option>
+                                        {% for team in teams %}
+                                            <option value="{{ team.team_id }}" {{ 'selected' if user.team_id == team.team_id }}>{{ team.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="4" class="text-muted">Nenhum usuário cadastrado.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

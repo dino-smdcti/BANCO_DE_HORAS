@@ -50,6 +50,10 @@ BASE_MIGRATIONS = [
     # created by metadata.create_all on fresh databases; this covers existing ones.
     "CREATE TABLE IF NOT EXISTS teams (id SERIAL PRIMARY KEY, name VARCHAR(100) UNIQUE NOT NULL, secretariat VARCHAR(100));",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS team_id INTEGER REFERENCES teams(id);",
+    # Backfill a default team so existing users remain scoped together until
+    # administrators reorganise teams through the Teams admin page.
+    "INSERT INTO teams (name) SELECT 'Geral' WHERE NOT EXISTS (SELECT 1 FROM teams);",
+    "UPDATE users SET team_id = (SELECT id FROM teams WHERE name = 'Geral') WHERE team_id IS NULL;",
 ]
 
 

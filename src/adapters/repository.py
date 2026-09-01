@@ -46,6 +46,10 @@ class AbstractRepository(ABC):
                 pass
 
         @abstractmethod
+        def get_team_by_name(self, name: str) -> Optional[Team]:
+                pass
+
+        @abstractmethod
         def list_teams(self) -> List[Team]:
                 pass
 
@@ -123,6 +127,9 @@ class SqlAlchemyRepository(AbstractRepository):
 
         def get_team_by_id(self, team_id: int) -> Optional[Team]:
                 return self.session.execute(select(Team).where(Team.team_id == team_id)).scalar_one_or_none()
+
+        def get_team_by_name(self, name: str) -> Optional[Team]:
+                return self.session.execute(select(Team).where(Team.name == name)).scalar_one_or_none()
 
         def list_teams(self) -> List[Team]:
                 return self.session.execute(select(Team).order_by(Team.name)).scalars().all()
