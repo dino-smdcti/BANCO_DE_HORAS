@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session, selectinload
-from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry
+from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem
 
 class AbstractRepository(ABC):
         @abstractmethod
@@ -76,6 +76,53 @@ class AbstractRepository(ABC):
 
         @abstractmethod
         def set_user_team(self, user_id: int, team_id: Optional[int]):
+                pass
+
+        @abstractmethod
+        def add_task(self, task: TeamTask):
+                pass
+
+        @abstractmethod
+        def get_task_by_id(self, task_id: int) -> Optional[TeamTask]:
+                pass
+
+        @abstractmethod
+        def list_tasks_by_team(self, team_id: int) -> List[TeamTask]:
+                pass
+
+        @abstractmethod
+        def list_tasks_by_assignee(self, assignee_id: int) -> List[TeamTask]:
+                pass
+
+        @abstractmethod
+        def update_task(
+                self,
+                task_id: int,
+                *,
+                title: Optional[str] = None,
+                description: Optional[str] = None,
+                assignee_id: Optional[int] = None,
+                due_date=None,
+                clear_assignee: bool = False,
+                clear_due_date: bool = False,
+                status: Optional[str] = None,
+        ):
+                pass
+
+        @abstractmethod
+        def delete_task(self, task_id: int):
+                pass
+
+        @abstractmethod
+        def add_checklist_item(self, item: TaskChecklistItem):
+                pass
+
+        @abstractmethod
+        def set_checklist_item_done(self, item_id: int, done: bool):
+                pass
+
+        @abstractmethod
+        def delete_checklist_item(self, item_id: int):
                 pass
 
 class SqlAlchemyRepository(AbstractRepository):
@@ -187,4 +234,80 @@ class SqlAlchemyRepository(AbstractRepository):
                         delete(RateLimitEntry).where(RateLimitEntry.entry_id.in_(expired_ids))
                 )
                 return result.rowcount or 0
+
+        def add_task(self, task: TeamTask):
+                self.session.add(task)
+
+        def get_task_by_id(self, task_id: int) -> Optional[TeamTask]:
+                return self.session.execute(
+                        select(TeamTask)
+                        .where(TeamTask.task_id == task_id)
+                        .options(selectinload(TeamTask.checklist_items))
+                ).scalar_one_or_none()
+
+        def list_tasks_by_team(self, team_id: int) -> List[TeamTask]:
+                return self.session.execute(
+                        select(TeamTask)
+                        .where(TeamTask.team_id == team_id)
+                        .options(selectinload(TeamTask.checklist_items))
+                        .order_by(TeamTask.created_at.desc())
+                ).scalars().all()
+
+        def list_tasks_by_assignee(self, assignee_id: int) -> List[TeamTask]:
+                return self.session.execute(
+                        select(TeamTask)
+                        .where(TeamTask.assignee_id == assignee_id)
+                        .options(selectinload(TeamTask.checklist_items))
+                        .order_by(TeamTask.created_at.desc())
+                ).scalars().all()
+
+        def update_task(
+                self,
+                task_id: int,
+                *,
+                title: Optional[str] = None,
+                description: Optional[str] = None,
+                assignee_id: Optional[int] = None,
+                due_date=None,
+                clear_assignee: bool = False,
+                clear_due_date: bool = False,
+                status: Optional[str] = None,
+        ):
+                values = {}
+                if title is not None:
+                        values["title"] = title
+                if description is not None:
+                        values["description"] = description
+                if clear_assignee:
+                        values["assignee_id"] = None
+                elif assignee_id is not None:
+                        values["assignee_id"] = assignee_id
+                if clear_due_date:
+                        values["due_date"] = None
+                elif due_date is not None:
+                        values["due_date"] = due_date
+                if status is not None:
+                        values["status"] = status
+                if values:
+                        self.session.execute(
+                                update(TeamTask).where(TeamTask.task_id == task_id).values(**values)
+                        )
+
+        def delete_task(self, task_id: int):
+                self.session.execute(
+                        delete(TeamTask).where(TeamTask.task_id == task_id)
+                )
+
+        def add_checklist_item(self, item: TaskChecklistItem):
+                self.session.add(item)
+
+        def set_checklist_item_done(self, item_id: int, done: bool):
+                self.session.execute(
+                        update(TaskChecklistItem).where(TaskChecklistItem.checklist_item_id == item_id).values(done=done)
+                )
+
+        def delete_checklist_item(self, item_id: int):
+                self.session.execute(
+                        delete(TaskChecklistItem).where(TaskChecklistItem.checklist_item_id == item_id)
+                )
 

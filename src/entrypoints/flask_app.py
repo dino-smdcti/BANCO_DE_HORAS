@@ -15,7 +15,7 @@ import smtplib
 from sqlalchemy import create_engine
 
 from src.adapters.orm import start_mappers
-from src.entrypoints import admin_routes, auth_routes, employee_routes, manager_routes
+from src.entrypoints import admin_routes, auth_routes, employee_routes, manager_routes, work_routes
 from src.service_layer import services
 from src.service_layer.absence_processor import process_daily_absences
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork, resolve_database_url
@@ -320,5 +320,5 @@ def _smtp_connect():
         return server
 
 
-for _register in (auth_routes.register_routes, employee_routes.register_routes, manager_routes.register_routes, admin_routes.register_routes):
+for _register in (auth_routes.register_routes, employee_routes.register_routes, manager_routes.register_routes, admin_routes.register_routes, work_routes.register_routes):
         _register(app)

@@ -4,6 +4,17 @@ from src.service_layer.facultativo_service import add_facultativo
 from src.service_layer.holiday_service import add_holiday, seed_holidays
 from src.service_layer.settings_service import get_start_analysis_date
 from src.service_layer.team_service import assign_user_team, create_team, list_team_members, list_teams
+from src.service_layer.task_service import (
+        add_checklist_item,
+        create_task,
+        delete_task,
+        edit_task,
+        get_task,
+        list_tasks,
+        remove_checklist_item,
+        toggle_checklist_item,
+        update_task_status,
+)
 from src.service_layer.vacation_service import add_vacation, remove_vacation_day
 from src.service_layer.clock_service import (
         clock_in_out,
@@ -40,6 +51,7 @@ from src.service_layer.user_service import (
 
 __all__ = [
         "add_attestation",
+        "add_checklist_item",
         "assign_user_team",
         "complete_retroactive_logs",
         "add_facultativo",
@@ -49,11 +61,14 @@ __all__ = [
         "clock_in_out",
         "create_journey_type",
         "create_team",
+        "create_task",
         "delete_journey_type",
         "delete_ponto_entry",
+        "delete_task",
         "delete_user",
         "demote_to_employee",
         "dismiss_justification",
+        "edit_task",
         "ensure_manager",
         "ensure_managed_user",
         "ensure_not_self",
@@ -61,15 +76,18 @@ __all__ = [
         "get_all_employees",
         "get_journey_type",
         "get_start_analysis_date",
+        "get_task",
         "list_journey_types",
         "list_pending_corrections",
         "list_team_members",
         "list_teams",
+        "list_tasks",
         "manual_ponto_correction",
         "mark_notifications_as_read",
         "promote_to_manager",
         "register_user",
         "remove_attestation_day",
+        "remove_checklist_item",
         "remove_missing_excuse",
         "remove_vacation_day",
         "review_anomaly_badge",
@@ -77,7 +95,9 @@ __all__ = [
         "seed_holidays",
         "set_work_schedule",
         "submit_correction_request",
+        "toggle_checklist_item",
         "update_credentials",
         "update_journey_type",
+        "update_task_status",
         "update_user_profile",
 ]

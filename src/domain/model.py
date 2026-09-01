@@ -61,6 +61,29 @@ class Team:
 
 
 @dataclass
+class TeamTask:
+        """An assignable to-do item on a team (the shared assignment base)."""
+        team_id: int
+        title: str
+        description: Optional[str] = None
+        assignee_id: Optional[int] = None
+        due_date: Optional[date] = None
+        status: str = "todo"
+        created_by: Optional[int] = None
+        created_at: datetime = field(default_factory=datetime.now)
+        task_id: Optional[int] = None
+
+
+@dataclass
+class TaskChecklistItem:
+        """A sub-checkbox under a TeamTask, with its own done flag."""
+        task_id: int
+        label: str
+        done: bool = False
+        checklist_item_id: Optional[int] = None
+
+
+@dataclass
 class WorkSchedule:
         user_id: int
         expected_arrival: time

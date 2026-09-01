@@ -327,6 +327,13 @@ CORRECTION_STATUS_PENDING = "pending"
 CORRECTION_STATUS_APPROVED = "approved"
 CORRECTION_STATUS_REJECTED = "rejected"
 
+# Workforce task statuses.
+TASK_STATUSES = ["todo", "in_progress", "done", "cancelled"]
+TASK_STATUS_TODO = "todo"
+TASK_STATUS_IN_PROGRESS = "in_progress"
+TASK_STATUS_DONE = "done"
+TASK_STATUS_CANCELLED = "cancelled"
+
 # Anomaly decision actions.
 ANOMALY_ACTION_APPROVE = "approve"
 ANOMALY_ACTION_EXCUSE = "excuse"

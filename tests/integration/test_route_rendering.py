@@ -621,3 +621,40 @@ class TestFacultativo:
             assert ponto.status == PontoStatus.DISMISSED
             assert ponto.excused_minutes == 60
             assert user.total_balance == -60
+
+
+# ===================================================================
+# WORK TASKS
+# ===================================================================
+
+class TestWorkTasks:
+    def test_tasks_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_wt@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/tasks")
+        assert r.status_code == 200
+        assert b"Tarefas" in r.data
+
+    def test_tasks_page_shows_created_task(self, client, uow):
+        emp_id = _create_user(uow, "emp_wt2@test.com", role="employee")
+        with uow:
+            team_id = emp_team = uow.users.get_user_by_id(emp_id).team_id
+            from src.service_layer.user_service import register_user
+            register_user(uow, "boss_wt@test.com", "pass", "gestor")
+            boss = uow.users.get_user_by_email("boss_wt@test.com")
+            boss.team_id = emp_team
+            uow.commit()
+            boss_id = boss.user_id
+        with uow:
+            from src.service_layer.task_service import create_task
+            create_task(uow, boss_id, team_id=team_id, title="Tarefa visível", assignee_id=emp_id)
+        _login(client, emp_id)
+        r = client.get("/work/tasks")
+        assert r.status_code == 200
+        assert "Tarefa visível".encode("utf-8") in r.data
+
+    def test_tasks_create_endpoint_manager_only(self, client, uow):
+        uid = _create_user(uow, "emp_create@test.com", role="employee")
+        _login(client, uid)
+        r = client.post("/work/tasks/create", data={"team_id": "1", "title": "X"})
+        assert r.status_code == 302
