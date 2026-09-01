@@ -140,7 +140,7 @@ def magic_link_login(token):
                 if user:
                         login_user(flask_app.AuthenticatedUser(user))
                         return _post_login_redirect(user)
-        flash("Usuário não encontrado.", "danger")
+        flash("O link de acesso é inválido ou expirou.", "danger")
         return redirect(url_for("login"))
 
 
