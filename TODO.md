@@ -80,9 +80,9 @@ Command convention: run suite as
 - [x] Drop pandas+numpy (use openpyxl), move dev tools to requirements-dev.txt, remove librt, pin psycopg2, pin Python version
 
 ## Phase 5 — Architecture / clean-up
-- [ ] Split administration.py god module (vacation/holiday/attestation/facultativo services)
-- [ ] Deduplicate helpers (_ponto_for, _mandatory_holidays, _facultativo_dates, _require_user)
-- [ ] Standardize role decorators + ordering convention + regression test
+- [x] Split administration.py god module (vacation/holiday/attestation/facultativo services)
+- [x] Deduplicate helpers (_ponto_for, _mandatory_holidays, _facultativo_dates, _require_user)
+- [x] Standardize role decorators + ordering convention + regression test
 - [ ] Centralize date/redirect/error handling in web_helpers
 - [ ] Align route vs service role semantics (GESTOR vs ADMIN); clean redundant double role-check
 - [ ] Ownership/team model for IDOR (largest change; sequence last)
