@@ -7,7 +7,7 @@ Working agreement:
 - **Secure email fallback**: failed email sends must fall back to a secure (no PII/log-splash) HTML route.
 
 Command convention: run suite as
-`.venv\Scripts\python.exe -m pytest -q --ignore=tests/test_role_localization.py --ignore=tests/test_selenium_routes.py`
+`.venv\Scripts\python.exe -m pytest -q`
 
 ---
 

@@ -1,50 +1,59 @@
-import unittest
-import time
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
-import threading
-from src.entrypoints.flask_app import app
+import pytest
+from unittest.mock import patch
 
-class TestApplicationFunctional(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.app_thread = threading.Thread(target=lambda: app.run(port=5000, use_reloader=False))
-        cls.app_thread.daemon = True
-        cls.app_thread.start()
-        time.sleep(2)
 
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
-        cls.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+def _client(app, session_factory):
+    app.config["TESTING"] = True
+    app.config["WTF_CSRF_ENABLED"] = False
+    patcher = patch("src.entrypoints.flask_app.process_daily_absences", lambda uow: None)
+    patcher.start()
+    try:
+        with patch("src.entrypoints.flask_app.SqlAlchemyUnitOfWork",
+                   lambda: __import__("src.service_layer.unit_of_work", fromlist=["SqlAlchemyUnitOfWork"]).SqlAlchemyUnitOfWork(session_factory)):
+            with app.test_client() as c:
+                yield c
+    finally:
+        patcher.stop()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.driver.quit()
 
-    def test_index_route(self):
-        self.driver.get("http://localhost:5000/")
-        self.assertIn("Banco de Horas", self.driver.page_source)
+@pytest.fixture
+def client(session_factory):
+    from src.entrypoints.flask_app import app
+    yield from _client(app, session_factory)
 
-    def test_unauthorized_management_access(self):
-        self.driver.get("http://localhost:5000/management")
-        self.assertIn("login", self.driver.current_url)
 
-    def test_invalid_login_submission(self):
-        self.driver.get("http://localhost:5000/login")
-        self.driver.find_element(By.NAME, "email").send_keys("invalid@test.com")
-        self.driver.find_element(By.NAME, "password").send_keys("wrong")
-        self.driver.find_element(By.NAME, "submit").click()
-        self.assertIn("Login", self.driver.page_source)
+def test_index_route_renders_landing(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Banco de Horas" in response.get_data(as_text=True)
 
-    def test_forgot_password_invalid_email(self):
-        self.driver.get("http://localhost:5000/forgot-password")
-        self.driver.find_element(By.NAME, "email").send_keys("notexisting@test.com")
-        self.driver.find_element(By.TAG_NAME, "button").click()
-        # Should stay on page and show confirmation flash (generic message)
-        self.assertIn("Esqueci minha senha", self.driver.page_source)
 
-if __name__ == "__main__":
-    unittest.main()
+def test_unauthorized_management_access_redirects_to_login(client):
+    response = client.get("/management")
+    assert response.status_code == 302
+    assert "/login" in response.headers.get("Location", "")
+
+
+def test_invalid_login_shows_error(client):
+    response = client.post("/login", data={"email": "invalid@test.com", "password": "wrong"})
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert "E-mail ou senha inválidos" in body
+
+
+def test_forgot_password_post_returns_success_flash(client, uow):
+    with uow:
+        from src.domain.model import User
+        from werkzeug.security import generate_password_hash
+        uow.session.add(User(email="forgot@test.com", password_hash=generate_password_hash("x"),
+                             role="employee", password_set=True))
+        uow.commit()
+    response = client.post("/forgot-password", data={"email": "forgot@test.com"})
+    assert response.status_code == 302
+    assert "/login" in response.headers.get("Location", "")
+
+
+def test_forgot_password_unknown_email_stays_generic(client):
+    response = client.post("/forgot-password", data={"email": "notexisting@test.com"})
+    assert response.status_code == 302
+    assert "/login" in response.headers.get("Location", "")
