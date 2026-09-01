@@ -1,21 +1,16 @@
 """Facade re-exporting the service-layer use cases under the historic `services` namespace."""
-from src.service_layer.administration import (
-        add_attestation,
-        add_facultativo,
-        add_holiday,
-        add_vacation,
-        get_start_analysis_date,
-        remove_attestation_day,
-        remove_missing_excuse,
-        remove_vacation_day,
-        seed_holidays,
-)
+from src.service_layer.attestation_service import add_attestation, remove_attestation_day
+from src.service_layer.facultativo_service import add_facultativo
+from src.service_layer.holiday_service import add_holiday, seed_holidays
+from src.service_layer.settings_service import get_start_analysis_date
+from src.service_layer.vacation_service import add_vacation, remove_vacation_day
 from src.service_layer.clock_service import (
         clock_in_out,
         delete_ponto_entry,
         dismiss_justification,
         list_pending_corrections,
         manual_ponto_correction,
+        remove_missing_excuse,
         review_anomaly_badge,
         review_correction_request,
         submit_correction_request,

@@ -238,7 +238,7 @@ EASTER_OFFSET_CORPUS_CHRISTI = 60
 # Anomaly stage attribute names (mirrors the model's column naming)
 # --------------------------------------------------------------------------
 # (flag, reviewed, approved, excused) attribute tuples shared by the domain and
-# by the administration/clock services so they stay in sync in one place.
+# by the attendance/clock services so they stay in sync in one place.
 ANOMALY_STAGE_FLAGS = [
         ("arrival_late", "arrival_late_reviewed", "arrival_late_approved", "arrival_late_excused"),
         ("lunch_start_late", "lunch_start_late_reviewed", "lunch_start_late_approved", "lunch_start_late_excused"),

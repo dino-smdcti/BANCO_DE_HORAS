@@ -6,6 +6,7 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from openpyxl.utils import get_column_letter
 
 from src.service_layer.unit_of_work import AbstractUnitOfWork
+from src.service_layer.attendance_helpers import _require_user
 from src.config import (
         MINUTES_PER_HOUR,
         REPORT_COLUMN_WIDTHS,
@@ -40,13 +41,6 @@ def generate_excel_report(uow: AbstractUnitOfWork, user_id: int, start_date: dat
                 rows = _report_rows(user, start_date, end_date)
                 period = _period_label(start_date, end_date)
                 return _build_workbook(user, rows, period)
-
-
-def _require_user(uow, user_id):
-        user = uow.users.get_user_by_id(user_id)
-        if not user:
-                raise ValueError("Usuário não encontrado.")
-        return user
 
 
 def _report_rows(user, start_date, end_date):

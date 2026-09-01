@@ -1,11 +1,11 @@
 from datetime import date, time, timedelta
 from typing import Optional, Tuple
 
-from sqlalchemy import select
-
-from src.domain.model import DailyPonto, Facultativo, Holiday, PontoStatus
+from src.domain.model import DailyPonto, PontoStatus
 from src.service_layer.audit import log_action
 from src.service_layer.permissions import ensure_manager
+from src.service_layer.facultativo_service import facultativo_records
+from src.service_layer.holiday_service import mandatory_holidays
 from src.config import (
         FALLBACK_ANALYSIS_DATE,
         RETROACTIVE_LOCATION_MISSING,
@@ -56,8 +56,8 @@ def _do_complete_retroactive_logs(
         raise ValueError("A data final deve ser posterior à data de início da análise.")
 
     existing_by_date = {p.entry_date: p for p in employee.time_entries}
-    holiday_dates = _mandatory_holidays(uow)
-    facultativo_dates = _facultativo_dates(uow)
+    holiday_dates = mandatory_holidays(uow)
+    facultativo_dates = _facultativo_dates_from(facultativo_records(uow))
     vacation_dates = _vacation_dates(employee)
     attestation_dates = _attestation_dates(employee)
 
@@ -225,15 +225,9 @@ def _add_entry(uow, employee, entry_date, schedule, fill_with_schedule,
     employee.time_entries.append(ponto)
 
 
-def _mandatory_holidays(uow):
-    holidays = uow.session.execute(select(Holiday)).scalars().all()
-    return {h.holiday_date for h in holidays if h.is_mandatory}
-
-
-def _facultativo_dates(uow):
-    facultativos = uow.session.execute(select(Facultativo)).scalars().all()
+def _facultativo_dates_from(records):
     covered = set()
-    for fac in facultativos:
+    for fac in records:
         day = fac.start_date
         while day <= fac.end_date:
             covered.add(day)

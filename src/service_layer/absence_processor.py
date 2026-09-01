@@ -1,7 +1,9 @@
 import sys
 from datetime import date, datetime, timedelta
 from sqlalchemy import select
-from src.domain.model import PontoStatus, DailyPonto, Holiday, Facultativo, AbsenceState
+from src.domain.model import PontoStatus, DailyPonto, AbsenceState
+from src.service_layer.holiday_service import mandatory_holidays
+from src.service_layer.facultativo_service import facultativo_records
 from src.config import (
         ABSENCE_DEFAULT_LAST_CHECK_DATE,
         BLANK_SCHEDULE_MISSING_REASON,
@@ -63,8 +65,8 @@ def process_daily_absences(uow):
 
 def _check_all_employees(uow, dates_to_check):
         employees = uow.users.list_employees()
-        holiday_dates = _mandatory_holidays(uow)
-        facultativos = _facultativos(uow)
+        holiday_dates = mandatory_holidays(uow)
+        facultativos = facultativo_records(uow)
         print(f"INFO: Processing daily absences for {len(employees)} employees.")
         for user in employees:
                 _check_user(uow, user, dates_to_check, holiday_dates, facultativos)
@@ -82,15 +84,6 @@ def _dates_to_check(today):
         if today.weekday() == MONDAY_WEEKDAY_INDEX:
                 return [today - timedelta(days=MONDAY_BACKLOG_DAYS), today - timedelta(days=2), today - timedelta(days=1)]
         return [today - timedelta(days=PREVIOUS_DAY_OFFSET)]
-
-
-def _mandatory_holidays(uow):
-        holidays = uow.session.execute(select(Holiday)).scalars().all()
-        return {h.holiday_date for h in holidays if h.is_mandatory}
-
-
-def _facultativos(uow):
-        return uow.session.execute(select(Facultativo)).scalars().all()
 
 
 def _is_facultativo(check_date, facultativos):

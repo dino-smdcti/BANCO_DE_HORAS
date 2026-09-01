@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 
 from flask import flash, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
+from flask_login import login_required
 from sqlalchemy import select
 
 from src.domain.model import AuditLog, CompanySettings, User
+from src.entrypoints.decorators import admin_required, handle_errors
 from src.entrypoints.web_helpers import new_uow
-from src.config import ADMIN_ROLES, DATE_FORMAT
+from src.config import DATE_FORMAT
 
 
 def register_routes(app):
@@ -15,20 +16,18 @@ def register_routes(app):
 
 
 @login_required
+@admin_required
+@handle_errors
 def audit_logs():
-        if current_user.role not in ADMIN_ROLES:
-                flash("Acesso restrito ao Administrador.", "danger")
-                return redirect(url_for("dashboard"))
         uow = new_uow()
         with uow:
                 return _render_audit_logs(uow)
 
 
 @login_required
+@admin_required
+@handle_errors
 def admin_settings():
-        if current_user.role not in ADMIN_ROLES:
-                flash("Acesso restrito ao Administrador.", "danger")
-                return redirect(url_for("dashboard"))
         uow = new_uow()
         if request.method == "POST":
                 _update_settings(uow)

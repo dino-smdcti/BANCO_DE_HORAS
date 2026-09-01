@@ -9,6 +9,7 @@ from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.service_layer.permissions import ensure_manager, ensure_not_self
 from src.service_layer.notifications import add_notification
 from src.service_layer.audit import log_action
+from src.service_layer.attendance_helpers import _ponto_for, _require_user
 from src.config import (
         ANOMALY_ACTION_APPROVE,
         ANOMALY_ACTION_EXCUSE,
@@ -90,16 +91,14 @@ def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id:
                 _perform_dismiss(uow, manager_id, employee_id, entry_date)
 
 
+def remove_missing_excuse(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, target_date):
+        with uow:
+                _unregister_missing_excuse(uow, manager_id, employee_id, target_date)
+
+
 def review_anomaly_badge(uow: AbstractUnitOfWork, admin_id: int, employee_id: int, entry_date, stage: str, action: str):
         with uow:
                 _apply_anomaly_decision(uow, admin_id, employee_id, entry_date, stage, action)
-
-
-def _require_user(uow, user_id):
-        user = uow.users.get_user_by_id(user_id)
-        if not user:
-                raise ValueError("User not found.")
-        return user
 
 
 def _brazil_now():
@@ -111,13 +110,6 @@ def _brazil_now():
 def _todays_ponto(user, today):
         for entry in user.time_entries:
                 if entry.entry_date == today:
-                        return entry
-        return None
-
-
-def _ponto_for(user, entry_date):
-        for entry in user.time_entries:
-                if entry.entry_date == entry_date:
                         return entry
         return None
 
@@ -387,6 +379,18 @@ def _perform_dismiss(uow, manager_id, employee_id, entry_date):
                 raise ValueError("Registro não encontrado.")
         ponto.status = PontoStatus.DISMISSED
         log_action(uow, manager_id, "DISMISS_JUSTIFICATION", target_id=employee_id, details=f"Data: {entry_date}")
+
+
+def _unregister_missing_excuse(uow, manager_id, employee_id, target_date):
+        ensure_manager(uow, manager_id)
+        user = _require_user(uow, employee_id)
+        ponto = _ponto_for(user, target_date)
+        if not ponto:
+                raise ValueError("Registro não encontrado.")
+        ponto.missing_reviewed = False
+        ponto.missing_approved = False
+        ponto.missing_excused = False
+        log_action(uow, manager_id, "REMOVE_MISSING_EXCUSE", target_id=employee_id, details=f"Data: {target_date}")
 
 
 def _apply_anomaly_decision(uow, admin_id, employee_id, entry_date, stage, action):
