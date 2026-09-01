@@ -23,3 +23,6 @@ Banco de Horas is an application designed to manage employee time tracking, incl
 ## Deployment Notes
 - Environment variables required: `DATABASE_URL`, `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `BREVO_API_KEY`.
 - Database: Designed for PostgreSQL (production) and SQLite (development/staging).
+
+## Workforce Expansion (Gestão)
+The application is being extended **in place** (Option A: same site, same DB) into a workforce-management portal: internal tasks/checklists, team accomplishments with periods, an idea board, team dashboards, and a visual "magic button" mode switch. Team is the org unit; everyone participates; new tables are auto-created by `metadata.create_all`. See **`DOCUMENTATION_EXPANSION.md`** for the full architecture, verticals, decisions, and final objective.

@@ -94,3 +94,101 @@ Command convention: run suite as
 - [x] Assert Excel report content, not just nonzero bytes
 - [x] LGPD: mask CPF in Excel exports
 - [x] Final gate: full pytest + node --check on JS (258 passed, 7 subtests)
+
+## Phase 7 — Post-hardening follow-ups
+- [ ] Audit all POST routes in employee_routes/manager_routes/admin_routes for the "success path returns None -> 500" pattern (only update_note fixed so far) and add return redirects
+- [x] Hotfix /management 500 (missing DATE_FORMAT import) — committed a27906f, pushed
+- [x] Hotfix /update-note 500 (success returned None) — committed 9863dac, pushed
+
+### Clock-in/out hardening (committed e7a04db, pushed)
+- [x] `_register_stage` auto-creates the day's ponto for ANY explicit stage (no "Registro de chegada não encontrado" on partial/out-of-order days)
+- [x] `_emit_ponto(user, today)` so later-stage-first POST doesn't fabricate a `0:00` arrival; removed dead `_require_ponto`
+- [x] Keep auto-path guard: `_next_stage` still raises "Jornada completa" when all 4 stages filled + no explicit stage (pinned by test)
+- [x] Frontend `main.js` MANAGEMENT_ROLES now includes `gestor`
+- [x] `tests/unit/test_clock_all_scenarios.py` (9 tests)
+
+### Geolocation made optional (committed 8e68d04, pushed)
+- [x] Confirm button enabled regardless of location; only the <15-min duplicate gate can block
+- [x] `main.js` `updateConfirmState()` no longer takes a location arg
+- [x] Kept the "Jornada Completa" hard block (disabled button, no new clock-ins on full journal) as user requested
+
+---
+
+# Workforce / Gestão Expansion — Option A (in place)
+
+Decision set (confirmed): same site + same DB; Team is the org unit (no Department entity); everyone participates; manager/admin/gestor scoping via `ensure_managed_user`; tables auto-created by `metadata.create_all` in `scripts/run_migrations.py` (no ALTER needed for new tables); `services.py` facade re-export; nav gated by `MANAGEMENT_ROLES`/`ADMIN_ROLES`; plain-HTML forms + `csrf_token()`; auditoria `record_action` + notificações `add_notification`.
+
+Full design: see `DOCUMENTATION_EXPANSION.md`.
+
+## Phase F0 — Shared assignment/scope foundation
+- [x] `managed_team_ids(uow, actor)` (write/create scope) + `scoped_team_ids(uow, actor)` (read scope: ADMIN/GESTOR all; MANAGER own team; EMPLOYEE own team read)
+- [x] Tests: `tests/unit/test_assignment_base.py` (11)
+- [ ] NOTE: `Team.lead_user_id` moved to Phase D. Adding it to the existing prod `teams` table needs a Postgres ALTER migration (no-ALTER rule for the zero-risk foundation); fresh DBs get it via `metadata.create_all`.
+
+## Phase A — Tasks & internal checklists
+- [ ] Models `TeamTask` + `TaskChecklistItem` (base de assignment)
+- [ ] Service + `services.py` re-export; `uow.tasks`
+- [ ] Routes `/work/tasks/*` (`@manager_required` create/assign; `@login_required` self-status) + nav link
+- [ ] Templates extend base.html; `data-app-mode="work"`
+- [ ] Tests: CRUD, assignee scoping, checklist toggle, status transitions, audit
+
+## Phase B — Accomplishments with periods
+- [ ] Model `Accomplishment` (team_id, period, optional end_date = in-progress)
+- [ ] Service + routes `/work/accomplishments/*` + templates
+- [ ] Tests: period validation, team scoping, overlap guard
+
+## Phase C — Idea board / KAIZEN (brainstorming)
+- [ ] Models `Idea` (`category` idea/kaizen) + `IdeaVote` (UNIQUE(idea_id, voter_id)); statuses open→under_review→implemented/declined (KAIZEN us-a `implemented`); optional review_date/review_owner (PDCA cadence)
+- [ ] Service + routes `/work/ideas/*` (anyone posts/votes; managers set status) + templates
+- [ ] Notify author on status change
+- [ ] Tests: post, unique vote, vote toggle, status transitions incl. `implemented`, kaizen category filter
+
+## Phase D — Team dashboards (management expansion)
+- [ ] Add `Team.lead_user_id` (optional team lead): domain + orm `teams` column for fresh DBs (`create_all`) + **idempotent Postgres ALTER in `apply_migrations.py`** for existing prod (verify on staging first, per runbook)
+- [ ] Extend dashboard roll-ups from `management_panel()`/`teams.html`: members, open tasks, open ideas, accomplishments/period (feeds A7)
+- [ ] Rename team + lead assignment
+- [ ] Routes `/work/teams/*`; employees view own team read-only
+- [ ] Tests: lead assignment, rollup counts, manager-scoped dashboard data
+
+## Phase B-extra — 5S por setor (filosofia de trabalho)
+- [ ] Models `S5Audit` (`team_id`, `auditor_id`, `date`, `total_items`, `passed_items`, `score`, `notes`) + `S5Item` default per section; reuse Vertical A infra where possible
+- [ ] Service + routes `/work/5s/*` (managers/auditors create; all view own-team score; monthly history) + templates
+- [ ] Tests: audit creation, score calc, team scoping, history
+
+## Phase C-extra — Cultura colaborativa (Wiki, Mentoria, Kudos, Eventos)
+- [ ] `WikiArticle` (`/work/culture/wiki`) — anyone writes/edits in scope
+- [ ] `Mentorship` (`/work/culture/mentoring`) — 1:1 mentor/mentee, managers create
+- [ ] `Kudos` (`/work/culture/kudos`) — peer recognition feed, anyone gives
+- [ ] `TeamEvent` (`/work/culture/events`) — internal calendar/workshops + notifications
+- [ ] Tests: CRUD per entity + scope + audit
+
+## Phase A7 — Dashboard executivo de Indicadores (KPIs)
+- [ ] Cross-team aggregation: members/task, open tasks, ideas implemented, accomplishments/period, avg 5S score, kudos
+- [ ] Routes `/work/exec/*`; ADMIN/GESTOR all, MANAGER own team, EMPLOYEE read-only own team
+- [ ] Tests: aggregation correctness by scope; coherent sources
+
+## Phase W — "Magic button" mode switch
+- [ ] Second palette in `style.css` under `[data-app-mode="work"]` (overrides brand custom properties)
+- [ ] Auto-detect: clock pages = `clock` mode; `/work/*` pages = `work` mode
+- [ ] Toggle/back button (floating or navbar) persisting choice (cookie/localStorage); JS clean `node --check`
+- [ ] Apply `data-app-mode="work"` root on workforce templates + nav separation
+- [ ] Gate behind env flag `WORKFORCE_ENABLED` (false default) for soft-launch/instant rollback
+
+## Phase A6 — Patch notes / release board interno (last, droppable)
+- [ ] Model `ChangeLogNote` (`version_or_date`, `title`, `description`, `category` feature/fix/config, `created_by`, `created_at`)
+- [ ] Routes `/work/changelog/*` (managers/admins publish; all read; in-app notification on new note)
+- [ ] Tests: publish scoping, listing, notification on new note
+
+---
+*Discipline: atomic commits, test parity per commit, push only at phase end. Suite: `.venv\Scripts\python.exe -m pytest -q` (baseline 279 passed, 7 subtests).*
+
+---
+
+# Prod-Safety Runbook (prod=Postgres, dev=SQLite)
+Per phase, before ANY prod push:
+1. [ ] Suite green locally (`.venv\Scripts\python.exe -m pytest -q`) — hard gate.
+2. [ ] `node --check` on touched JS.
+3. [ ] Backfill: run against staging clone of prod DB, smoke-test the new `/work/*` route as admin/manager/employee.
+4. [ ] Take a prod DB backup/snapshot BEFORE running `run_migrations.py`.
+5. [ ] Deploy zero-downtime: push phase → `run_migrations.py` on prod (Postgres) → smoke-test live.
+6. [ ] Confirm additions are table-new/additive only; no ALTER on existing tables, no new index on pre-existing tables, `services.py` append-only.
