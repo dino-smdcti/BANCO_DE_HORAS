@@ -171,6 +171,20 @@ class AuthToken:
 
 
 @dataclass
+class RateLimitEntry:
+        """One recorded attempt against a rate-limited endpoint.
+
+        Persisted in the DB (survives serverless cold starts and shares across
+        instances). ``bucket`` is the thing we group by, e.g. ``login:<ip>`` or
+        ``login:user:<user_id>``; ``created_at`` is used to count entries within
+        a sliding window.
+        """
+        bucket: str
+        created_at: datetime = field(default_factory=datetime.now)
+        entry_id: Optional[int] = None
+
+
+@dataclass
 class AbsenceState:
         """DB-backed record of the last daily absence-check date (singleton row)."""
         last_check_date: Optional[date] = None

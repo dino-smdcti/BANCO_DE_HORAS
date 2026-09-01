@@ -46,6 +46,7 @@ DEFAULT_SESSION_FACTORY = None
 class AbstractUnitOfWork(ABC):
         users: AbstractRepository
         tokens: AbstractRepository
+        rate_limit: AbstractRepository
         session: Session
 
         def __enter__(self):
@@ -100,6 +101,7 @@ def _start_session(uow):
                 uow.session = uow.session_factory()
                 uow.users = SqlAlchemyRepository(uow.session)
                 uow.tokens = SqlAlchemyRepository(uow.session)
+                uow.rate_limit = SqlAlchemyRepository(uow.session)
 
 
 def _close_session(uow, exc_type):

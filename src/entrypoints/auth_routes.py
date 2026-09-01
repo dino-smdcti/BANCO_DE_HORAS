@@ -11,11 +11,13 @@ from src.config import (
         MAGIC_LOGIN_TOKEN_MAX_AGE,
         PASSWORD_RESET_TOKEN_MAX_AGE,
         ROLE_EMPLOYEE,
+        RATE_LIMIT_STATUS_CODE,
         TOKEN_KIND_INVITE,
         TOKEN_KIND_RESET,
         TOKEN_SALT_MAGIC_LOGIN,
 )
 from src.service_layer import token_service
+from src.service_layer import rate_limit_service
 
 
 def register_routes(app):
@@ -39,9 +41,31 @@ def favicon():
         return send_from_directory(static_dir, "favicon.ico", mimetype="image/vnd.microsoft.icon")
 
 
+def _client_ip():
+        """Return the best-effort client IP for rate-limit bucketing."""
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+                return forwarded.split(",")[0].strip()
+        return request.remote_addr or "unknown"
+
+
+def _throttled(kind, scope=""):
+        """Rate-limit an auth attempt; returns a 429 status when throttled, else None."""
+        scope = scope or _client_ip()
+        if rate_limit_service.is_allowed(new_uow(), kind, scope):
+                return None
+        return RATE_LIMIT_STATUS_CODE
+
+
+def _abort_throttled():
+        return f"Too many attempts. Please try again later.", RATE_LIMIT_STATUS_CODE
+
+
 def login():
         form = LoginForm()
         if form.validate_on_submit():
+                if _throttled("auth"):
+                        return _abort_throttled()
                 return _login_post(form)
         return render_template("login.html", form=form)
 
@@ -53,6 +77,8 @@ def logout():
 
 def forgot_password():
         if request.method == "POST":
+                if _throttled("auth"):
+                        return _abort_throttled()
                 return _handle_forgot_post(request.form.get("email"))
         return render_template("forgot_password.html")
 
@@ -98,6 +124,8 @@ def magic_login():
         if not email:
                 flash("E-mail é obrigatório.", "warning")
                 return redirect(url_for("login"))
+        if _throttled("auth"):
+                return _abort_throttled()
         return _handle_magic_login(email)
 
 

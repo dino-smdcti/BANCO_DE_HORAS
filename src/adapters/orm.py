@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, Team
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -26,6 +26,7 @@ from src.config import (
         POSITION_COLUMN_LENGTH,
         REGISTRATION_NUMBER_COLUMN_LENGTH,
         ROLE_COLUMN_LENGTH,
+        RATE_LIMIT_BUCKET_COLUMN_LENGTH,
         SECRETARIAT_COLUMN_LENGTH,
         TOKEN_HASH_COLUMN_LENGTH,
         TOKEN_KIND_COLUMN_LENGTH,
@@ -255,6 +256,16 @@ auth_tokens = Table(
     Column("created_at", DateTime, default=datetime.now),
 )
 
+rate_limit_entries = Table(
+    "rate_limit_entries",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("bucket", String(RATE_LIMIT_BUCKET_COLUMN_LENGTH), nullable=False),
+    Column("created_at", DateTime, nullable=False, default=datetime.now),
+)
+Index("ix_rate_limit_bucket_created", rate_limit_entries.c.bucket, rate_limit_entries.c.created_at)
+
+
 absence_state = Table(
     "absence_state",
     metadata,
@@ -318,6 +329,7 @@ def start_mappers():
         mapper_registry.map_imperatively(Facultativo, facultativos, properties=_column_properties(facultativos.c.id, "facultativo_id"))
         mapper_registry.map_imperatively(Notification, notifications, properties=_column_properties(notifications.c.id, "notification_id"))
         mapper_registry.map_imperatively(AuthToken, auth_tokens, properties=_column_properties(auth_tokens.c.id, "token_id"))
+        mapper_registry.map_imperatively(RateLimitEntry, rate_limit_entries, properties=_column_properties(rate_limit_entries.c.id, "entry_id"))
         mapper_registry.map_imperatively(AbsenceState, absence_state, properties=_column_properties(absence_state.c.id, "state_id"))
         mapper_registry.map_imperatively(Holiday, holidays)
         mapper_registry.map_imperatively(JourneyType, journey_types, properties=_column_properties(journey_types.c.id, "journey_id"))

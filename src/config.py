@@ -150,6 +150,23 @@ TOKEN_KIND_RESET = "reset"
 TOKEN_KIND_INVITE = "invite"
 
 # --------------------------------------------------------------------------
+# Rate limiting (auth endpoints)
+# --------------------------------------------------------------------------
+# Bucket key column length for the rate_limit_entries table.
+RATE_LIMIT_BUCKET_COLUMN_LENGTH = 128
+
+# Auth endpoints: max attempts within the window, and the window in seconds.
+# Per-IP attempts guard against credential stuffing / enumeration scraping.
+RATE_LIMIT_MAX_ATTEMPTS = 10
+RATE_LIMIT_WINDOW_SECONDS = 900  # 15 minutes
+# HTTP status when a client is throttled for too many attempts.
+RATE_LIMIT_STATUS_CODE = 429
+
+# Number of expired rate-limit rows pruned during a cleanup pass (keeps the
+# table from growing unboundedly).
+RATE_LIMIT_PRUNE_BATCH = 500
+
+# --------------------------------------------------------------------------
 # SMTP / email
 # --------------------------------------------------------------------------
 DEFAULT_SMTP_SERVER = "smtp.gmail.com"

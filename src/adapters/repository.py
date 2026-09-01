@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from sqlalchemy import select, update
+from datetime import datetime
+from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session, selectinload
-from src.domain.model import User, UserRole, AuthToken, Team
+from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry
 
 class AbstractRepository(ABC):
         @abstractmethod
@@ -35,6 +36,18 @@ class AbstractRepository(ABC):
 
         @abstractmethod
         def revoke_user_tokens(self, user_id: int, kind: str):
+                pass
+
+        @abstractmethod
+        def add_rate_limit_entry(self, entry: RateLimitEntry):
+                pass
+
+        @abstractmethod
+        def count_rate_limit_entries(self, bucket: str, since: datetime) -> int:
+                pass
+
+        @abstractmethod
+        def prune_rate_limit_entries(self, before: datetime, limit: int) -> int:
                 pass
 
         @abstractmethod
@@ -150,4 +163,28 @@ class SqlAlchemyRepository(AbstractRepository):
                         .where(AuthToken.user_id == user_id, AuthToken.kind == kind, AuthToken.used == False)
                         .values(used=True)
                 )
+
+        def add_rate_limit_entry(self, entry: RateLimitEntry):
+                self.session.add(entry)
+
+        def count_rate_limit_entries(self, bucket: str, since: datetime) -> int:
+                return self.session.execute(
+                        select(func.count(RateLimitEntry.entry_id)).where(
+                                RateLimitEntry.bucket == bucket,
+                                RateLimitEntry.created_at >= since,
+                        )
+                ).scalar_one()
+
+        def prune_rate_limit_entries(self, before: datetime, limit: int) -> int:
+                expired_ids = self.session.execute(
+                        select(RateLimitEntry.entry_id)
+                        .where(RateLimitEntry.created_at < before)
+                        .limit(limit)
+                ).scalars().all()
+                if not expired_ids:
+                        return 0
+                result = self.session.execute(
+                        delete(RateLimitEntry).where(RateLimitEntry.entry_id.in_(expired_ids))
+                )
+                return result.rowcount or 0
 
