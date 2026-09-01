@@ -176,6 +176,11 @@ SMTP_TIMEOUT_SECONDS = 8
 EMAIL_FROM_NAME = "Banco de Horas"
 EMAIL_SUBJECT_NOTIFICATION = "Nova Notificação - Banco de Horas"
 
+# Brevo (ex-Sendinblue) transactional email API, used as a fallback when the
+# SMTP channel fails. The API key is read from BREVO_API_KEY at runtime.
+BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
+BREVO_API_TIMEOUT_SECONDS = 10
+
 # --------------------------------------------------------------------------
 # Dashboard / list display caps
 # --------------------------------------------------------------------------

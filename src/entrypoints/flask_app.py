@@ -1,5 +1,8 @@
 import os
 import sys
+import json
+import urllib.error
+import urllib.request
 
 from dotenv import load_dotenv
 from email.mime.multipart import MIMEMultipart
@@ -19,6 +22,8 @@ from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork, resolve_databas
 from scripts.run_migrations import run_all_migrations
 from src.config import (
         ADMIN_ROLES,
+        BREVO_API_TIMEOUT_SECONDS,
+        BREVO_API_URL,
         DATE_FORMAT,
         DEFAULT_SMTP_PORT,
         DEFAULT_SMTP_SERVER,
@@ -213,8 +218,20 @@ def _load_authenticated_user(uow):
 
 
 def send_email(to_email, subject, body_html):
+        """Deliver an email, trying SMTP first and falling back to the Brevo
+        transactional API. Returns True if either channel delivered, else False.
+        Failures are logged generically (never the recipient or raw error)."""
+        if _send_smtp(to_email, subject, body_html):
+                return True
+        if _send_brevo(to_email, subject, body_html):
+                return True
+        print("Email send failed (SMTP and Brevo).", file=sys.stderr)
+        return False
+
+
+def _send_smtp(to_email, subject, body_html):
+        """Send via SMTP; returns True on success, False on failure/misconfig."""
         if not app.config.get("MAIL_USERNAME") or not app.config.get("MAIL_PASSWORD"):
-                print("SMTP not configured.", file=sys.stderr)
                 return False
 
         msg = MIMEMultipart()
@@ -233,10 +250,46 @@ def send_email(to_email, subject, body_html):
                         pass
                 return True
         except Exception:
-                # Log generically: never splash the recipient address or the raw
-                # error (both are PII / internal detail) to the console.
                 print("SMTP send failed.", file=sys.stderr)
                 return False
+
+
+def _send_brevo(to_email, subject, body_html):
+        """Send via the Brevo transactional email API (fallback when SMTP fails)."""
+        api_key = os.environ.get("BREVO_API_KEY")
+        if not api_key:
+                return False
+        sender_email = app.config.get("MAIL_USERNAME")
+        if not sender_email:
+                return False
+
+        payload = {
+                "sender": {"name": EMAIL_FROM_NAME, "email": sender_email},
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "htmlContent": body_html,
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+                BREVO_API_URL,
+                data=data,
+                headers={
+                        "api-key": api_key,
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                },
+                method="POST",
+        )
+        try:
+                with urllib.request.urlopen(req, timeout=BREVO_API_TIMEOUT_SECONDS) as resp:
+                        if 200 <= resp.status < 300:
+                                return True
+                        print("Brevo API returned an error status.", file=sys.stderr)
+                        return False
+        except Exception:
+                print("Brevo API send failed.", file=sys.stderr)
+                return False
+
 
 
 def send_email_with_fallback(to_email, subject, body_html):
