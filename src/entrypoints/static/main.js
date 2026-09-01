@@ -183,19 +183,19 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
         };
     });
     
-    // Function to check if confirm should be enabled
-    function updateConfirmState(locationObtained) {
+    // Function to check if confirm should be enabled. Geolocation is optional:
+    // only the duplicate-confirm gate may block the button.
+    function updateConfirmState() {
         const needsDupConfirm = isTooClose && !confirmDuplicate.checked;
-        btnConfirm.disabled = !locationObtained || needsDupConfirm;
+        btnConfirm.disabled = needsDupConfirm;
     }
 
     confirmDuplicate.onchange = () => {
-        const hasLoc = !!locationInput.value;
-        updateConfirmState(hasLoc);
+        updateConfirmState();
     };
 
     // Reset state
-    btnConfirm.disabled = true;
+    btnConfirm.disabled = false;
     btnConfirm.innerHTML = 'Confirmar e Registrar';
     mapSection.classList.add('d-none');
     locStatus.classList.remove('d-none');
@@ -216,7 +216,7 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
                 mapSection.classList.remove('d-none');
                 locStatus.classList.add('d-none');
                 
-                updateConfirmState(true);
+                updateConfirmState();
             },
             (error) => {
                 console.error("Geolocation error:", error);
@@ -224,7 +224,7 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
                 if (spinner) spinner.classList.add('d-none');
                 locSpan.innerText = "Localização não obtida. Você ainda pode registrar seu ponto.";
                 
-                updateConfirmState(true);
+                updateConfirmState();
             },
             { enableHighAccuracy: true, timeout: APP_CONSTANTS.GEOLOCATION_TIMEOUT_MS }
         );
@@ -232,7 +232,7 @@ function showConfirmModal(modalId, nextStage, scheduledTime, hasLunchBreak, last
         const spinner = locStatus.querySelector('.spinner-border');
         if (spinner) spinner.classList.add('d-none');
         locSpan.innerText = "Geolocalização não suportada.";
-        updateConfirmState(true);
+        updateConfirmState();
     }
 
     if (clockForm) {
