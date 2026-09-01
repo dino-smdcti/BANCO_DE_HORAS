@@ -61,3 +61,33 @@ def ensure_managed_user(uow: AbstractUnitOfWork, actor_id: int, employee_id: int
         if not actor.team_id or target.team_id != actor.team_id:
                 raise PermissionError("Action restricted to your team.")
         return target
+
+
+def managed_team_ids(uow: AbstractUnitOfWork, actor_id: int) -> list[int]:
+        """Return the team ids the actor may write/create for.
+
+        Admin and gestor span every team; a manager only their own team (which
+        may be none). Raises for roles without management scope, so callers can
+        rely on the result for create/approve operations.
+        """
+        actor = uow.users.get_user_by_id(actor_id)
+        if not actor or actor.role not in [UserRole.MANAGER, UserRole.ADMIN, UserRole.GESTOR]:
+                raise PermissionError("Action restricted to managers or admins.")
+        if actor.role in [UserRole.ADMIN, UserRole.GESTOR]:
+                return [team.team_id for team in uow.users.list_teams()]
+        return [actor.team_id] if actor.team_id else []
+
+
+def scoped_team_ids(uow: AbstractUnitOfWork, actor_id: int) -> list[int]:
+        """Return the team ids the actor may see (read scope).
+
+        Admin and gestor span every team; a manager only their own team; an
+        employee sees only their own team (read-only). Empty result means the
+        actor has no visible team.
+        """
+        actor = uow.users.get_user_by_id(actor_id)
+        if not actor:
+                raise PermissionError("User not found.")
+        if actor.role in [UserRole.ADMIN, UserRole.GESTOR]:
+                return [team.team_id for team in uow.users.list_teams()]
+        return [actor.team_id] if actor.team_id else []
