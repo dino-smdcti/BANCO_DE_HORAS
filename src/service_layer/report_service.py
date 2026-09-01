@@ -129,8 +129,21 @@ def _employee_info(user):
         return [
                 ("A3", "Funcionário:", "B3", profile.full_name or "Não informado", "E3", "Matrícula:", "F3", profile.registration_number or "-"),
                 ("A4", "Cargo:", "B4", profile.position or "-", "E4", "Departamento:", "F4", profile.department or "-"),
-                ("A5", "CPF:", "B5", profile.cpf or "-", "E5", "Emitido em:", "F5", datetime.now().strftime("%d/%m/%Y %H:%M")),
+                ("A5", "CPF:", "B5", _mask_cpf(profile.cpf), "E5", "Emitido em:", "F5", datetime.now().strftime("%d/%m/%Y %H:%M")),
         ]
+
+
+def _mask_cpf(value):
+        """Mask a CPF for LGPD compliance, revealing only the last two digits.
+
+        e.g. "12345678901" -> "***.***.***-01". Returns "-" for empty/None.
+        """
+        if not value:
+                return "-"
+        digits = "".join(ch for ch in str(value) if ch.isdigit())[:11]
+        if len(digits) < 2:
+                return "-"
+        return f"***.***.***-{digits[-2:]}"
 
 
 def _write_info_row(sheet, info, styles):

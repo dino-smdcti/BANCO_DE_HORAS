@@ -11,6 +11,23 @@ from src.config import (
 from src.service_layer import services
 
 
+def test_cpf_is_masked_in_excel_report(uow):
+    services.register_user(uow, "report@example.com", "password123")
+    with uow:
+        user = uow.users.get_user_by_email("report@example.com")
+        user_id = user.user_id
+    services.update_user_profile(
+        uow, user_id, "1234", "12345678901",
+        "Dept", "Position", "Section", "Nome",
+    )
+
+    excel_file = services.generate_excel_report(uow, user_id)
+    workbook = load_workbook(io.BytesIO(excel_file.getbuffer()))
+    sheet = workbook[REPORT_SHEET_NAME]
+    assert sheet["B5"].value == "***.***.***-01"
+    assert "12345678901" not in excel_file.getbuffer().tobytes().decode("latin-1")
+
+
 def test_generate_excel_report_openpyxl_structure(uow):
     services.register_user(uow, "report@example.com", "password123")
     with uow:
@@ -33,3 +50,6 @@ def test_generate_excel_report_openpyxl_structure(uow):
 
     assert sheet.cell(row=REPORT_FIRST_DATA_ROW, column=1).value is not None
     assert sheet.cell(row=REPORT_FIRST_DATA_ROW, column=6).value is not None
+
+    assert sheet.cell(row=REPORT_FIRST_DATA_ROW, column=2).value is not None
+    assert sheet.cell(row=REPORT_FIRST_DATA_ROW, column=7).value == "No Horário"
