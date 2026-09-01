@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from src.domain.model import DailyPonto, PontoStatus, Vacation
 from src.service_layer.unit_of_work import AbstractUnitOfWork
-from src.service_layer.permissions import ensure_manager
+from src.service_layer.permissions import ensure_manager, ensure_managed_user
 from src.service_layer.audit import log_action
 from src.service_layer.attendance_helpers import _daterange, _excuse_all_stages, _ponto_for, _reset_all_excuses
 from src.config import MANAGER_NOTES_VACATION
@@ -20,6 +20,7 @@ def remove_vacation_day(uow: AbstractUnitOfWork, manager_id: int, employee_id: i
 
 def _unregister_vacation_day(uow, manager_id, employee_id, target_date):
         ensure_manager(uow, manager_id)
+        ensure_managed_user(uow, manager_id, employee_id)
         employee = uow.users.get_user_by_id(employee_id)
         if not employee:
                 raise ValueError("Employee not found.")
@@ -52,6 +53,7 @@ def _split_vacation_record(uow, employee, target_date):
 
 def _register_vacation(uow, manager_id, employee_id, start_date, end_date):
         ensure_manager(uow, manager_id)
+        ensure_managed_user(uow, manager_id, employee_id)
         employee = uow.users.get_user_by_id(employee_id)
         if not employee:
                 raise ValueError("Employee not found.")

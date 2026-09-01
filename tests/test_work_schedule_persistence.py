@@ -2,7 +2,7 @@ import unittest
 from datetime import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from src.domain.model import User, UserRole, WorkSchedule
+from src.domain.model import User, UserRole, WorkSchedule, Team
 from src.service_layer.services import set_work_schedule
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.adapters.orm import start_mappers, metadata
@@ -18,11 +18,16 @@ class TestWorkSchedulePersistence(unittest.TestCase):
     def setUp(self):
         self.session = SqlAlchemyUnitOfWork(self.session_factory)
         with self.session:
-            # Create a test manager and employee
+            # Create a test manager and employee in the same team
             manager = User(email="mgr@test.com", password_hash="!", role=UserRole.MANAGER)
             employee = User(email="emp@test.com", password_hash="!", role=UserRole.EMPLOYEE)
+            team = Team(name="ws")
+            self.session.session.add(team)
             self.session.session.add(manager)
             self.session.session.add(employee)
+            self.session.commit()
+            manager.team_id = team.team_id
+            employee.team_id = team.team_id
             self.session.commit()
             self.manager_id = manager.user_id
             self.employee_id = employee.user_id

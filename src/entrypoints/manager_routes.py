@@ -37,6 +37,21 @@ from src.config import (
 _ScheduleValues = namedtuple("_ScheduleValues", ["arrival", "lunch_start", "lunch_end", "departure", "tolerance", "has_lunch_break", "schedule_type"])
 
 
+def _managed_employee_guard(uow, employee_id):
+        """Return a redirect when the current user cannot reach ``employee_id``, else ``None``.
+
+        Admin and gestor span all teams; a manager is limited to their own team
+        (a team-less manager manages nobody).
+        """
+        try:
+                with uow:
+                        services.ensure_managed_user(uow, int(current_user.id), employee_id)
+                return None
+        except PermissionError as error:
+                flash(str(error), "danger")
+                return redirect(url_for("dashboard"))
+
+
 def register_routes(app):
         app.add_url_rule("/register", "register", register, methods=["GET", "POST"])
         app.add_url_rule("/manager/edit-employee/<int:employee_id>", "edit_employee", edit_employee, methods=["GET", "POST"])
@@ -88,6 +103,9 @@ def edit_employee(employee_id):
         form = ProfileForm()
         uow = new_uow()
         with uow:
+                guard_response = _managed_employee_guard(uow, employee_id)
+                if guard_response:
+                        return guard_response
                 return _render_edit_employee(uow, employee_id, form)
 
 
@@ -160,6 +178,9 @@ def update_user_analysis_date(employee_id):
         start_date = parse_date_arg(request.form.get("start_analysis_date"))
         uow = new_uow()
         with uow:
+                guard_response = _managed_employee_guard(uow, employee_id)
+                if guard_response:
+                        return guard_response
                 _apply_analysis_date(uow, employee_id, start_date)
         return redirect_to_employee_logs(employee_id)
 
@@ -173,6 +194,8 @@ def review_correction(request_id, action):
                 flash("Correção processada com sucesso.", "success")
         except ValueError as error:
                 flash(str(error), "danger")
+        except PermissionError as error:
+                flash(str(error), "danger")
         return redirect(url_for("management_panel"))
 
 
@@ -181,6 +204,9 @@ def review_correction(request_id, action):
 def view_employee_logs(employee_id):
         uow = new_uow()
         with uow:
+                guard_response = _managed_employee_guard(uow, employee_id)
+                if guard_response:
+                        return guard_response
                 return _render_employee_logs(uow, employee_id)
 
 
@@ -188,6 +214,9 @@ def view_employee_logs(employee_id):
 @manager_required
 def bulk_fix_ponto(employee_id):
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         try:
                 _apply_bulk_fixes(uow, employee_id)
                 flash("Registros selecionados atualizados com sucesso.", "success")
@@ -200,6 +229,9 @@ def bulk_fix_ponto(employee_id):
 @manager_required
 def fix_ponto(employee_id):
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         if request.method == "POST":
                 _apply_fix(uow, employee_id)
                 flash("Registro corrigido manualmente.", "success")
@@ -215,6 +247,9 @@ def add_vacation(employee_id):
         start_date = parse_date_arg(request.form.get("start_date"))
         end_date = parse_date_arg(request.form.get("end_date"))
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         services.add_vacation(uow, current_user.id, employee_id, start_date, end_date)
         flash("Período de férias adicionado.", "success")
         return redirect(url_for("dashboard"))
@@ -232,6 +267,9 @@ def add_attestation(employee_id):
                 flash("Informe o período do atestado.", "danger")
                 return redirect_to_employee_logs(employee_id)
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         try:
                 services.add_attestation(uow, current_user.id, employee_id, start_date, end_date, cid or None, start_time, end_time)
         except ValueError as error:
@@ -246,6 +284,9 @@ def add_attestation(employee_id):
 def remove_attestation_day(employee_id, entry_date):
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         try:
                 services.remove_attestation_day(uow, current_user.id, employee_id, entry_date)
         except ValueError as error:
@@ -260,6 +301,9 @@ def remove_attestation_day(employee_id, entry_date):
 def remove_vacation_day(employee_id, entry_date):
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         try:
                 services.remove_vacation_day(uow, current_user.id, employee_id, entry_date)
         except ValueError as error:
@@ -274,6 +318,9 @@ def remove_vacation_day(employee_id, entry_date):
 def remove_missing_excuse(employee_id, entry_date):
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         try:
                 services.remove_missing_excuse(uow, current_user.id, employee_id, entry_date)
         except ValueError as error:
@@ -320,6 +367,9 @@ def add_facultativo():
 @manager_required
 def delete_user(user_id):
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, user_id)
+        if guard_response:
+                return guard_response
         services.delete_user(uow, current_user.id, user_id)
         flash("Usuário excluído.", "warning")
         return redirect(url_for("management_panel"))
@@ -330,6 +380,9 @@ def delete_user(user_id):
 def reset_user_password(user_id):
         uow = new_uow()
         with uow:
+                guard_response = _managed_employee_guard(uow, user_id)
+                if guard_response:
+                        return guard_response
                 return _send_password_reset(uow, user_id)
 
 
@@ -337,6 +390,9 @@ def reset_user_password(user_id):
 @manager_required
 def set_schedule(employee_id):
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         form = WorkScheduleForm()
         _load_journey_choices(uow, form)
         if form.validate_on_submit():
@@ -409,6 +465,9 @@ def delete_journey(journey_id):
 def delete_ponto(employee_id, entry_date):
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         services.delete_ponto_entry(uow, current_user.id, employee_id, entry_date)
         flash("Registro de ponto excluído.", "warning")
         return _ponto_redirect(employee_id)
@@ -437,6 +496,9 @@ def save_manager_note():
         entry_date = parse_date_arg(request.form.get("entry_date"))
         note_text = request.form.get("note_text")
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         with uow:
                 user = uow.users.get_user_by_id(employee_id)
                 ponto = next((entry for entry in user.time_entries if entry.entry_date == entry_date), None)
@@ -586,6 +648,9 @@ def _change_role_response(uow, user_id, new_role):
 def _archive_justification(employee_id, entry_date):
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
         services.dismiss_justification(uow, current_user.id, employee_id, entry_date)
         flash("Justificativa arquivada com sucesso.", "info")
         return redirect(url_for("management_panel"))

@@ -110,6 +110,13 @@ def update_note():
 def download_report(user_id):
         if current_user.id != user_id and not is_management_role(current_user.role):
                 return flash_redirect("dashboard", "Acesso não autorizado.")
+        if current_user.id != user_id:
+                uow = new_uow()
+                with uow:
+                        try:
+                                services.ensure_managed_user(uow, int(current_user.id), user_id)
+                        except PermissionError as error:
+                                return flash_redirect("dashboard", str(error))
         start_date = _report_date("start_date")
         if start_date is INVALID_DATE:
                 return flash_redirect("dashboard", "Formato de data inválido.")

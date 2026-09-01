@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 
 from src.domain.model import DailyPonto, PontoStatus
 from src.service_layer.audit import log_action
-from src.service_layer.permissions import ensure_manager
+from src.service_layer.permissions import ensure_manager, ensure_managed_user
 from src.service_layer.facultativo_service import facultativo_records
 from src.service_layer.holiday_service import mandatory_holidays
 from src.config import (
@@ -43,6 +43,7 @@ def _do_complete_retroactive_logs(
     manual_arrival, manual_lunch_start, manual_lunch_end, manual_departure,
 ):
     ensure_manager(uow, actor_id)
+    ensure_managed_user(uow, actor_id, employee_id)
 
     employee = uow.users.get_user_by_id(employee_id)
     if not employee:

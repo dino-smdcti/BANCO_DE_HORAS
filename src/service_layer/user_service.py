@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash
 
 from src.domain.model import User, UserRole, UserProfile, AuditLog
 from src.service_layer.unit_of_work import AbstractUnitOfWork
-from src.service_layer.permissions import ensure_admin, ensure_manager
+from src.service_layer.permissions import ensure_admin, ensure_manager, ensure_managed_user
 from src.service_layer.audit import log_action
 from src.config import FALLBACK_ANALYSIS_DATE, ROLE_EMPLOYEE
 
@@ -117,6 +117,7 @@ def _change_role(uow, manager_id, employee_id, new_role, action, details):
 
 def _perform_delete(uow, manager_id, user_id):
         ensure_manager(uow, manager_id)
+        ensure_managed_user(uow, manager_id, user_id)
         user = uow.users.get_user_by_id(user_id)
         if not user:
                 return
@@ -151,6 +152,12 @@ def _annotate_audit_logs(uow, user_id, employee_name):
 def _visible_employees(uow, requester_id):
         if requester_id:
                 user = uow.users.get_user_by_id(requester_id)
-                if user and user.role in [UserRole.ADMIN, UserRole.GESTOR]:
+                if user is None:
+                        return uow.users.list_employees()
+                if user.role in [UserRole.ADMIN, UserRole.GESTOR]:
                         return uow.users.list_all()
+                if user.role == UserRole.MANAGER:
+                        if not user.team_id:
+                                return []
+                        return uow.users.list_users_by_team(user.team_id)
         return uow.users.list_employees()

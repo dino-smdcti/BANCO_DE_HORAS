@@ -4,8 +4,9 @@ from datetime import time, date
 from src.entrypoints.flask_app import app
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
-from src.domain.model import User, JourneyType, DailyPonto, PontoStatus
+from src.domain.model import User, JourneyType, DailyPonto, PontoStatus, Team
 from werkzeug.security import generate_password_hash
+from sqlalchemy import select
 
 
 # ---------------------------------------------------------------------------
@@ -38,6 +39,17 @@ def db(uow):
 # Helper: create user directly in DB
 # ---------------------------------------------------------------------------
 
+def _default_team(uow):
+    """Return the id of a singleton per-test team so managers/users stay scoped together."""
+    with uow:
+        team = uow.session.execute(select(Team).where(Team.name == "__route_default__")).scalar_one_or_none()
+        if team is None:
+            team = Team(name="__route_default__")
+            uow.session.add(team)
+            uow.commit()
+        return team.team_id
+
+
 def _create_user(uow, email, role="employee", password="pass",
                  complete_profile=False, with_schedule=False):
     with uow:
@@ -45,6 +57,8 @@ def _create_user(uow, email, role="employee", password="pass",
         uow.session.add(user)
         uow.commit()
         uid = user.user_id
+        user.team_id = _default_team(uow)
+        uow.commit()
 
         if complete_profile:
             services.update_user_profile(

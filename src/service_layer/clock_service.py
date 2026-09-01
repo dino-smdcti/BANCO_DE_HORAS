@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from src.domain.model import DailyPonto, CorrectionRequest, PontoStatus, UserRole
 from src.domain.time_utils import limit_after, limit_before
 from src.service_layer.unit_of_work import AbstractUnitOfWork
-from src.service_layer.permissions import ensure_manager, ensure_not_self
+from src.service_layer.permissions import ensure_manager, ensure_not_self, ensure_managed_user
 from src.service_layer.notifications import add_notification
 from src.service_layer.audit import log_action
 from src.service_layer.attendance_helpers import _ponto_for, _require_user
@@ -60,14 +60,21 @@ def submit_correction_request(uow: AbstractUnitOfWork, user_id: int, ponto_date,
 
 def list_pending_corrections(uow: AbstractUnitOfWork, manager_id: int) -> List[CorrectionRequest]:
         with uow:
-                ensure_manager(uow, manager_id)
-                return uow.session.execute(select(CorrectionRequest).where(CorrectionRequest.status == CORRECTION_STATUS_PENDING)).scalars().all()
+                manager = ensure_manager(uow, manager_id)
+                requests = uow.session.execute(select(CorrectionRequest).where(CorrectionRequest.status == CORRECTION_STATUS_PENDING)).scalars().all()
+                if manager.role in [UserRole.ADMIN, UserRole.GESTOR]:
+                        return requests
+                if not manager.team_id:
+                        return []
+                team_ids = set(uow.users.list_user_ids_by_team(manager.team_id))
+                return [request for request in requests if request.user_id in team_ids]
 
 
 def review_correction_request(uow: AbstractUnitOfWork, manager_id: int, request_id: int, approved: bool):
         with uow:
                 ensure_manager(uow, manager_id)
                 request = _find_request(uow, request_id)
+                ensure_managed_user(uow, manager_id, request.user_id)
                 _resolve_request(uow, request, approved, manager_id)
                 log_action(uow, manager_id, "REVIEW_CORRECTION_REQUEST", target_id=request.user_id, details=f"ID Pedido: {request_id}, Aprovado: {approved}")
 
@@ -76,6 +83,7 @@ def manual_ponto_correction(uow: AbstractUnitOfWork, manager_id: int, employee_i
         with uow:
                 manager = ensure_manager(uow, manager_id)
                 ensure_not_self(uow, manager_id, employee_id)
+                ensure_managed_user(uow, manager_id, employee_id)
                 user = _require_user(uow, employee_id)
                 ponto = _ponto_for(user, entry_date)
                 return _apply_manual_correction(uow, manager, user, ponto, entry_date, arrival, lunch_start, lunch_end, departure, manager_notes, email_sender)
@@ -360,6 +368,7 @@ def _set_if_changed(ponto, attribute, value):
 def _perform_delete_ponto(uow, manager_id, employee_id, entry_date):
         manager = ensure_manager(uow, manager_id)
         ensure_not_self(uow, manager_id, employee_id)
+        ensure_managed_user(uow, manager_id, employee_id)
         user = _require_user(uow, employee_id)
         matching = [entry for entry in user.time_entries if entry.entry_date == entry_date]
         if not matching:
@@ -373,6 +382,7 @@ def _perform_delete_ponto(uow, manager_id, employee_id, entry_date):
 
 def _perform_dismiss(uow, manager_id, employee_id, entry_date):
         ensure_manager(uow, manager_id)
+        ensure_managed_user(uow, manager_id, employee_id)
         user = _require_user(uow, employee_id)
         ponto = _ponto_for(user, entry_date)
         if not ponto:
@@ -383,6 +393,7 @@ def _perform_dismiss(uow, manager_id, employee_id, entry_date):
 
 def _unregister_missing_excuse(uow, manager_id, employee_id, target_date):
         ensure_manager(uow, manager_id)
+        ensure_managed_user(uow, manager_id, employee_id)
         user = _require_user(uow, employee_id)
         ponto = _ponto_for(user, target_date)
         if not ponto:
@@ -395,8 +406,8 @@ def _unregister_missing_excuse(uow, manager_id, employee_id, target_date):
 
 def _apply_anomaly_decision(uow, admin_id, employee_id, entry_date, stage, action):
         admin = uow.users.get_user_by_id(admin_id)
-        if not admin or admin.role != UserRole.ADMIN:
-                raise PermissionError("Apenas o Administrador pode aprovar anomalias individuais.")
+        if not admin or admin.role not in [UserRole.ADMIN, UserRole.GESTOR]:
+                raise PermissionError("Apenas Administrador ou Gestor pode aprovar anomalias individuais.")
         user = _require_user(uow, employee_id)
         ponto = _ponto_for(user, entry_date)
         if not ponto:

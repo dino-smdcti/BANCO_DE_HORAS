@@ -16,7 +16,7 @@ from src.service_layer.clock_service import (
         submit_correction_request,
 )
 from src.service_layer.notifications import add_notification, mark_notifications_as_read
-from src.service_layer.permissions import ensure_manager, ensure_not_self
+from src.service_layer.permissions import ensure_manager, ensure_managed_user, ensure_not_self
 from src.service_layer.report_service import generate_excel_report
 from src.service_layer.schedule_service import (
         create_journey_type,
@@ -52,6 +52,7 @@ __all__ = [
         "demote_to_employee",
         "dismiss_justification",
         "ensure_manager",
+        "ensure_managed_user",
         "ensure_not_self",
         "generate_excel_report",
         "get_all_employees",

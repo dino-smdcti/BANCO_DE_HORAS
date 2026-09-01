@@ -2,7 +2,7 @@ import unittest
 from datetime import date, time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from src.domain.model import User, UserRole, DailyPonto, PontoStatus, WorkSchedule
+from src.domain.model import User, UserRole, DailyPonto, PontoStatus, WorkSchedule, Team
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer import services
 from src.adapters.orm import start_mappers, metadata
@@ -32,6 +32,13 @@ class TestDatabaseLifecycle(unittest.TestCase):
             self.uow.commit()
             employee = self.uow.users.get_user_by_email("emp@lifecycle.com")
             emp_id = employee.user_id
+            # Place the manager and the employee in the same team
+            team = Team(name="lifecycle")
+            self.uow.session.add(team)
+            self.uow.commit()
+            user.team_id = team.team_id
+            employee.team_id = team.team_id
+            self.uow.commit()
 
         # 2. WRITE/UPDATE: Set Work Schedule
         with self.uow:

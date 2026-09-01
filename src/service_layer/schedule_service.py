@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from src.domain.model import WorkSchedule, JourneyType, ScheduleType
 from src.service_layer.unit_of_work import AbstractUnitOfWork
-from src.service_layer.permissions import ensure_manager
+from src.service_layer.permissions import ensure_manager, ensure_managed_user
 from src.service_layer.audit import log_action
 from src.config import DEFAULT_TOLERANCE_MINUTES
 
@@ -63,6 +63,7 @@ def _authorize_schedule_change(uow, manager_id, employee_id, user):
                         raise PermissionError("Self-reassignment not allowed. Contact a manager.")
                 return
         ensure_manager(uow, manager_id)
+        ensure_managed_user(uow, manager_id, employee_id)
 
 
 def _overwrite_schedule(schedule, arrival, lunch_start, lunch_end, departure, tolerance, has_lunch_break, schedule_type, rotation_start_date):

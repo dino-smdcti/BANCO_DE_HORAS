@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from src.entrypoints.flask_app import app
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
-from src.domain.model import User, UserRole
+from src.domain.model import User, UserRole, Team
 from werkzeug.security import generate_password_hash
 
 
@@ -23,6 +23,13 @@ def _create_user(uow, email, role):
     with uow:
         user = User(email=email, password_hash=generate_password_hash("pass"), role=role)
         uow.session.add(user)
+        uow.commit()
+        team = uow.session.query(Team).filter_by(name="fb").first()
+        if team is None:
+            team = Team(name="fb")
+            uow.session.add(team)
+            uow.commit()
+        user.team_id = team.team_id
         uow.commit()
         return user.user_id
 

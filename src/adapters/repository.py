@@ -54,6 +54,10 @@ class AbstractRepository(ABC):
                 pass
 
         @abstractmethod
+        def list_user_ids_by_team(self, team_id: int) -> List[int]:
+                pass
+
+        @abstractmethod
         def set_user_team(self, user_id: int, team_id: Optional[int]):
                 pass
 
@@ -107,6 +111,9 @@ class SqlAlchemyRepository(AbstractRepository):
                                 selectinload(User.notifications),
                         )
                 ).scalars().all()
+
+        def list_user_ids_by_team(self, team_id: int) -> List[int]:
+                return self.session.execute(select(User.user_id).where(User.team_id == team_id)).scalars().all()
 
         def add_token(self, token: AuthToken):
                 self.session.add(token)
