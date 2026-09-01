@@ -45,11 +45,11 @@ Command convention: run suite as
 - [x] Stop flashing full reset URLs with tokens in HTML (reset/invite now use email fallback page; forgot/magic use generic flash)
 - [x] Tests: invite token cannot reset password; reset rejected on invite route; SECRET_KEY production gate (test_token_hygiene.py)
 
-### 1.5 Rate limiting + enumeration
-- [ ] Throttle login / forgot-password / magic-login
-- [ ] Normalize magic_link_login message for nonexistent users
-- [ ] Make logout a POST
-- [ ] Tests: generic message for unknown user; rate limit triggers
+### 1.5 Rate limiting + enumeration ✅
+- [x] Throttle login / forgot-password / magic-login (DB-backed `rate_limit_entries`, shared per-IP budget)
+- [x] Normalize magic_link_login message for nonexistent users
+- [x] Make logout a POST (with CSRF)
+- [x] Tests: generic message for unknown user; rate limit triggers
 
 ### 1.6 Stop leaking internal errors
 - [ ] Replace flash(str(e)) in handle_errors and raw excepts with generic messages; log server-side
@@ -87,10 +87,10 @@ Command convention: run suite as
 - [x] Align route vs service role semantics (GESTOR vs ADMIN); clean redundant double role-check
 - [x] Ownership/team model for IDOR (largest change; sequence last)
 
-## Phase 6 — Tests & validation
-- [ ] Tests: correction cycle, anomaly badge logic, notification lifecycle, retroactive logs, bulk-fix, permission helpers, absence E2E, duplicate clock-in
-- [ ] Fix dummy assertion test_database_lifecycle.py:69
-- [ ] Resolve 2 skipped Selenium files (bring selenium into dev reqs or convert to route tests; document)
-- [ ] Assert Excel report content, not just nonzero bytes
-- [ ] LGPD: mask CPF in Excel exports
-- [ ] Final gate: full pytest + node --check on JS
+## Phase 6 — Tests & validation ✅
+- [x] Tests: correction cycle, anomaly badge logic, notification lifecycle, retroactive logs, bulk-fix, permission helpers, absence E2E, duplicate clock-in
+- [x] Fix dummy assertion test_database_lifecycle.py:69
+- [x] Resolve 2 skipped Selenium files (convert to route tests; no longer ignored in suite)
+- [x] Assert Excel report content, not just nonzero bytes
+- [x] LGPD: mask CPF in Excel exports
+- [x] Final gate: full pytest + node --check on JS (258 passed, 7 subtests)
