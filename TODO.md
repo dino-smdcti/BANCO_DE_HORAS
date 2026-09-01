@@ -83,8 +83,8 @@ Command convention: run suite as
 - [x] Split administration.py god module (vacation/holiday/attestation/facultativo services)
 - [x] Deduplicate helpers (_ponto_for, _mandatory_holidays, _facultativo_dates, _require_user)
 - [x] Standardize role decorators + ordering convention + regression test
-- [ ] Centralize date/redirect/error handling in web_helpers
-- [ ] Align route vs service role semantics (GESTOR vs ADMIN); clean redundant double role-check
+- [x] Centralize date/redirect/error handling in web_helpers
+- [x] Align route vs service role semantics (GESTOR vs ADMIN); clean redundant double role-check
 - [ ] Ownership/team model for IDOR (largest change; sequence last)
 
 ## Phase 6 — Tests & validation
