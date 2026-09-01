@@ -188,6 +188,16 @@ class TestEmployeeRoutes:
         r = client.get("/complete-profile")
         assert r.status_code == 200
 
+    def test_update_note_success_redirects(self, client, uow):
+        uid = _create_user(uow, "emp_note@test.com")
+        _login(client, uid)
+        r = client.post(
+            "/update-note",
+            data={"entry_date": "2026-09-01", "notes": "justificativa"},
+            follow_redirects=False,
+        )
+        assert r.status_code == 302
+
     def test_choose_journey_renders(self, client, uow):
         _create_journey(uow)
         uid = _create_user(uow, "emp_cj@test.com", complete_profile=True)

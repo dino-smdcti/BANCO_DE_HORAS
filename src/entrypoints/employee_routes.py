@@ -104,6 +104,7 @@ def update_note():
                 _save_note(current_user.id, entry_date, request.form.get("notes"))
         except Exception as error:
                 return flash_redirect("dashboard", f"Erro ao salvar nota: {str(error)}")
+        return redirect(url_for("dashboard"))
 
 
 @login_required
