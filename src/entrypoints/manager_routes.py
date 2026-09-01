@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from src.domain.model import JourneyType, PontoStatus, UserProfile, UserRole
 from src.entrypoints import flask_app
-from src.entrypoints.decorators import handle_errors, manager_required
+from src.entrypoints.decorators import handle_errors, manager_required, role_required
 from src.entrypoints.forms import JourneyTypeForm, ProfileForm, RegisterForm, WorkScheduleForm
 from src.entrypoints.web_helpers import (
         INVALID_DATE,
@@ -83,10 +83,8 @@ def register():
 
 
 @login_required
+@manager_required
 def edit_employee(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         form = ProfileForm()
         uow = new_uow()
         with uow:
@@ -94,10 +92,9 @@ def edit_employee(employee_id):
 
 
 @login_required
+@role_required(ROLE_ADMIN)
+@handle_errors
 def promote_user(user_id):
-        if current_user.role != ROLE_ADMIN:
-                flash("Acesso não autorizado", "danger")
-                return redirect(url_for("dashboard"))
         uow = new_uow()
         services.promote_to_manager(uow, current_user.id, user_id)
         flash("Usuário promovido a Gestor!", "success")
@@ -117,10 +114,9 @@ def change_user_role(user_id):
 
 
 @login_required
+@role_required(ROLE_ADMIN)
+@handle_errors
 def demote_user(user_id):
-        if current_user.role != ROLE_ADMIN:
-                flash("Acesso não autorizado", "danger")
-                return redirect(url_for("dashboard"))
         uow = new_uow()
         services.demote_to_employee(uow, current_user.id, user_id)
         flash("Usuário rebaixado para Funcionário!", "warning")
@@ -151,20 +147,16 @@ def archive_justification_action(employee_id, entry_date):
 
 
 @login_required
+@manager_required
 def management_panel():
-        denied = _role_guard(message="Acesso restrito.")
-        if denied:
-                return denied
         uow = new_uow()
         with uow:
                 return _render_management_panel(uow)
 
 
 @login_required
+@manager_required
 def update_user_analysis_date(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         start_date = parse_date_arg(request.form.get("start_analysis_date"))
         uow = new_uow()
         with uow:
@@ -173,10 +165,8 @@ def update_user_analysis_date(employee_id):
 
 
 @login_required
+@manager_required
 def review_correction(request_id, action):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         try:
                 services.review_correction_request(uow, current_user.id, request_id, action == "approve")
@@ -187,20 +177,16 @@ def review_correction(request_id, action):
 
 
 @login_required
+@manager_required
 def view_employee_logs(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         with uow:
                 return _render_employee_logs(uow, employee_id)
 
 
 @login_required
+@manager_required
 def bulk_fix_ponto(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         try:
                 _apply_bulk_fixes(uow, employee_id)
@@ -211,10 +197,8 @@ def bulk_fix_ponto(employee_id):
 
 
 @login_required
+@manager_required
 def fix_ponto(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         if request.method == "POST":
                 _apply_fix(uow, employee_id)
@@ -226,10 +210,8 @@ def fix_ponto(employee_id):
 
 
 @login_required
+@manager_required
 def add_vacation(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         start_date = parse_date_arg(request.form.get("start_date"))
         end_date = parse_date_arg(request.form.get("end_date"))
         uow = new_uow()
@@ -239,10 +221,8 @@ def add_vacation(employee_id):
 
 
 @login_required
+@manager_required
 def add_attestation(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         start_date = parse_date(request.form.get("start_date"))
         end_date = parse_date(request.form.get("end_date"))
         cid = (request.form.get("cid") or "").strip()
@@ -262,10 +242,8 @@ def add_attestation(employee_id):
 
 
 @login_required
+@manager_required
 def remove_attestation_day(employee_id, entry_date):
-        denied = _role_guard()
-        if denied:
-                return denied
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         try:
@@ -278,10 +256,8 @@ def remove_attestation_day(employee_id, entry_date):
 
 
 @login_required
+@manager_required
 def remove_vacation_day(employee_id, entry_date):
-        denied = _role_guard()
-        if denied:
-                return denied
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         try:
@@ -294,10 +270,8 @@ def remove_vacation_day(employee_id, entry_date):
 
 
 @login_required
+@manager_required
 def remove_missing_excuse(employee_id, entry_date):
-        denied = _role_guard()
-        if denied:
-                return denied
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         try:
@@ -310,10 +284,8 @@ def remove_missing_excuse(employee_id, entry_date):
 
 
 @login_required
+@manager_required
 def add_holiday():
-        denied = _role_guard()
-        if denied:
-                return denied
         holiday_date = parse_date_arg(request.form.get("holiday_date"))
         description = request.form.get("description")
         mandatory = request.form.get("is_mandatory") == "on"
@@ -324,10 +296,8 @@ def add_holiday():
 
 
 @login_required
+@manager_required
 def add_facultativo():
-        denied = _role_guard()
-        if denied:
-                return denied
         start_date = parse_date(request.form.get("start_date"))
         end_date = parse_date(request.form.get("end_date"))
         description = (request.form.get("description") or "").strip()
@@ -347,10 +317,8 @@ def add_facultativo():
 
 
 @login_required
+@manager_required
 def delete_user(user_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         services.delete_user(uow, current_user.id, user_id)
         flash("Usuário excluído.", "warning")
@@ -358,20 +326,16 @@ def delete_user(user_id):
 
 
 @login_required
+@manager_required
 def reset_user_password(user_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         with uow:
                 return _send_password_reset(uow, user_id)
 
 
 @login_required
+@manager_required
 def set_schedule(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         form = WorkScheduleForm()
         _load_journey_choices(uow, form)
@@ -387,10 +351,8 @@ def set_schedule(employee_id):
 
 
 @login_required
+@manager_required
 def manage_journeys():
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         form = JourneyTypeForm()
         if form.validate_on_submit():
@@ -415,10 +377,8 @@ def get_journey_json(journey_id):
 
 
 @login_required
+@manager_required
 def edit_journey(journey_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         form = JourneyTypeForm()
         if form.validate_on_submit():
@@ -436,10 +396,8 @@ def edit_journey(journey_id):
 
 
 @login_required
+@manager_required
 def delete_journey(journey_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         uow = new_uow()
         services.delete_journey_type(uow, current_user.id, journey_id)
         flash("Tipo de Jornada excluído.", "warning")
@@ -447,10 +405,8 @@ def delete_journey(journey_id):
 
 
 @login_required
+@manager_required
 def delete_ponto(employee_id, entry_date):
-        denied = _role_guard()
-        if denied:
-                return denied
         entry_date = parse_date_arg(entry_date)
         uow = new_uow()
         services.delete_ponto_entry(uow, current_user.id, employee_id, entry_date)
@@ -496,9 +452,6 @@ def save_manager_note():
 
 @login_required
 def complete_retroactive_logs_route(employee_id):
-        denied = _role_guard()
-        if denied:
-                return denied
         if current_user.role not in ADMIN_ROLES:
                 flash("Apenas administradores e gestores podem realizar esta ação.", "danger")
                 return redirect_to_employee_logs(employee_id)
@@ -539,12 +492,6 @@ def complete_retroactive_logs_route(employee_id):
         return redirect_to_employee_logs(employee_id)
 
 
-def _role_guard(message="Acesso não autorizado."):
-        """Redirect non-management users back to their dashboard."""
-        if not is_management_role(current_user.role):
-                flash(message, "danger")
-                return redirect(url_for("dashboard"))
-        return None
 
 
 def _handle_register(form):

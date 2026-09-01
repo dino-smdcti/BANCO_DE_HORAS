@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash
 
 from src.domain.model import User, UserRole, UserProfile, AuditLog
 from src.service_layer.unit_of_work import AbstractUnitOfWork
-from src.service_layer.permissions import ensure_manager
+from src.service_layer.permissions import ensure_admin, ensure_manager
 from src.service_layer.audit import log_action
 from src.config import FALLBACK_ANALYSIS_DATE, ROLE_EMPLOYEE
 
@@ -108,7 +108,7 @@ def _apply_credential_update(uow, user_id, email, password, email_notifications_
 
 def _change_role(uow, manager_id, employee_id, new_role, action, details):
         with uow:
-                ensure_manager(uow, manager_id)
+                ensure_admin(uow, manager_id)
                 employee = uow.users.get_user_by_id(employee_id)
                 if employee:
                         employee.role = new_role

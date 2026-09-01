@@ -100,6 +100,15 @@ class TestDecoratorOrderingConvention(unittest.TestCase):
 
         self.assertEqual(violations, [])
 
+    def test_no_manual_role_guard_boilerplate(self):
+        """Route role checks must use the standard decorators, not inline _role_guard calls."""
+        offenders = []
+        for path in self.ROUTES_DIR.glob("*_routes.py"):
+            source = path.read_text(encoding="utf-8")
+            if "_role_guard" in source:
+                offenders.append(path.name)
+        self.assertEqual(offenders, [])
+
     def _decorator_name(self, decorator):
         if isinstance(decorator, ast.Name):
             return decorator.id
