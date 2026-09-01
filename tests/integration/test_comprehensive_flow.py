@@ -64,4 +64,4 @@ def test_daily_log_check_logic():
 
                 # Assert check was performed
                 assert mock_uow.users.list_employees.called
-                mock_set.assert_called_with(date(2026, 5, 12))
+                mock_set.assert_called_with(mock_uow, date(2026, 5, 12))

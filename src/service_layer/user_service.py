@@ -1,6 +1,6 @@
 from datetime import date
 from typing import List, Optional
-from sqlalchemy import select, update
+from sqlalchemy import update, case, func, or_
 from werkzeug.security import generate_password_hash
 
 from src.domain.model import User, UserRole, UserProfile, AuditLog
@@ -134,21 +134,18 @@ def _user_label(user):
 
 
 def _annotate_audit_logs(uow, user_id, employee_name):
-        """Preserve the employee's name in audit logs before nullifying their user_id."""
-        audit_entries = _audit_logs_for(uow, user_id)
-        for audit in audit_entries:
-                _append_log_source(audit, employee_name)
-        uow.session.flush()
-        uow.session.execute(update(AuditLog).where(AuditLog.user_id == user_id).values({AuditLog.user_id: None}))
-
-
-def _audit_logs_for(uow, user_id):
-        return uow.session.execute(select(AuditLog).where(AuditLog.user_id == user_id)).scalars().all()
-
-
-def _append_log_source(audit, employee_name):
-        existing = audit.details or ""
-        audit.details = f"{existing} (User: {employee_name})" if existing else f"User: {employee_name}"
+        """Preserve the employee's name in audit logs before nullifying their user_id via a single bulk UPDATE."""
+        uow.session.execute(
+                update(AuditLog)
+                .where(AuditLog.user_id == user_id)
+                .values(
+                        user_id=None,
+                        details=case(
+                                (or_(AuditLog.details.is_(None), AuditLog.details == ""), func.concat("User: ", employee_name)),
+                                else_=func.concat(AuditLog.details, " (User: ", employee_name, ")"),
+                        ),
+                )
+        )
 
 
 def _visible_employees(uow, requester_id):

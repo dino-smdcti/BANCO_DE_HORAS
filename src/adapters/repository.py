@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
 from sqlalchemy import select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from src.domain.model import User, UserRole, AuthToken
 
 class AbstractRepository(ABC):
@@ -51,10 +51,29 @@ class SqlAlchemyRepository(AbstractRepository):
                 return self.session.execute(select(User).where(User.user_id == user_id)).scalar_one_or_none()
 
         def list_employees(self) -> List[User]:
-                return self.session.execute(select(User).where(User.role == UserRole.EMPLOYEE)).scalars().all()
+                return self.session.execute(
+                        select(User)
+                        .where(User.role == UserRole.EMPLOYEE)
+                        .options(
+                                selectinload(User.time_entries),
+                                selectinload(User.vacations),
+                                selectinload(User.attestations),
+                                selectinload(User.work_schedule),
+                                selectinload(User.notifications),
+                        )
+                ).scalars().all()
 
         def list_all(self) -> List[User]:
-                return self.session.execute(select(User)).scalars().all()
+                return self.session.execute(
+                        select(User)
+                        .options(
+                                selectinload(User.time_entries),
+                                selectinload(User.vacations),
+                                selectinload(User.attestations),
+                                selectinload(User.work_schedule),
+                                selectinload(User.notifications),
+                        )
+                ).scalars().all()
 
         def add_token(self, token: AuthToken):
                 self.session.add(token)

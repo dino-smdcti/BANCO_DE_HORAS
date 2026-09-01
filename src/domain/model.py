@@ -163,6 +163,14 @@ class AuthToken:
         token_id: Optional[int] = None
 
 
+@dataclass
+class AbsenceState:
+        """DB-backed record of the last daily absence-check date (singleton row)."""
+        last_check_date: Optional[date] = None
+        updated_at: datetime = field(default_factory=datetime.now)
+        state_id: Optional[int] = None
+
+
 # (flag, reviewed, approved, excused) attribute names for each anomaly stage.
 _ANOMALY_STAGES = ANOMALY_STAGE_FLAGS
 

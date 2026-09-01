@@ -1,8 +1,8 @@
-from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float, UniqueConstraint
+from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float, UniqueConstraint, Index
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -246,6 +246,25 @@ auth_tokens = Table(
     Column("created_at", DateTime, default=datetime.now),
 )
 
+absence_state = Table(
+    "absence_state",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("last_check_date", Date, nullable=True),
+    Column("updated_at", DateTime, default=datetime.now),
+)
+
+
+Index("ix_daily_pontos_entry_date", daily_pontos.c.entry_date)
+Index("ix_daily_pontos_user_entry_date", daily_pontos.c.user_id, daily_pontos.c.entry_date)
+Index("ix_audit_logs_user_id", audit_logs.c.user_id)
+Index("ix_audit_logs_timestamp", audit_logs.c.timestamp)
+Index("ix_notifications_user_created", notifications.c.user_id, notifications.c.created_at)
+Index("ix_correction_requests_status", correction_requests.c.status)
+Index("ix_vacations_user_dates", vacations.c.user_id, vacations.c.start_date, vacations.c.end_date)
+Index("ix_attestations_user_dates", attestations.c.user_id, attestations.c.start_date, attestations.c.end_date)
+Index("ix_users_role", users.c.role)
+
 
 def _user_properties():
         return {
@@ -288,6 +307,7 @@ def start_mappers():
         mapper_registry.map_imperatively(Facultativo, facultativos, properties=_column_properties(facultativos.c.id, "facultativo_id"))
         mapper_registry.map_imperatively(Notification, notifications, properties=_column_properties(notifications.c.id, "notification_id"))
         mapper_registry.map_imperatively(AuthToken, auth_tokens, properties=_column_properties(auth_tokens.c.id, "token_id"))
+        mapper_registry.map_imperatively(AbsenceState, absence_state, properties=_column_properties(absence_state.c.id, "state_id"))
         mapper_registry.map_imperatively(Holiday, holidays)
         mapper_registry.map_imperatively(JourneyType, journey_types, properties=_column_properties(journey_types.c.id, "journey_id"))
         mapper_registry.map_imperatively(AuditLog, audit_logs, properties=_column_properties(audit_logs.c.id, "log_id"))

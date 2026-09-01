@@ -1,11 +1,9 @@
-import os
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from sqlalchemy import select
-from src.domain.model import PontoStatus, DailyPonto, Holiday, Facultativo
+from src.domain.model import PontoStatus, DailyPonto, Holiday, Facultativo, AbsenceState
 from src.config import (
         ABSENCE_DEFAULT_LAST_CHECK_DATE,
-        ABSENCE_LAST_CHECK_FILE,
         BLANK_SCHEDULE_MISSING_REASON,
         DEFAULT_ANALYSIS_START_DATE,
         EMPTY_ENTRY_MISSING_REASON,
@@ -16,91 +14,67 @@ from src.config import (
         PREVIOUS_DAY_OFFSET,
 )
 
-# Use persistent temporary directory for the last check date
-LAST_CHECK_FILE = ABSENCE_LAST_CHECK_FILE
-
 IS_TESTING = "pytest" in sys.modules or "unittest" in sys.modules
 _test_last_check = None
 
-def get_last_check():
-        """Return the last date the daily absence check ran."""
+def get_last_check(uow):
+        """Return the last date the daily absence check ran, from the DB."""
         global _test_last_check
         if IS_TESTING:
-                return _test_check_value()
-        return _read_last_check() or ABSENCE_DEFAULT_LAST_CHECK_DATE
+                if _test_last_check is not None:
+                        return _test_last_check
+                return ABSENCE_DEFAULT_LAST_CHECK_DATE
+        state = uow.session.execute(select(AbsenceState)).scalar_one_or_none()
+        return state.last_check_date if state and state.last_check_date else ABSENCE_DEFAULT_LAST_CHECK_DATE
 
 
-def set_last_check(d):
-        """Persist the last date the daily absence check ran."""
+def set_last_check(uow, d):
+        """Persist the last date the daily absence check ran to the DB (singleton row)."""
         global _test_last_check
         if IS_TESTING:
                 _test_last_check = d
                 return
-        _persist_last_check(d)
-
-
-def _test_check_value():
-        global _test_last_check
-        if _test_last_check is not None:
-                return _test_last_check
-        # Start from one day before the target analysis date in tests
-        return ABSENCE_DEFAULT_LAST_CHECK_DATE
-
-
-def _read_last_check():
-        try:
-                with open(LAST_CHECK_FILE, "r") as f:
-                        return date.fromisoformat(f.read().strip())
-        except Exception:
-                return None
-
-
-def _persist_last_check(d):
-        try:
-                _write_last_check(d)
-        except Exception:
-                pass
-
-
-def _write_last_check(d):
-        os.makedirs(os.path.dirname(LAST_CHECK_FILE), exist_ok=True)
-        with open(LAST_CHECK_FILE, "w") as f:
-                f.write(d.isoformat())
+        state = uow.session.execute(select(AbsenceState)).scalar_one_or_none()
+        if state is None:
+                state = AbsenceState()
+                uow.session.add(state)
+        state.last_check_date = d
+        state.updated_at = datetime.now()
 
 
 def process_daily_absences(uow):
-        today = date.today()
-
-        # Performance Guard: only check once every day
-        if not IS_TESTING:
-                if get_last_check() == today:
-                        return
-
-        dates_to_check = _dates_to_check(today)
-        print(f"DEBUG: Starting missing log verification. Today: {today}, Targets: {dates_to_check}")
-
         with uow:
+                today = date.today()
+
+                # Performance Guard: only check once every day
+                if not IS_TESTING:
+                        if get_last_check(uow) == today:
+                                return
+
+                dates_to_check = _dates_to_check(today)
+                print(f"DEBUG: Starting missing log verification. Today: {today}, Targets: {dates_to_check}")
+
                 _check_all_employees(uow, dates_to_check)
+                set_last_check(uow, today)
                 uow.commit()
 
-        print(f"DEBUG: Verification complete. Updating last check date to {today}")
-        set_last_check(today)
+        print(f"DEBUG: Verification complete. Updated last check date to {today}")
 
 
 def _check_all_employees(uow, dates_to_check):
         employees = uow.users.list_employees()
         holiday_dates = _mandatory_holidays(uow)
-        facultativo_dates = _facultativo_dates(uow)
+        facultativos = _facultativos(uow)
         print(f"INFO: Processing daily absences for {len(employees)} employees.")
         for user in employees:
-                _check_user(uow, user, dates_to_check, holiday_dates, facultativo_dates)
+                _check_user(uow, user, dates_to_check, holiday_dates, facultativos)
 
 
-def _check_user(uow, user, dates_to_check, holiday_dates, facultativo_dates):
+def _check_user(uow, user, dates_to_check, holiday_dates, facultativos):
         user_entries = {p.entry_date: p for p in user.time_entries}
         analysis_start = _analysis_start(user)
         for check_date in dates_to_check:
-                _process_user_date(uow, user, user_entries, check_date, analysis_start, holiday_dates, facultativo_dates)
+                _process_user_date(uow, user, user_entries, check_date, analysis_start, holiday_dates, facultativos)
 
 
 def _dates_to_check(today):
@@ -115,29 +89,26 @@ def _mandatory_holidays(uow):
         return {h.holiday_date for h in holidays if h.is_mandatory}
 
 
-def _facultativo_dates(uow):
-        facultativos = uow.session.execute(select(Facultativo)).scalars().all()
-        covered = set()
-        for fac in facultativos:
-                day = fac.start_date
-                while day <= fac.end_date:
-                        covered.add(day)
-                        day += timedelta(days=1)
-        return covered
+def _facultativos(uow):
+        return uow.session.execute(select(Facultativo)).scalars().all()
+
+
+def _is_facultativo(check_date, facultativos):
+        return any(fac.start_date <= check_date <= fac.end_date for fac in facultativos)
 
 
 def _analysis_start(user):
         return user.profile.start_analysis_date if user.profile else DEFAULT_ANALYSIS_START_DATE
 
 
-def _process_user_date(uow, user, user_entries, check_date, analysis_start, holiday_dates, facultativo_dates):
+def _process_user_date(uow, user, user_entries, check_date, analysis_start, holiday_dates, facultativos):
         if check_date < analysis_start:
                 return
         if user.is_on_vacation(check_date):
                 return
         if user.is_on_attestation(check_date):
                 return
-        if check_date in facultativo_dates:
+        if _is_facultativo(check_date, facultativos):
                 return
         if not user.work_schedule:
                 _mark_blank_entry_missing(user_entries.get(check_date))
