@@ -85,7 +85,7 @@ Command convention: run suite as
 - [x] Standardize role decorators + ordering convention + regression test
 - [x] Centralize date/redirect/error handling in web_helpers
 - [x] Align route vs service role semantics (GESTOR vs ADMIN); clean redundant double role-check
-- [ ] Ownership/team model for IDOR (largest change; sequence last)
+- [x] Ownership/team model for IDOR (largest change; sequence last)
 
 ## Phase 6 — Tests & validation
 - [ ] Tests: correction cycle, anomaly badge logic, notification lifecycle, retroactive logs, bulk-fix, permission helpers, absence E2E, duplicate clock-in
