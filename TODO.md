@@ -126,11 +126,11 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [ ] NOTE: `Team.lead_user_id` moved to Phase D. Adding it to the existing prod `teams` table needs a Postgres ALTER migration (no-ALTER rule for the zero-risk foundation); fresh DBs get it via `metadata.create_all`.
 
 ## Phase A — Tasks & internal checklists
-- [ ] Models `TeamTask` + `TaskChecklistItem` (base de assignment)
-- [ ] Service + `services.py` re-export; `uow.tasks`
-- [ ] Routes `/work/tasks/*` (`@manager_required` create/assign; `@login_required` self-status) + nav link
-- [ ] Templates extend base.html; `data-app-mode="work"`
-- [ ] Tests: CRUD, assignee scoping, checklist toggle, status transitions, audit
+- [x] Models `TeamTask` + `TaskChecklistItem` (base de assignment)
+- [x] Service + `services.py` re-export; `uow.tasks` via repository methods (add_task/list/update/delete + checklist)
+- [x] Routes `/work/tasks/*` (`@manager_required` create/edit/delete; `@login_required` self-status/assignee) + nav link "Tarefas"
+- [x] Templates extend base.html (`work_tasks.html`)
+- [x] Tests: `tests/unit/test_tasks.py` (11) + `tests/integration/test_route_rendering.py::TestWorkTasks` (3)
 
 ## Phase B — Accomplishments with periods
 - [ ] Model `Accomplishment` (team_id, period, optional end_date = in-progress)
