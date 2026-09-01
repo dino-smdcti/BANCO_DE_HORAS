@@ -18,7 +18,7 @@ const APP_CONSTANTS = {
     LOADING_LABEL: 'Processando...',
 
     // Management roles that always see every clock stage.
-    MANAGEMENT_ROLES: ['manager', 'admin'],
+    MANAGEMENT_ROLES: ['manager', 'admin', 'gestor'],
 
     // Maps backend stage labels to form stage values.
     STAGE_LABEL_TO_VALUE: {

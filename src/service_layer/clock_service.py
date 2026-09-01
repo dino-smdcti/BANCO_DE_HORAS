@@ -135,6 +135,11 @@ def _next_stage(ponto):
 
 
 def _register_stage(user, ponto, stage, now_time, today, location, notes):
+        # Any registerable stage may start the day's log; a late arrival (or an
+        # explicit manual POST) must not block later stages on an absent Chegada.
+        if not ponto:
+                ponto = _emit_ponto(user, today)
+                user.time_entries.append(ponto)
         if stage == STAGE_ARRIVAL:
                 _register_arrival(user, ponto, now_time, today, location)
         elif stage == STAGE_LUNCH_START:
@@ -148,17 +153,12 @@ def _register_stage(user, ponto, stage, now_time, today, location, notes):
 
 
 def _register_arrival(user, ponto, now_time, today, location):
-        if not ponto:
-                ponto = _new_ponto(user, today, now_time)
-                user.time_entries.append(ponto)
-        else:
-                ponto.arrival = now_time
+        ponto.arrival = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_ARRIVAL}: {location}")
         _flag_if_arrival_late(ponto, user, today, now_time)
 
 
 def _register_lunch_start(user, ponto, now_time, today, location):
-        _require_ponto(ponto)
         ponto.lunch_start = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_LUNCH_START}: {location}")
         _flag_if_lunch_start_late(ponto, user, today, now_time)
@@ -166,14 +166,12 @@ def _register_lunch_start(user, ponto, now_time, today, location):
 
 
 def _register_lunch_end(user, ponto, now_time, today, location):
-        _require_ponto(ponto)
         ponto.lunch_end = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_LUNCH_END}: {location}")
         _flag_if_lunch_end_late(ponto, user, today, now_time)
 
 
 def _register_departure(user, ponto, now_time, today, location, notes):
-        _require_ponto(ponto)
         ponto.departure = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_DEPARTURE}: {location}")
         _flag_if_departure_early(ponto, user, today, now_time)
@@ -185,13 +183,17 @@ def _new_ponto(user, today, now_time):
         return DailyPonto(user_id=user.user_id, entry_date=today, arrival=now_time, has_lunch_break=_has_lunch_break(user))
 
 
+def _emit_ponto(user, today):
+        """Create a day's log without fixing an arrival time.
+
+        Used when a later stage (lunch/departure) starts the day, e.g. after a
+        missing or never-registered arrival, so we don't fabricate one.
+        """
+        return DailyPonto(user_id=user.user_id, entry_date=today, arrival=None, has_lunch_break=_has_lunch_break(user))
+
+
 def _has_lunch_break(user):
         return user.work_schedule.has_lunch_break if user.work_schedule else True
-
-
-def _require_ponto(ponto):
-        if not ponto:
-                raise ValueError("Registro de chegada não encontrado.")
 
 
 def _log_location(ponto, text):
