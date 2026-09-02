@@ -91,6 +91,18 @@ class AbstractRepository(ABC):
                 pass
 
         @abstractmethod
+        def count_implemented_ideas_by_team(self, team_id: int) -> int:
+                pass
+
+        @abstractmethod
+        def count_accomplishments_by_team(self, team_id: int) -> int:
+                pass
+
+        @abstractmethod
+        def count_kudos_by_team(self, team_id: int) -> int:
+                pass
+
+        @abstractmethod
         def list_users_by_team(self, team_id: int) -> List[User]:
                 pass
 
@@ -431,6 +443,29 @@ class SqlAlchemyRepository(AbstractRepository):
                         select(func.count()).select_from(Idea).where(
                                 Idea.team_id == team_id,
                                 Idea.status.notin_([IDEA_STATUS_IMPLEMENTED, IDEA_STATUS_DECLINED]),
+                        )
+                ).scalar_one()
+
+        def count_implemented_ideas_by_team(self, team_id: int) -> int:
+                from src.config import IDEA_STATUS_IMPLEMENTED
+                return self.session.execute(
+                        select(func.count()).select_from(Idea).where(
+                                Idea.team_id == team_id,
+                                Idea.status == IDEA_STATUS_IMPLEMENTED,
+                        )
+                ).scalar_one()
+
+        def count_accomplishments_by_team(self, team_id: int) -> int:
+                return self.session.execute(
+                        select(func.count()).select_from(Accomplishment).where(
+                                Accomplishment.team_id == team_id,
+                        )
+                ).scalar_one()
+
+        def count_kudos_by_team(self, team_id: int) -> int:
+                return self.session.execute(
+                        select(func.count()).select_from(Kudos).where(
+                                Kudos.team_id == team_id,
                         )
                 ).scalar_one()
 

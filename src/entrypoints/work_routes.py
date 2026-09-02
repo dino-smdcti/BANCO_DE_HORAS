@@ -43,6 +43,8 @@ def register_routes(app):
         app.add_url_rule("/work/culture/events", "work_culture_events", work_culture_events)
         app.add_url_rule("/work/culture/events/create", "work_culture_events_create", work_culture_events_create, methods=["POST"])
         app.add_url_rule("/work/culture/events/<int:event_id>/delete", "work_culture_events_delete", work_culture_events_delete, methods=["POST"])
+        app.add_url_rule("/work/exec", "work_exec", work_exec)
+        app.add_url_rule("/work/exec/<int:team_id>", "work_exec_team", work_exec_team)
 
 
 def _optional_date(value):
@@ -721,3 +723,50 @@ def work_culture_events_delete(event_id):
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_culture_events"))
+
+
+@login_required
+@handle_errors
+def work_exec():
+        uow = new_uow()
+        with uow:
+                period_start = _optional_date(request.args.get("from"))
+                period_end = _optional_date(request.args.get("to"))
+                kpis = services.list_exec_kpis(uow, current_user.id, period_start=period_start, period_end=period_end)
+                all_teams, team_labels, user_labels, users = _culture_context(uow)
+                return render_template(
+                        "work_exec.html",
+                        kpis=kpis,
+                        period_start=period_start,
+                        period_end=period_end,
+                        team_labels=team_labels,
+                        user_labels=user_labels,
+                )
+
+
+@login_required
+@handle_errors
+def work_exec_team(team_id):
+        uow = new_uow()
+        with uow:
+                kpis = [k for k in services.list_exec_kpis(uow, current_user.id) if k["team_id"] == team_id]
+                if not kpis:
+                        return redirect(url_for("work_exec"))
+                team_kpi = kpis[0]
+                from src.service_layer.permissions import scoped_team_ids
+                if team_id not in set(scoped_team_ids(uow, current_user.id)):
+                        return redirect(url_for("work_exec"))
+                all_teams, team_labels, user_labels, users = _culture_context(uow)
+                ideas = uow.users.list_ideas_by_team(team_id)
+                implements = [i for i in ideas if i.status == "implemented"]
+                return render_template(
+                        "work_exec_team.html",
+                        team_kpi=team_kpi,
+                        team_labels=team_labels,
+                        user_labels=user_labels,
+                        accomplishments=uow.users.list_accomplishments_by_team(team_id),
+                        ideas=ideas,
+                        implemented_count=len(implements),
+                        kudos=uow.users.list_kudos_by_team(team_id),
+                        audits=uow.users.list_s5_audits_by_team(team_id),
+                )

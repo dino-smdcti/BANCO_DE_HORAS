@@ -894,3 +894,46 @@ class TestWorkEvents:
         _login(client, emp_id)
         r = client.post("/work/culture/events/create", data={"team_id": str(team_id), "title": "Roda", "date": "2026-01-01"})
         assert r.status_code == 302
+
+
+# ===================================================================
+# WORK EXEC (executive KPIs)
+# ===================================================================
+
+class TestWorkExec:
+    def test_exec_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_exec@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/exec")
+        assert r.status_code == 200
+        assert "Executivo".encode("utf-8") in r.data
+
+    def test_exec_page_shows_team_data(self, client, uow):
+        emp_id = _create_user(uow, "emp_execb@test.com", role="employee")
+        with uow:
+            team_id = uow.users.get_user_by_id(emp_id).team_id
+            from src.service_layer.user_service import register_user
+            register_user(uow, "boss_exec@test.com", "pass", "gestor")
+            boss = uow.users.get_user_by_email("boss_exec@test.com")
+            uow.commit()
+            from src.service_layer.accomplishment_service import create_accomplishment
+            create_accomplishment(uow, boss.user_id, team_id=team_id, title="Meta boom", start_date=date(2026, 1, 1))
+        _login(client, emp_id)
+        r = client.get("/work/exec")
+        assert r.status_code == 200
+        assert "Meta boom".encode("utf-8") not in r.data  # achievements shown in detail page, not overview
+
+    def test_exec_team_detail_renders(self, client, uow):
+        emp_id = _create_user(uow, "emp_execc@test.com", role="employee")
+        with uow:
+            team_id = uow.users.get_user_by_id(emp_id).team_id
+            from src.service_layer.user_service import register_user
+            from src.service_layer.accomplishment_service import create_accomplishment
+            register_user(uow, "boss_execc@test.com", "pass", "gestor")
+            boss = uow.users.get_user_by_email("boss_execc@test.com")
+            uow.commit()
+            create_accomplishment(uow, boss.user_id, team_id=team_id, title="Conquista visível", start_date=date(2026, 1, 1))
+        _login(client, emp_id)
+        r = client.get(f"/work/exec/{team_id}")
+        assert r.status_code == 200
+        assert "Conquista visível".encode("utf-8") in r.data

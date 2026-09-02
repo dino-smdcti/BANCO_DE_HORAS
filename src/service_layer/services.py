@@ -22,6 +22,7 @@ from src.service_layer.culture_service import (
         list_wiki_articles,
         update_wiki_article,
 )
+from src.service_layer.exec_service import list_exec_kpis
 from src.service_layer.attestation_service import add_attestation, remove_attestation_day
 from src.service_layer.facultativo_service import add_facultativo
 from src.service_layer.holiday_service import add_holiday, seed_holidays
@@ -133,6 +134,7 @@ __all__ = [
         "get_task",
         "give_kudo",
         "list_accomplishments",
+        "list_exec_kpis",
         "list_ideas",
         "list_journey_types",
         "list_kudos",

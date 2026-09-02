@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-diagram-3"></i> {{ team_kpi.name }}</h1>
+    <a class="btn btn-outline-secondary" href="{{ url_for('work_exec') }}"><i class="bi bi-arrow-left"></i> Voltar</a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="card shadow-sm"><div class="card-body text-center"><div class="display-6">{{ team_kpi.members }}</div><div class="text-muted small">Membros</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm"><div class="card-body text-center"><div class="display-6">{{ team_kpi.open_tasks }}</div><div class="text-muted small">Tarefas abertas</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm"><div class="card-body text-center"><div class="display-6">{{ implemented_count }}</div><div class="text-muted small">Ideias implementadas</div></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm"><div class="card-body text-center"><div class="display-6">{{ team_kpi.avg_5s }}</div><div class="text-muted small">5S (média)</div></div></div></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">Conquistas</div>
+            <div class="card-body">
+                {% if not accomplishments %}<p class="text-muted mb-0">Nenhuma conquista.</p>{% else %}
+                <ul class="list-group list-group-flush">
+                    {% for acc in accomplishments %}
+                    <li class="list-group-item">
+                        <strong>{{ acc.title }}</strong>
+                        <div class="small text-muted">{{ acc.start_date.strftime('%d/%m/%Y') if acc.start_date }}{% if acc.end_date %} – {{ acc.end_date.strftime('%d/%m/%Y') }}{% endif %}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">Ideias</div>
+            <div class="card-body">
+                {% if not ideas %}<p class="text-muted mb-0">Nenhuma ideia.</p>{% else %}
+                <ul class="list-group list-group-flush">
+                    {% for idea in ideas %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div><strong>{{ idea.title }}</strong>{% if idea.category == 'kaizen' %} <span class="badge bg-info text-dark">kaizen</span>{% endif %}</div>
+                        <span class="badge {{ 'bg-success' if idea.status == 'implemented' else 'bg-warning text-dark' if idea.status == 'under_review' else 'bg-danger' if idea.status == 'declined' else 'bg-primary' }}">{{ idea.status }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">Kudos</div>
+            <div class="card-body">
+                {% if not kudos %}<p class="text-muted mb-0">Nenhum kudos.</p>{% else %}
+                {% for kudo in kudos %}
+                <div class="border-bottom py-2">
+                    <div><i class="bi bi-heart text-danger"></i> {{ user_labels.get(kudo.giver_id, '—') }} → {{ user_labels.get(kudo.receiver_id, '—') }}</div>
+                    <div class="small text-muted">{{ kudo.message }}</div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">Auditorias 5S</div>
+            <div class="card-body">
+                {% if not audits %}<p class="text-muted mb-0">Nenhuma auditoria.</p>{% else %}
+                {% for audit in audits %}
+                <div class="border-bottom py-2 d-flex justify-content-between">
+                    <span>{{ audit.date.strftime('%d/%m/%Y') }}</span><span class="badge bg-success">{{ audit.score }}%</span>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
