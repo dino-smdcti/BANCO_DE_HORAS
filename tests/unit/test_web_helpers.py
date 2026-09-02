@@ -10,6 +10,8 @@ from src.entrypoints.web_helpers import (
         parse_time_arg,
         redirect_to_employee_logs,
         render_markdown,
+        plain_text_snippet,
+        snippet_filter,
 )
 from src.config import DATE_FORMAT, TIME_FORMAT
 
@@ -104,6 +106,30 @@ class TestMarkdownRendering(unittest.TestCase):
                 from markupsafe import Markup
 
                 self.assertIsInstance(allocated, Markup)
+
+
+class TestSnippet(unittest.TestCase):
+        def test_snippet_empty(self):
+                self.assertEqual(plain_text_snippet(""), "")
+                self.assertEqual(plain_text_snippet(None), "")
+
+        def test_snippet_short_text_not_truncated(self):
+                self.assertEqual(plain_text_snippet("**olá** mundo"), "olá mundo")
+
+        def test_snippet_strips_markup_and_limits(self):
+                out = plain_text_snippet("**a**" * 200, limit=40)
+                self.assertLessEqual(len(out), 41)
+                self.assertNotIn("<strong>", out)
+                self.assertTrue(out.endswith("…"))
+
+        def test_snippet_does_not_split_words(self):
+                out = plain_text_snippet("uma frase " * 50, limit=30)
+                self.assertTrue(out.endswith("…"))
+
+        def test_snippet_filter_returns_markup(self):
+                from markupsafe import Markup
+
+                self.assertIsInstance(snippet_filter("**x**"), Markup)
 
 
 if __name__ == "__main__":

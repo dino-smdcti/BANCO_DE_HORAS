@@ -61,6 +61,7 @@ def _resolve_secret_key(environ):
 
 app = Flask(__name__, template_folder="templates")
 app.add_template_filter(web_helpers.render_markdown, name="markdown")
+app.add_template_filter(web_helpers.snippet_filter, name="snippet")
 app.config["SECRET_KEY"] = _resolve_secret_key(os.environ)
 app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", DEFAULT_SMTP_SERVER)
 app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", DEFAULT_SMTP_PORT))

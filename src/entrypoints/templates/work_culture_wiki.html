@@ -58,7 +58,11 @@
                     {% if article.team_id %}<i class="bi bi-diagram-3"></i> {{ team_labels.get(article.team_id, '—') }}{% else %}<i class="bi bi-globe"></i> Público{% endif %}
                     · <i class="bi bi-person"></i> {{ author_labels.get(article.author_id, '—') }}
                 </p>
-                <div class="card-text small prose">{{ article.body | markdown }}</div>
+                <p class="card-text small article-snippet mb-0" id="snippet{{ article.wiki_article_id }}">{{ (article.body | snippet) or '— sem conteúdo —' }}</p>
+                <div class="prose small collapse" id="full{{ article.wiki_article_id }}">
+                    {{ article.body | markdown }}
+                </div>
+                <button class="btn btn-sm btn-link p-0 article-toggle" data-bs-toggle="collapse" data-bs-target="#full{{ article.wiki_article_id }}"><i class="bi bi-chevron-down"></i> Ler mais</button>
             </div>
         </div>
     </div>
@@ -81,4 +85,34 @@
     {% endfor %}
 </div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    document.querySelectorAll('.article-toggle').forEach(function (btn) {
+        btn.addEventListener('show.bs.collapse', onShow);
+        btn.addEventListener('hide.bs.collapse', onHide);
+    });
+    function onShow(e) {
+        var btn = document.querySelector('.article-toggle[data-bs-target="#' + e.target.id + '"]');
+        toggle(btn, false);
+    }
+    function onHide(e) {
+        var btn = document.querySelector('.article-toggle[data-bs-target="#' + e.target.id + '"]');
+        toggle(btn, true);
+    }
+    function toggle(btn, snippetVisible) {
+        if (!btn) return;
+        var id = btn.dataset.bsTarget.replace('#full', '');
+        var snippet = document.getElementById('snippet' + id);
+        if (snippet) snippet.style.display = snippetVisible ? '' : 'none';
+        var icon = btn.querySelector('i');
+        if (icon) icon.className = snippetVisible ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+        var node = btn.firstChild;
+        while (node && node.nodeType !== 3) node = node.nextSibling;
+        if (node) node.nodeValue = snippetVisible ? ' Ler mais' : ' Ler menos';
+    }
+})();
+</script>
 {% endblock %}

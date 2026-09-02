@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 import markdown as _markdown
 import bleach as _bleach
@@ -47,6 +48,28 @@ def render_markdown(source):
             strip=True,
     )
     return Markup(clean)
+
+
+def plain_text_snippet(source, limit=180, suffix="…"):
+    """Produce a short plain-text preview of a Markdown body (tweet-like).
+
+    Renders the Markdown the same way ``render_markdown`` does, then strips
+    tags/whitespace and truncates to roughly ``limit`` characters. Used to keep
+    the wiki listing uncluttered while the full article stays one click away.
+    """
+    if not source:
+        return ""
+    html = render_markdown(source)
+    text = re.sub(r"<[^>]+>", "", html)
+    text = re.sub(r"\s+", " ", text).strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit].rstrip() + suffix
+
+
+def snippet_filter(source, limit=180, suffix="…"):
+    """Jinja-friendly wrapper returning a ``Markup`` snippet."""
+    return Markup(plain_text_snippet(source, limit, suffix))
 
 
 def new_uow():

@@ -857,6 +857,17 @@ class TestWorkWiki:
         assert "<h1>a</h1>".encode("utf-8") not in r.data
         assert "TEXTO".encode("utf-8") in r.data
 
+    def test_wiki_listing_shows_snippet_and_collapsible_full_body(self, client, uow):
+        emp_id = _create_user(uow, "emp_wikc2@test.com", role="employee")
+        _login(client, emp_id)
+        body = "**início** " * 60
+        client.post("/work/culture/wiki/create", data={"title": "Longo", "body": body})
+        r = client.get("/work/culture/wiki")
+        assert "article-snippet".encode("utf-8") in r.data
+        assert "Ler mais".encode("utf-8") in r.data
+        assert b'class="prose small collapse"' in r.data
+        assert "<h1>início</h1>".encode("utf-8") not in r.data
+
 
 class TestWorkMentoring:
     def test_mentoring_page_renders_for_employee(self, client, uow):
