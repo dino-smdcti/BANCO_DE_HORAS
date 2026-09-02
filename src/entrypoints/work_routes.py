@@ -24,6 +24,8 @@ def register_routes(app):
         app.add_url_rule("/work/ideas/<int:idea_id>/vote", "work_ideas_vote", work_ideas_vote, methods=["POST"])
         app.add_url_rule("/work/ideas/<int:idea_id>/status", "work_ideas_status", work_ideas_status, methods=["POST"])
         app.add_url_rule("/work/ideas/<int:idea_id>/delete", "work_ideas_delete", work_ideas_delete, methods=["POST"])
+        app.add_url_rule("/work/teams", "work_teams", work_teams)
+        app.add_url_rule("/work/teams/<int:team_id>/update", "work_teams_update", work_teams_update, methods=["POST"])
 
 
 def _optional_date(value):
@@ -337,3 +339,51 @@ def work_ideas_delete(idea_id):
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_ideas"))
+
+
+@login_required
+@handle_errors
+def work_teams():
+        uow = new_uow()
+        with uow:
+                if is_management_role(current_user.role):
+                        from src.service_layer.permissions import scoped_team_ids
+                        team_ids = set(scoped_team_ids(uow, current_user.id))
+                else:
+                        team_ids = {uow.users.get_user_by_id(current_user.id).team_id}
+                team_ids = {t for t in team_ids if t}
+                rollups = services.team_rollups(uow, team_ids)
+                all_teams = services.list_teams(uow)
+                team_labels = {team.team_id: team.name for team in all_teams}
+                all_users = uow.users.list_all()
+                user_labels = {u.user_id: (u.profile.full_name or u.email) for u in all_users}
+                users = sorted(all_users, key=lambda u: (u.profile.full_name or u.email).lower())
+                can_edit = is_management_role(current_user.role)
+                return render_template(
+                        "work_teams.html",
+                        rollups=rollups,
+                        team_labels=team_labels,
+                        user_labels=user_labels,
+                        users=users,
+                        can_edit=can_edit,
+                )
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_teams_update(team_id):
+        uow = new_uow()
+        try:
+                services.scoped_update_team(
+                        uow,
+                        current_user.id,
+                        team_id,
+                        name=request.form.get("name"),
+                        secretariat=request.form.get("secretariat"),
+                        lead_user_id=request.form.get("lead_user_id"),
+                )
+                flash("Time atualizado.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_teams"))

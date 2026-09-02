@@ -58,6 +58,7 @@ class Team:
         name: str
         secretariat: Optional[str] = None
         team_id: Optional[int] = None
+        lead_user_id: Optional[int] = None
 
 
 @dataclass

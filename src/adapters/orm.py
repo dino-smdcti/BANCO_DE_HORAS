@@ -67,6 +67,7 @@ teams = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("name", String(NAME_COLUMN_LENGTH), unique=True, nullable=False),
     Column("secretariat", String(SECRETARIAT_COLUMN_LENGTH), nullable=True),
+    Column("lead_user_id", Integer, ForeignKey("users.id"), nullable=True),
 )
 
 team_tasks = Table(

@@ -755,3 +755,29 @@ class TestWorkIdeas:
             from src.domain.model import Idea
             updated = uow.users.get_idea_by_id(idea_id)
             assert updated.status == "implemented"
+
+
+# ===================================================================
+# WORK TEAMS (dashboard roll-ups)
+# ===================================================================
+
+class TestWorkTeams:
+    def test_teams_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_wt_team@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/teams")
+        assert r.status_code == 200
+        assert "Times".encode("utf-8") in r.data
+
+    def test_teams_page_shows_own_team_rollup(self, client, uow):
+        emp_id = _create_user(uow, "emp_wt_rollup@test.com", role="employee")
+        _login(client, emp_id)
+        r = client.get("/work/teams")
+        assert r.status_code == 200
+        assert "Membros".encode("utf-8") in r.data
+
+    def test_teams_page_edit_requires_manager(self, client, uow):
+        emp_id = _create_user(uow, "emp_wt_edit@test.com", role="employee")
+        _login(client, emp_id)
+        r = client.post("/work/teams/1/update", data={"name": "X"})
+        assert r.status_code == 302

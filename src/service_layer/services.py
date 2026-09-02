@@ -18,7 +18,7 @@ from src.service_layer.idea_service import (
         vote_idea,
 )
 from src.service_layer.settings_service import get_start_analysis_date
-from src.service_layer.team_service import assign_user_team, create_team, list_team_members, list_teams
+from src.service_layer.team_service import assign_user_team, clear_team_lead, create_team, list_team_members, list_teams, scoped_update_team, team_rollups, update_team
 from src.service_layer.task_service import (
         add_checklist_item,
         create_task,
@@ -68,6 +68,10 @@ __all__ = [
         "add_attestation",
         "add_checklist_item",
         "assign_user_team",
+        "clear_team_lead",
+        "team_rollups",
+        "update_team",
+        "scoped_update_team",
         "complete_retroactive_logs",
         "add_facultativo",
         "add_holiday",

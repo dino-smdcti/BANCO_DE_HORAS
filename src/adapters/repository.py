@@ -67,6 +67,30 @@ class AbstractRepository(ABC):
                 pass
 
         @abstractmethod
+        def update_team(
+                self,
+                team_id: int,
+                *,
+                name: Optional[str] = None,
+                secretariat: Optional[str] = None,
+                lead_user_id=None,
+                clear_lead: bool = False,
+        ):
+                pass
+
+        @abstractmethod
+        def count_team_members(self, team_id: int) -> int:
+                pass
+
+        @abstractmethod
+        def count_open_tasks_by_team(self, team_id: int) -> int:
+                pass
+
+        @abstractmethod
+        def count_open_ideas_by_team(self, team_id: int) -> int:
+                pass
+
+        @abstractmethod
         def list_users_by_team(self, team_id: int) -> List[User]:
                 pass
 
@@ -267,6 +291,52 @@ class SqlAlchemyRepository(AbstractRepository):
 
         def list_teams(self) -> List[Team]:
                 return self.session.execute(select(Team).order_by(Team.name)).scalars().all()
+
+        def update_team(
+                self,
+                team_id: int,
+                *,
+                name: Optional[str] = None,
+                secretariat: Optional[str] = None,
+                lead_user_id=None,
+                clear_lead: bool = False,
+        ):
+                values = {}
+                if name is not None:
+                        values["name"] = name
+                if secretariat is not None:
+                        values["secretariat"] = secretariat
+                if clear_lead:
+                        values["lead_user_id"] = None
+                elif lead_user_id is not None:
+                        values["lead_user_id"] = int(lead_user_id)
+                if values:
+                        self.session.execute(
+                                update(Team).where(Team.team_id == team_id).values(**values)
+                        )
+
+        def count_team_members(self, team_id: int) -> int:
+                return self.session.execute(
+                        select(func.count()).select_from(User).where(User.team_id == team_id)
+                ).scalar_one()
+
+        def count_open_tasks_by_team(self, team_id: int) -> int:
+                from src.config import TASK_STATUS_DONE, TASK_STATUS_CANCELLED
+                return self.session.execute(
+                        select(func.count()).select_from(TeamTask).where(
+                                TeamTask.team_id == team_id,
+                                TeamTask.status.notin_([TASK_STATUS_DONE, TASK_STATUS_CANCELLED]),
+                        )
+                ).scalar_one()
+
+        def count_open_ideas_by_team(self, team_id: int) -> int:
+                from src.config import IDEA_STATUS_IMPLEMENTED, IDEA_STATUS_DECLINED
+                return self.session.execute(
+                        select(func.count()).select_from(Idea).where(
+                                Idea.team_id == team_id,
+                                Idea.status.notin_([IDEA_STATUS_IMPLEMENTED, IDEA_STATUS_DECLINED]),
+                        )
+                ).scalar_one()
 
         def set_user_team(self, user_id: int, team_id: Optional[int]):
                 self.session.execute(

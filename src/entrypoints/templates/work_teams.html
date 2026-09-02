@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-diagram-3"></i> Times</h1>
+</div>
+
+{% if not rollups %}
+<div class="card shadow-sm">
+    <div class="card-body text-center text-muted py-5">Nenhum time disponível.</div>
+</div>
+{% else %}
+<div class="row">
+    {% for team_id, data in rollups.items() %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title mb-1">{{ data.name }}</h5>
+                    {% if can_edit %}
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editTeamModal{{ team_id }}">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="small text-muted mb-3">
+                    {% if data.secretariat %}<i class="bi bi-building"></i> {{ data.secretariat }}<br>{% endif %}
+                    {% if data.lead_user_id %}<i class="bi bi-person-badge"></i> Líder: {{ user_labels.get(data.lead_user_id, '—') }}{% else %}<i class="bi bi-person-badge"></i> Sem líder{% endif %}
+                </div>
+
+                <div class="row text-center">
+                    <div class="col-3">
+                        <div class="fs-4 fw-bold">{{ data.members }}</div>
+                        <div class="small text-muted">Membros</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="fs-4 fw-bold">{{ data.open_tasks }}</div>
+                        <div class="small text-muted">Tarefas</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="fs-4 fw-bold">{{ data.open_ideas }}</div>
+                        <div class="small text-muted">Ideias</div>
+                    </div>
+                    <div class="col-3">
+                        <div class="fs-4 fw-bold">{{ data.accomplishments|length }}</div>
+                        <div class="small text-muted">Conquistas</div>
+                    </div>
+                </div>
+
+                {% if data.accomplishments %}
+                <hr class="my-2">
+                <div class="small">
+                    {% for acc in data.accomplishments[:3] %}
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-truncate"><i class="bi bi-trophy text-warning"></i> {{ acc.title }}</span>
+                        <span class="text-muted ms-2">
+                            {{ acc.start_date.strftime('%d/%m/%Y') }}
+                            {% if acc.end_date %}→ {{ acc.end_date.strftime('%d/%m/%Y') }}{% else %}→ em aberto{% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if can_edit %}
+                <div class="modal fade" id="editTeamModal{{ team_id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="POST" action="{{ url_for('work_teams_update', team_id=team_id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Editar time</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Nome</label>
+                                        <input type="text" name="name" class="form-control" value="{{ data.name }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Secretaria</label>
+                                        <input type="text" name="secretariat" class="form-control" value="{{ data.secretariat or '' }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Líder</label>
+                                        <select name="lead_user_id" class="form-select">
+                                            <option value="">— sem líder —</option>
+                                            {% for user in users %}
+                                            <option value="{{ user.user_id }}" {% if user.user_id == data.lead_user_id %}selected{% endif %}>{{ user.profile.full_name or user.email }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-primary">Salvar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

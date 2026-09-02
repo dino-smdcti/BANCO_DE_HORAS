@@ -54,6 +54,10 @@ BASE_MIGRATIONS = [
     # administrators reorganise teams through the Teams admin page.
     "INSERT INTO teams (name) SELECT 'Geral' WHERE NOT EXISTS (SELECT 1 FROM teams);",
     "UPDATE users SET team_id = (SELECT id FROM teams WHERE name = 'Geral') WHERE team_id IS NULL;",
+
+    # Optional team lead (workforce expansion, Phase D). Idempotent on Postgres;
+    # fresh databases get the column via metadata.create_all.
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS lead_user_id INTEGER REFERENCES users(id);",
 ]
 
 
