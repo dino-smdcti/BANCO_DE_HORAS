@@ -151,9 +151,9 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [x] Tests: lead assignment, rollup counts, manager-scoped dashboard data
 
 ## Phase B-extra — 5S por setor (filosofia de trabalho)
-- [ ] Models `S5Audit` (`team_id`, `auditor_id`, `date`, `total_items`, `passed_items`, `score`, `notes`) + `S5Item` default per section; reuse Vertical A infra where possible
-- [ ] Service + routes `/work/5s/*` (managers/auditors create; all view own-team score; monthly history) + templates
-- [ ] Tests: audit creation, score calc, team scoping, history
+- [x] Models `S5Audit` (`team_id`, `auditor_id`, `date`, `total_items`, `passed_items`, `score`, `notes`) + `S5Item` default per section; reuse Vertical A infra where possible
+- [x] Service + routes `/work/5s/*` (managers/auditors create; all view own-team score; monthly history) + templates
+- [x] Tests: audit creation, score calc, team scoping, history
 
 ## Phase C-extra — Cultura colaborativa (Wiki, Mentoria, Kudos, Eventos)
 - [ ] `WikiArticle` (`/work/culture/wiki`) — anyone writes/edits in scope
