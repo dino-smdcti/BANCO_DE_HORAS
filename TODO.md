@@ -60,9 +60,9 @@ Milestones from user feedback (this TODO):
 ---
 
 ## Final gate
-- [ ] `.venv\Scripts\python.exe -m pytest -q` green
-- [ ] `node --check` on touched JS
-- [ ] Update `DOCUMENTATION_EXPANSION.md`, `DOCUMENTATION.md`, `README.md` as needed
-- [ ] Document per-phase in this file as each lands
+- [x] `.venv\Scripts\python.exe -m pytest -q` green (412 passed, 7 subtests)
+- [x] `node --check` on touched JS (app_mode.js OK)
+- [x] Update `DOCUMENTATION_EXPANSION.md`, `DOCUMENTATION.md`, `README.md` as needed (README had no workforce section)
+- [x] Document per-phase in this file as each lands
 
 *Discipline: atomic commits, test parity per commit, push only at phase end.*

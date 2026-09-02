@@ -22,7 +22,7 @@ Entrega **quatro verticals complementares**, construídas uma a uma sobre uma **
 - **Kudos (reconhecimento entre pares)** — elogios simples.
 - **Calendário de eventos / oficinas** — agenda interna.
 - **A7 — Dashboard executivo de Indicadores (KPIs)** — visão consolidada da secretaria.
-- **A6 — Patch notes / release board interno** — changelog da plataforma (último, descartável).
+- **A6 — Patch notes / release board interno** — **removido** na reorganização: o changelog ("Notas") não era função de negócio e foi eliminado do código (rota, template, service, modelo, repositório). A tabela `changelog_notes` em produção permanece intacta (sem DROP); bases novas não a criam mais.
 
 Mais um **"magic button" (botão mágico)**: uma chave de **modo visual** que faz o lado de gestão parecer *outra coisa* distinta do mundo do ponto — mesmo dentro do mesmo site e banco de dados.
 
@@ -162,12 +162,7 @@ Agrupamento de funcionalidades leves de cultura/colaboração, cada uma uma tabe
 
 ## 6e. Módulo A6 — Patch notes / release board interno
 
-**Objetivo:** changelog da plataforma visível no app, para que os times saibam o que mudou e por quê.
-
-- **Modelo:** `ChangeLogNote` (`version_or_date`, `title`, `description`, `category` (feature/fix/config), `created_by`, `created_at`).
-- **Regras:** apenas gestores/administradores publicam; todos leem; **notificação in-app** em nova nota (reuso de `add_notification`).
-- **Status:** item de **baixa prioridade / último da fila e descartável** — é meta-affordance, não função de negócio.
-- **Test parity:** publicação com escopo, listagem, notificação de nova nota.
+**Status: REMOVIDO** na reorganização ("Workforce Expansion 2"). O changelog era meta-affordance, não função de negócio, e foi eliminado do código: rotas `work_changelog*`, template `work_changelog.html`, `changelog_service.py`, a classe `ChangeLogNote` no modelo, a tabela `changelog_notes` e seus mappers/repos, re-exports em `services.py`, o link "Notas" na nav e os testes correspondentes. MySQL/Postgres de produção **não recebem DROP** — a tabela existente fica intacta; bases novas simplesmente não a criam (`changelog_notes` não está mais no `metadata`).
 
 ---
 
@@ -177,7 +172,7 @@ Agrupamento de funcionalidades leves de cultura/colaboração, cada uma uma tabe
 
 **Mecânica (puramente apresentacional):**
 - **Duas paletas** em `style.css`: paleta padrão (`:root`) = mundo do ponto; paleta override sob `[data-app-mode="work"]` = mundo gestão (troca as custom properties de marca — accent, primary, bg, etc.). A paleta de gestão usa **navy/slate corporativo** (navbar `#1F2A44`, primary `#2E5C8A`) — nitidamente distinta do verde do ponto, mantendo ares profissional.
-- **Duas navegações isoladas** num único `base.html`, chaveadas por `data_app_mode` (contexto injetado em `flask_app` a partir do `request.path`): páginas `/work/*` mostram **apenas** a nav de workforce (brand "Workforce" + Tarefas/Conquistas/Ideias/Equipes/5S/Cultura/Executivo/Notas); páginas de ponto mostram **apenas** a nav do relógio (Ponto/Gestão/Auditoria/Times/Dados). Sem mix/crowding.
+- **Duas navegações isoladas** num único `base.html`, chaveadas por `data_app_mode` (contexto injetado em `flask_app` a partir do `request.path`): páginas `/work/*` mostram **apenas** a nav de workforce, agora **agrupada em dropdowns** para reduzir poluição — **Painel** (top-level), **Atividade** (Tarefas/Conquistas/Ideias/5S), **Estrutura** (Equipes), **Cultura** (Wiki/Mentoria/Kudos/Eventos), **Gestão** (Relatórios/Executivo); páginas de ponto mostram **apenas** a nav do relógio (Ponto/Gestão/Auditoria/Times/Dados). Sem mix/crowding.
 - **Auto-deteção por rota (sempre aplicada):** `request.path.startswith("/work")` decide a nav + paleta; **visitar diretamente um link de `/work/*` sempre renderiza a paleta/nav correta**, independente de preferência salva (removido o override por localStorage que tornava a troca invisível).
 - **Switch no navbar (estilo day/night, `.app-mode-switch`)** no lugar do botão flutuante: é um **toggle switch de verdade** — trilho + tecla deslizante (ligado/desligado) que reflete o modo ativo por `data-mode`, com rótulo ao lado; na nav de clock, "Workforce" (antes de Dados); na nav de gestão, "Voltar ao Ponto" (antes de Dados). Renderizado **somente quando `WORKFORCE_ENABLED`** (install puramente de clock nunca o vê).
 - **Sem dados duplicados:** é apenas a identidade visual + nav; o modelo de dados continua unificado.
@@ -213,14 +208,15 @@ Tabelas novas em `orm.py` → criadas por `metadata.create_all` em `run_migratio
 
 ## 9. Topologia de rotas (previsão)
 
+- `/work` — **landing/dashboard** (novo painel de resumo do workforce sobre os times no escopo).
 - `/work/tasks/*` — Vertical A (CRUD tarefas; checklist).
 - `/work/accomplishments/*` — Vertical B (conquistas).
 - `/work/ideas/*` — Vertical C (quadro ideal/kaiizen + voto).
 - `/work/teams/*` — Vertical D (painéis de equipe).
 - `/work/5s/*` — B-extra (auditorias 5S).
 - `/work/culture/*` — C-extra (wiki, mentoria, kudos, eventos).
+- `/work/reports*` — **relatórios HTML** (filtro por período/team; seções de tarefas/conquistas/ideias/5S/kudos/eventos/wiki; exportável para impressão).
 - `/work/exec/*` — A7 (dashboard executivo de KPIs).
-- `/work/changelog/*` — A6 (patch notes / release board).
 - Prefixo `/work` carrega `data-app-mode="work"` → o "magic button" reconhece instantaneamente.
 
 ---
