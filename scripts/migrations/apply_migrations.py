@@ -58,6 +58,10 @@ BASE_MIGRATIONS = [
     # Optional team lead (workforce expansion, Phase D). Idempotent on Postgres;
     # fresh databases get the column via metadata.create_all.
     "ALTER TABLE teams ADD COLUMN IF NOT EXISTS lead_user_id INTEGER REFERENCES users(id);",
+
+    # Soft deactivation (Phase F): keep the user row so workforce history and FK
+    # references survive; deactivated users are hidden from login and active lists.
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;",
 ]
 
 

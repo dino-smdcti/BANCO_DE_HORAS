@@ -121,7 +121,7 @@ def load_user(user_id):
 
 def _authenticated_or_repair(uow, user_id):
         user = _fetch_user(uow, user_id)
-        if user:
+        if user and user.is_active:
                 return AuthenticatedUser(user)
         if _repair_role_casing(uow, user_id):
                 return _authenticated_after_repair(uow, user_id)
@@ -130,7 +130,7 @@ def _authenticated_or_repair(uow, user_id):
 
 def _authenticated_after_repair(uow, user_id):
         user = _fetch_user(uow, user_id)
-        if user:
+        if user and user.is_active:
                 return AuthenticatedUser(user)
         return None
 

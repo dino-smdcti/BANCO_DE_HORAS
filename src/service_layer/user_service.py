@@ -1,9 +1,8 @@
 from datetime import date
 from typing import List, Optional
-from sqlalchemy import update, case, func, or_
 from werkzeug.security import generate_password_hash
 
-from src.domain.model import User, UserRole, UserProfile, AuditLog
+from src.domain.model import User, UserRole, UserProfile
 from src.service_layer.unit_of_work import AbstractUnitOfWork
 from src.service_layer.permissions import ensure_admin, ensure_manager, ensure_managed_user
 from src.service_layer.audit import log_action
@@ -35,8 +34,11 @@ def demote_to_employee(uow: AbstractUnitOfWork, manager_id: int, employee_id: in
 
 
 def delete_user(uow: AbstractUnitOfWork, manager_id: int, user_id: int):
+        """Soft-deactivate a user. The row and all workforce/history FK references are
+        kept so reports and audit remain intact; the user can no longer authenticate
+        and is hidden from active member lists."""
         with uow:
-                _perform_delete(uow, manager_id, user_id)
+                _perform_deactivate(uow, manager_id, user_id)
 
 
 def get_all_employees(uow: AbstractUnitOfWork, requester_id: Optional[int] = None) -> List[User]:
@@ -115,38 +117,20 @@ def _change_role(uow, manager_id, employee_id, new_role, action, details):
                         log_action(uow, manager_id, action, target_id=employee_id, details=details)
 
 
-def _perform_delete(uow, manager_id, user_id):
+def _perform_deactivate(uow, manager_id, user_id):
         ensure_manager(uow, manager_id)
         ensure_managed_user(uow, manager_id, user_id)
         user = uow.users.get_user_by_id(user_id)
         if not user:
                 return
-        employee_name = _user_label(user)
-        _annotate_audit_logs(uow, user_id, employee_name)
-        email = user.email
-        uow.session.delete(user)
-        log_action(uow, manager_id, "DELETE_USER", target_id=user_id, details=f"Usuário deletado: {email}")
+        user.is_active = False
+        log_action(uow, manager_id, "DEACTIVATE_USER", target_id=user_id, details=f"Usuário desativado: {_user_label(user)}")
 
 
 def _user_label(user):
         if user.profile and user.profile.full_name:
                 return user.profile.full_name
         return user.email
-
-
-def _annotate_audit_logs(uow, user_id, employee_name):
-        """Preserve the employee's name in audit logs before nullifying their user_id via a single bulk UPDATE."""
-        uow.session.execute(
-                update(AuditLog)
-                .where(AuditLog.user_id == user_id)
-                .values(
-                        user_id=None,
-                        details=case(
-                                (or_(AuditLog.details.is_(None), AuditLog.details == ""), func.concat("User: ", employee_name)),
-                                else_=func.concat(AuditLog.details, " (User: ", employee_name, ")"),
-                        ),
-                )
-        )
 
 
 def _visible_employees(uow, requester_id):

@@ -137,7 +137,7 @@ def magic_link_login(token):
         uow = new_uow()
         with uow:
                 user = uow.users.get_user_by_email(email)
-                if user:
+                if user and user.is_active:
                         login_user(flask_app.AuthenticatedUser(user))
                         return _post_login_redirect(user)
         flash("O link de acesso é inválido ou expirou.", "danger")
@@ -148,7 +148,7 @@ def _login_post(form):
         uow = new_uow()
         with uow:
                 user = uow.users.get_user_by_email(form.email.data)
-                if user and user.password_set and check_password_hash(user.password_hash, form.password.data):
+                if user and user.is_active and user.password_set and check_password_hash(user.password_hash, form.password.data):
                         login_user(flask_app.AuthenticatedUser(user))
                         return _post_login_redirect(user)
         flash("E-mail ou senha inválidos", "danger")

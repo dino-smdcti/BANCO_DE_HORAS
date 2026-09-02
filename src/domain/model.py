@@ -450,11 +450,13 @@ class User:
                 email_notifications_enabled=False,
                 password_set=None,
                 team_id=None,
+                is_active=True,
         ):
                 self.user_id = user_id
                 self.team_id = team_id
                 self.email = email
                 self.password_hash = password_hash
+                self.is_active = is_active
                 self.password_set = password_set if password_set is not None else (bool(password_hash) and password_hash != "!")
                 self.role = role
                 self.profile = profile or UserProfile()

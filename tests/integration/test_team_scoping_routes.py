@@ -130,3 +130,68 @@ class TestTeamAdminRoutes:
         assert response.status_code == 302
         with uow:
             assert uow.users.get_user_by_id(emp).team_id is None
+
+
+class TestUserDeactivation:
+    def test_deactivate_keeps_workforce_history_and_row(self, client, uow):
+        # Deleting a user must soft-deactivate, not hard-delete, so workforce
+        # FKs (tasks created by this user) survive and history stays intact.
+        team_id = _make_team(uow, "Time Vivo")
+        mgr = _make_user(uow, "mgr_deact@test.com", "manager", team_id)
+        emp = _make_user(uow, "emp_deact@test.com", "employee", team_id)
+        with uow:
+            from src.domain.model import TeamTask
+            task = TeamTask(team_id=team_id, title="Tarefa resiliente", created_by=emp)
+            uow.session.add(task)
+            uow.commit()
+            task_id = task.task_id
+        _login(client, mgr)
+        response = client.post(f"/manager/delete-user/{emp}")
+        assert response.status_code in (200, 302)
+        with uow:
+            kept = uow.users.get_user_by_id(emp)
+            assert kept is not None
+            assert kept.is_active is False
+            saved = uow.users.get_task_by_id(task_id)
+            assert saved is not None and saved.created_by == emp
+
+    def test_deactivated_user_cannot_log_in(self, client, uow):
+        team_id = _make_team(uow, "Time Bloqueio")
+        mgr = _make_user(uow, "mgr_blk@test.com", "manager", team_id)
+        emp = _make_user(uow, "emp_blk@test.com", "employee", team_id)
+        with uow:
+            user = uow.users.get_user_by_id(emp)
+            user.password_set = True
+            user.password_hash = generate_password_hash("secret-pass")
+            user.is_active = False
+            uow.commit()
+        r = client.post("/login", data={"email": "emp_blk@test.com", "password": "secret-pass"}, follow_redirects=True)
+        body = r.data.decode("utf-8")
+        assert "E-mail ou senha inválidos" in body
+
+    def test_team_rename_preserves_history_by_team_id(self, client, uow):
+        team_id = _make_team(uow, "Nome Antigo")
+        mgr = _make_user(uow, "mgr_rename@test.com", "manager", team_id)
+        with uow:
+            from src.domain.model import TeamTask
+            task = TeamTask(team_id=team_id, title="Marca do time", created_by=mgr)
+            uow.session.add(task)
+            uow.commit()
+        with uow:
+            from src.service_layer.team_service import scoped_update_team
+            scoped_update_team(uow, mgr, team_id, name="Nome Novo")
+        with uow:
+            team = uow.users.get_team_by_id(team_id)
+            assert team.name == "Nome Novo"
+            # History re-resolves by team_id, so the renamed team still owns the task.
+            assert any(t.title == "Marca do time" for t in uow.users.list_tasks_by_team(team_id))
+
+    def test_manager_scopes_to_own_team_without_lead(self, client, uow):
+        # A team with no lead_user_id must still scope a member-manager to it.
+        team_id = _make_team(uow, "Sem Lider")
+        mgr = _make_user(uow, "mgr_nolead@test.com", "manager", team_id)
+        with uow:
+            team = uow.users.get_team_by_id(team_id)
+            assert team.lead_user_id is None
+            from src.service_layer.permissions import scoped_team_ids
+            assert scoped_team_ids(uow, mgr) == [team_id]

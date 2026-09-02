@@ -51,11 +51,11 @@ Milestones from user feedback (this TODO):
 - [x] Tests: guide block present on each page (parity)
 
 ## Phase F — Resilience (deactivations, leader removal, team renames)
-- [ ] Add `User.active`/soft-deactivation (or replace `delete_user` with deactivate) so workforce history, decisions, approvals, audit remain intact and FK references survive
-- [ ] `team_service.rename` keeps history: already safe (FK by team_id); add regression test + audit record of rename
-- [ ] Ensure scoping works for teams with no `lead_user_id` (MANAGER resolves own team) — add tests
-- [ ] Report/history pages render gracefully for removed/disabled users (labels fallback) — already `.get(id,'---')`; harden + test
-- [ ] Full suite green
+- [x] Add `User.active`/soft-deactivation (or replace `delete_user` with deactivate) so workforce history, decisions, approvals, audit remain intact and FK references survive
+- [x] `team_service.rename` keeps history: already safe (FK by team_id); add regression test + audit record of rename
+- [x] Ensure scoping works for teams with no `lead_user_id` (MANAGER resolves own team) — add tests
+- [x] Report/history pages render gracefully for removed/disabled users (labels fallback) — already `.get(id,'---')`; harden + test
+- [x] Full suite green
 
 ---
 

@@ -250,6 +250,7 @@ users = Table(
     Column("full_name", String(FULL_NAME_COLUMN_LENGTH), nullable=True),
     Column("email_notifications_enabled", Boolean, default=False),
     Column("password_set", Boolean, default=False, nullable=False),
+    Column("is_active", Boolean, default=True, nullable=False),
     Column("start_analysis_date", Date, default=DEFAULT_ANALYSIS_START_DATE),
     Column("birth_date", Date, nullable=True),
     Column("team_id", Integer, ForeignKey("teams.id"), nullable=True),

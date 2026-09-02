@@ -372,7 +372,7 @@ def delete_user(user_id):
         if guard_response:
                 return guard_response
         services.delete_user(uow, current_user.id, user_id)
-        flash("Usuário excluído.", "warning")
+        flash("Usuário desativado. O histórico foi preservado.", "warning")
         return redirect(url_for("management_panel"))
 
 
