@@ -168,11 +168,11 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [x] Tests: aggregation correctness by scope; coherent sources
 
 ## Phase W — "Magic button" mode switch
-- [ ] Second palette in `style.css` under `[data-app-mode="work"]` (overrides brand custom properties)
-- [ ] Auto-detect: clock pages = `clock` mode; `/work/*` pages = `work` mode
-- [ ] Toggle/back button (floating or navbar) persisting choice (cookie/localStorage); JS clean `node --check`
-- [ ] Apply `data-app-mode="work"` root on workforce templates + nav separation
-- [ ] Gate behind env flag `WORKFORCE_ENABLED` (false default) for soft-launch/instant rollback
+- [x] Second palette in `style.css` under `[data-app-mode="work"]` (overrides brand custom properties)
+- [x] Auto-detect: clock pages = `clock` mode; `/work/*` pages = `work` mode
+- [x] Toggle/back button (floating or navbar) persisting choice (cookie/localStorage); JS clean `node --check`
+- [x] Apply `data-app-mode="work"` root on workforce templates + nav separation
+- [x] Gate behind env flag `WORKFORCE_ENABLED` (false default) for soft-launch/instant rollback
 
 ## Phase A6 — Patch notes / release board interno (last, droppable)
 - [ ] Model `ChangeLogNote` (`version_or_date`, `title`, `description`, `category` feature/fix/config, `created_by`, `created_at`)
