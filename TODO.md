@@ -167,12 +167,13 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [x] Routes `/work/exec/*`; ADMIN/GESTOR all, MANAGER own team, EMPLOYEE read-only own team
 - [x] Tests: aggregation correctness by scope; coherent sources
 
-## Phase W — "Magic button" mode switch
-- [x] Second palette in `style.css` under `[data-app-mode="work"]` (overrides brand custom properties)
-- [x] Auto-detect: clock pages = `clock` mode; `/work/*` pages = `work` mode
-- [x] Toggle/back button (floating or navbar) persisting choice (cookie/localStorage); JS clean `node --check`
-- [x] Apply `data-app-mode="work"` root on workforce templates + nav separation
-- [x] Gate behind env flag `WORKFORCE_ENABLED` (false default) for soft-launch/instant rollback
+## Phase W — "Magic button" mode switch (navbar day/night-style switch)
+- [x] Second palette in `style.css` under `[data-app-mode="work"]` (professional navy/slate corps theme overriding brand custom properties)
+- [x] Auto-detect: clock pages = `clock` mode; `/work/*` pages = `work` mode (path-driven, always applied — direct visits always show the correct palette/nav)
+- [x] Navbar switch control (`.app-mode-switch`, day/night style) replaces the floating button: clock nav shows "Workforce" (before Dados), work nav shows "Voltar ao Ponto" (before Dados); rendered only when `WORKFORCE_ENABLED`
+- [x] Work mode uses its own dedicated navbar (Workforce brand + Tarefas/Conquistas/Ideias/Equipes/5S/Cultura/Executivo/Notas); clock mode shows only the clock nav — no mixed/crowded links
+- [x] Gate behind env flag `WORKFORCE_ENABLED` (false default) for soft-launch/instant rollback; switch hidden when disabled
+- [x] Parity tests: work/clock nav isolation, palette always-on by path, switch present/absent by flag (TestWorkforceMode expanded)
 
 ## Phase A6 — Patch notes / release board interno (last, droppable)
 - [x] Model `ChangeLogNote` (`version_or_date`, `title`, `description`, `category` feature/fix/config, `created_by`, `created_at`)

@@ -176,12 +176,13 @@ Agrupamento de funcionalidades leves de cultura/colaboração, cada uma uma tabe
 **Objetivo:** o lado de gestão *parece outra coisa* do mundo do ponto, sem separar dados.
 
 **Mecânica (puramente apresentacional):**
-- **Duas paletas** em `style.css`: paleta padrão (`:root`) = mundo do ponto; paleta override sob `[data-app-mode="work"]` = mundo gestão (troca as custom properties de marca — accent, primary, bg, etc.).
-- **Auto-deteção:** templates com raiz `/` (ponto) ficam em modo `clock`; páginas de gestão (tarefas/conquistas/ideias/painel) carregam `data-app-mode="work"` → re-theme automático de navbar, cards, botões, badges via Bootstrap.
-- **Toggle/botão:** um botão flutuante ou no navbar que alterna `document.documentElement.dataset.appMode` e persiste a escolha (cookie/localStorage), funcionando como "estou em outra ferramenta" + link de volta.
+- **Duas paletas** em `style.css`: paleta padrão (`:root`) = mundo do ponto; paleta override sob `[data-app-mode="work"]` = mundo gestão (troca as custom properties de marca — accent, primary, bg, etc.). A paleta de gestão usa **navy/slate corporativo** (navbar `#1F2A44`, primary `#2E5C8A`) — nitidamente distinta do verde do ponto, mantendo ares profissional.
+- **Duas navegações isoladas** num único `base.html`, chaveadas por `data_app_mode` (contexto injetado em `flask_app` a partir do `request.path`): páginas `/work/*` mostram **apenas** a nav de workforce (brand "Workforce" + Tarefas/Conquistas/Ideias/Equipes/5S/Cultura/Executivo/Notas); páginas de ponto mostram **apenas** a nav do relógio (Ponto/Gestão/Auditoria/Times/Dados). Sem mix/crowding.
+- **Auto-deteção por rota (sempre aplicada):** `request.path.startswith("/work")` decide a nav + paleta; **visitar diretamente um link de `/work/*` sempre renderiza a paleta/nav correta**, independente de preferência salva (removido o override por localStorage que tornava a troca invisível).
+- **Switch no navbar (estilo day/night, `.app-mode-switch`)** no lugar do botão flutuante: na nav de clock, "Workforce" (antes de Dados); na nav de gestão, "Voltar ao Ponto" (antes de Dados). Renderizado **somente quando `WORKFORCE_ENABLED`** (install puramente de clock nunca o vê).
 - **Sem dados duplicados:** é apenas a identidade visual + nav; o modelo de dados continua unificado.
 
-> **Default confirmado:** auto-deteção por rota + um botão de voltar/alternar visível. (Alternativa descartada: um toggle global JS único, que adicionaria estado sem o "feeling" de lugar distinto.)
+> **Default confirmado:** auto-deteção por rota + **switch no navbar** (não mais botão flutuante). A troca é comandada por rota/URL — paleta e navegação sempre correspondem ao caminho. (Alternativa descartada: um toggle global JS único, que adicionaria estado sem o "feeling" de lugar distinto.)
 
 ---
 
@@ -230,7 +231,7 @@ Tabelas novas em `orm.py` → criadas por `metadata.create_all` em `run_migratio
 - Repositório: acesso via `AbstractRepository`/`SqlAlchemyRepository` exposto no `uow` (ex.: `uow.tasks`, `uow.ideas`) — padrão `uow.users`.
 - `services.py` é a fachada: qualquer pastagem de `services.py` verifica se há plug de dead-code.
 - Notificações: `add_notification` (in-app) + hooks Brevo/SMTP existentes.
-- Templates: estendem `base.html`; nav links gated por `MANAGEMENT_ROLES`/`ADMIN_ROLES`.
+- Templates: estendem `base.html`; a nav é dividida por modo (`data_app_mode`) — páginas de gestão com a nav dedicada de workforce, páginas de ponto com a nav do relógio; persistência de papel por escopo via `MANAGEMENT_ROLES`/`ADMIN_ROLES`.
 
 ---
 
