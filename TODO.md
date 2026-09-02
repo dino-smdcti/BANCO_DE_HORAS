@@ -156,11 +156,11 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [x] Tests: audit creation, score calc, team scoping, history
 
 ## Phase C-extra — Cultura colaborativa (Wiki, Mentoria, Kudos, Eventos)
-- [ ] `WikiArticle` (`/work/culture/wiki`) — anyone writes/edits in scope
-- [ ] `Mentorship` (`/work/culture/mentoring`) — 1:1 mentor/mentee, managers create
-- [ ] `Kudos` (`/work/culture/kudos`) — peer recognition feed, anyone gives
-- [ ] `TeamEvent` (`/work/culture/events`) — internal calendar/workshops + notifications
-- [ ] Tests: CRUD per entity + scope + audit
+- [x] `WikiArticle` (`/work/culture/wiki`) — anyone writes/edits in scope
+- [x] `Mentorship` (`/work/culture/mentoring`) — 1:1 mentor/mentee, managers create
+- [x] `Kudos` (`/work/culture/kudos`) — peer recognition feed, anyone gives
+- [x] `TeamEvent` (`/work/culture/events`) — internal calendar/workshops + notifications
+- [x] Tests: CRUD per entity + scope + audit
 
 ## Phase A7 — Dashboard executivo de Indicadores (KPIs)
 - [ ] Cross-team aggregation: members/task, open tasks, ideas implemented, accomplishments/period, avg 5S score, kudos
