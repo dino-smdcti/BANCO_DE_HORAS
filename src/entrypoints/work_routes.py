@@ -29,6 +29,20 @@ def register_routes(app):
         app.add_url_rule("/work/5s", "work_5s", work_5s)
         app.add_url_rule("/work/5s/create", "work_5s_create", work_5s_create, methods=["POST"])
         app.add_url_rule("/work/5s/<int:s5_audit_id>/delete", "work_5s_delete", work_5s_delete, methods=["POST"])
+        app.add_url_rule("/work/culture/wiki", "work_culture_wiki", work_culture_wiki)
+        app.add_url_rule("/work/culture/wiki/create", "work_culture_wiki_create", work_culture_wiki_create, methods=["POST"])
+        app.add_url_rule("/work/culture/wiki/<int:wiki_article_id>/update", "work_culture_wiki_update", work_culture_wiki_update, methods=["POST"])
+        app.add_url_rule("/work/culture/wiki/<int:wiki_article_id>/delete", "work_culture_wiki_delete", work_culture_wiki_delete, methods=["POST"])
+        app.add_url_rule("/work/culture/mentoring", "work_culture_mentoring", work_culture_mentoring)
+        app.add_url_rule("/work/culture/mentoring/create", "work_culture_mentoring_create", work_culture_mentoring_create, methods=["POST"])
+        app.add_url_rule("/work/culture/mentoring/<int:mentorship_id>/end", "work_culture_mentoring_end", work_culture_mentoring_end, methods=["POST"])
+        app.add_url_rule("/work/culture/mentoring/<int:mentorship_id>/delete", "work_culture_mentoring_delete", work_culture_mentoring_delete, methods=["POST"])
+        app.add_url_rule("/work/culture/kudos", "work_culture_kudos", work_culture_kudos)
+        app.add_url_rule("/work/culture/kudos/create", "work_culture_kudos_create", work_culture_kudos_create, methods=["POST"])
+        app.add_url_rule("/work/culture/kudos/<int:kudo_id>/delete", "work_culture_kudos_delete", work_culture_kudos_delete, methods=["POST"])
+        app.add_url_rule("/work/culture/events", "work_culture_events", work_culture_events)
+        app.add_url_rule("/work/culture/events/create", "work_culture_events_create", work_culture_events_create, methods=["POST"])
+        app.add_url_rule("/work/culture/events/<int:event_id>/delete", "work_culture_events_delete", work_culture_events_delete, methods=["POST"])
 
 
 def _optional_date(value):
@@ -453,3 +467,257 @@ def work_5s_delete(s5_audit_id):
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_5s"))
+
+
+def _culture_context(uow):
+        all_teams = services.list_teams(uow)
+        all_users = uow.users.list_all()
+        team_labels = {team.team_id: team.name for team in all_teams}
+        user_labels = {u.user_id: (u.profile.full_name or u.email) for u in all_users}
+        users = sorted(all_users, key=lambda u: (u.profile.full_name or u.email).lower())
+        return all_teams, team_labels, user_labels, users
+
+
+def _scoped_team_list(uow, all_teams):
+        from src.service_layer.permissions import scoped_team_ids
+        scoped = set(scoped_team_ids(uow, current_user.id))
+        return [t for t in all_teams if t.team_id in scoped]
+
+
+@login_required
+@handle_errors
+def work_culture_wiki():
+        uow = new_uow()
+        with uow:
+                articles = services.list_wiki_articles(uow, current_user.id)
+                all_teams, team_labels, user_labels, users = _culture_context(uow)
+                scoped_teams = _scoped_team_list(uow, all_teams)
+                return render_template(
+                        "work_culture_wiki.html",
+                        articles=articles,
+                        scoped_teams=scoped_teams,
+                        team_labels=team_labels,
+                        author_labels=user_labels,
+                        user_role=current_user.role,
+                )
+
+
+@login_required
+@handle_errors
+def work_culture_wiki_create():
+        uow = new_uow()
+        try:
+                team_id = request.form.get("team_id")
+                if not team_id:
+                        with uow:
+                                team_id = uow.users.get_user_by_id(current_user.id).team_id or ""
+                services.create_wiki_article(
+                        uow,
+                        current_user.id,
+                        title=request.form.get("title"),
+                        body=request.form.get("body"),
+                        team_id=team_id or None,
+                )
+                flash("Artigo publicado.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_wiki"))
+
+
+@login_required
+@handle_errors
+def work_culture_wiki_update(wiki_article_id):
+        uow = new_uow()
+        try:
+                title = request.form.get("title") or None
+                body = request.form.get("body") or None
+                services.update_wiki_article(uow, current_user.id, wiki_article_id, title=title, body=body)
+                flash("Artigo atualizado.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_wiki"))
+
+
+@login_required
+@handle_errors
+def work_culture_wiki_delete(wiki_article_id):
+        uow = new_uow()
+        try:
+                services.delete_wiki_article(uow, current_user.id, wiki_article_id)
+                flash("Artigo excluído.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_wiki"))
+
+
+@login_required
+@handle_errors
+def work_culture_mentoring():
+        uow = new_uow()
+        with uow:
+                pairs = services.list_mentorships(uow, current_user.id)
+                all_teams, team_labels, user_labels, users = _culture_context(uow)
+                scoped_teams = _scoped_team_list(uow, all_teams)
+                return render_template(
+                        "work_culture_mentoring.html",
+                        pairs=pairs,
+                        scoped_teams=scoped_teams,
+                        team_labels=team_labels,
+                        user_labels=user_labels,
+                        users=users,
+                        user_role=current_user.role,
+                )
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_culture_mentoring_create():
+        uow = new_uow()
+        try:
+                services.create_mentorship(
+                        uow,
+                        current_user.id,
+                        team_id=request.form.get("team_id"),
+                        mentor_id=request.form.get("mentor_id"),
+                        mentee_id=request.form.get("mentee_id"),
+                        start_date=_optional_date(request.form.get("start_date")),
+                )
+                flash("Mentoria criada.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_mentoring"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_culture_mentoring_end(mentorship_id):
+        uow = new_uow()
+        try:
+                services.end_mentorship(uow, current_user.id, mentorship_id)
+                flash("Mentoria encerrada.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_mentoring"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_culture_mentoring_delete(mentorship_id):
+        uow = new_uow()
+        try:
+                services.delete_mentorship(uow, current_user.id, mentorship_id)
+                flash("Mentoria excluída.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_mentoring"))
+
+
+@login_required
+@handle_errors
+def work_culture_kudos():
+        uow = new_uow()
+        with uow:
+                kudos = services.list_kudos(uow, current_user.id)
+                all_teams, team_labels, user_labels, users = _culture_context(uow)
+                scoped_teams = _scoped_team_list(uow, all_teams)
+                return render_template(
+                        "work_culture_kudos.html",
+                        kudos=kudos,
+                        scoped_teams=scoped_teams,
+                        team_labels=team_labels,
+                        user_labels=user_labels,
+                        users=users,
+                        current_user_id=current_user.id,
+                        user_role=current_user.role,
+                )
+
+
+@login_required
+@handle_errors
+def work_culture_kudos_create():
+        uow = new_uow()
+        try:
+                team_id = request.form.get("team_id")
+                if not team_id:
+                        with uow:
+                                team_id = uow.users.get_user_by_id(current_user.id).team_id or ""
+                services.give_kudo(
+                        uow,
+                        current_user.id,
+                        team_id=team_id or None,
+                        receiver_id=request.form.get("receiver_id"),
+                        message=request.form.get("message"),
+                )
+                flash("Kudos enviado.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_kudos"))
+
+
+@login_required
+@handle_errors
+def work_culture_kudos_delete(kudo_id):
+        uow = new_uow()
+        try:
+                services.delete_kudo(uow, current_user.id, kudo_id)
+                flash("Kudos excluído.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_kudos"))
+
+
+@login_required
+@handle_errors
+def work_culture_events():
+        uow = new_uow()
+        with uow:
+                events = services.list_team_events(uow, current_user.id)
+                all_teams, team_labels, user_labels, users = _culture_context(uow)
+                scoped_teams = _scoped_team_list(uow, all_teams)
+                return render_template(
+                        "work_culture_events.html",
+                        events=events,
+                        scoped_teams=scoped_teams,
+                        team_labels=team_labels,
+                        user_role=current_user.role,
+                )
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_culture_events_create():
+        uow = new_uow()
+        try:
+                team_id = request.form.get("team_id")
+                if not team_id:
+                        with uow:
+                                team_id = uow.users.get_user_by_id(current_user.id).team_id or ""
+                services.create_team_event(
+                        uow,
+                        current_user.id,
+                        team_id=team_id or None,
+                        title=request.form.get("title"),
+                        date=_optional_date(request.form.get("date")),
+                        description=request.form.get("description"),
+                )
+                flash("Evento criado.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_events"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_culture_events_delete(event_id):
+        uow = new_uow()
+        try:
+                services.delete_team_event(uow, current_user.id, event_id)
+                flash("Evento excluído.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_culture_events"))

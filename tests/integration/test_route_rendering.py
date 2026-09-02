@@ -815,3 +815,82 @@ class TestWorkS5:
         _login(client, emp_id)
         r = client.post("/work/5s/create", data={"team_id": "1", "date": "2026-01-01"})
         assert r.status_code == 302
+
+
+# ===================================================================
+# WORK CULTURE
+# ===================================================================
+
+class TestWorkWiki:
+    def test_wiki_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_wik@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/culture/wiki")
+        assert r.status_code == 200
+        assert "Wiki".encode("utf-8") in r.data
+
+    def test_wiki_create_and_show(self, client, uow):
+        emp_id = _create_user(uow, "emp_wikb@test.com", role="employee")
+        _login(client, emp_id)
+        r = client.post("/work/culture/wiki/create", data={"title": "Guia", "body": "Corpo do guia"})
+        assert r.status_code == 302
+        r = client.get("/work/culture/wiki")
+        assert "Guia".encode("utf-8") in r.data
+
+
+class TestWorkMentoring:
+    def test_mentoring_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_men@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/culture/mentoring")
+        assert r.status_code == 200
+
+    def test_mentoring_page_shows_pair(self, client, uow):
+        emp_id = _create_user(uow, "emp_men@test.com", role="employee")
+        mentor_id = _create_user(uow, "mentor_men@test.com", role="employee")
+        mentee_id = _create_user(uow, "mentee_men@test.com", role="employee")
+        boss_id = _create_user(uow, "boss_men@test.com", role="gestor")
+        with uow:
+            team_id = uow.users.get_user_by_id(mentor_id).team_id
+            from src.service_layer.culture_service import create_mentorship
+            create_mentorship(uow, boss_id, team_id=team_id, mentor_id=mentor_id, mentee_id=mentee_id, start_date=date(2026, 1, 1))
+        _login(client, emp_id)
+        r = client.get("/work/culture/mentoring")
+        assert r.status_code == 200
+        assert "Ativa".encode("utf-8") in r.data
+
+
+class TestWorkKudos:
+    def test_kudos_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_kud@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/culture/kudos")
+        assert r.status_code == 200
+
+    def test_kudos_create_and_show(self, client, uow):
+        giver = _create_user(uow, "giver_kud@test.com", role="employee")
+        receiver = _create_user(uow, "receiver_kud@test.com", role="employee")
+        with uow:
+            receiver_obj = uow.users.get_user_by_id(receiver)
+            team_id = receiver_obj.team_id
+        _login(client, giver)
+        r = client.post("/work/culture/kudos/create", data={"team_id": str(team_id), "receiver_id": str(receiver), "message": "Mandou bem"})
+        assert r.status_code == 302
+        r = client.get("/work/culture/kudos")
+        assert "Mandou bem".encode("utf-8") in r.data
+
+
+class TestWorkEvents:
+    def test_events_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_evt@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/culture/events")
+        assert r.status_code == 200
+
+    def test_events_create_endpoint_manager_only(self, client, uow):
+        emp_id = _create_user(uow, "emp_evtb@test.com", role="employee")
+        with uow:
+            team_id = uow.users.get_user_by_id(emp_id).team_id
+        _login(client, emp_id)
+        r = client.post("/work/culture/events/create", data={"team_id": str(team_id), "title": "Roda", "date": "2026-01-01"})
+        assert r.status_code == 302

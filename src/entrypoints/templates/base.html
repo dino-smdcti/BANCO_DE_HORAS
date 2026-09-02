@@ -86,6 +86,17 @@
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_5s') }}">
                             <i class="bi bi-clipboard-check"></i> <span>5S</span>
                         </a>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                <i class="bi bi-bullseye"></i> <span>Cultura</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-dark">
+                                <li><a class="dropdown-item" href="{{ url_for('work_culture_wiki') }}"><i class="bi bi-journal-text me-1"></i> Wiki</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('work_culture_mentoring') }}"><i class="bi bi-people me-1"></i> Mentoria</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('work_culture_kudos') }}"><i class="bi bi-heart me-1"></i> Kudos</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('work_culture_events') }}"><i class="bi bi-calendar-event me-1"></i> Eventos</a></li>
+                            </ul>
+                        </li>
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('profile') }}">
                             <i class="bi bi-person-gear"></i> <span>Dados</span>
                         </a>

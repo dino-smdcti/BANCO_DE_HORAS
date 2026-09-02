@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-people"></i> Mentoria</h1>
+    {% if user_role in MANAGEMENT_ROLES %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMentorshipModal"><i class="bi bi-plus-lg"></i> Nova mentoria</button>
+    {% endif %}
+</div>
+
+{% if user_role in MANAGEMENT_ROLES %}
+<div class="modal fade" id="createMentorshipModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('work_culture_mentoring_create') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header"><h5 class="modal-title">Nova mentoria</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Time</label>
+                        <select name="team_id" class="form-select" required>
+                            {% for team in scoped_teams %}
+                            <option value="{{ team.team_id }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mentor</label>
+                        <select name="mentor_id" class="form-select" required>
+                            {% for user in users %}
+                            <option value="{{ user.user_id }}">{{ user.profile.full_name or user.email }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mentorado</label>
+                        <select name="mentee_id" class="form-select" required>
+                            {% for user in users %}
+                            <option value="{{ user.user_id }}">{{ user.profile.full_name or user.email }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Início</label><input type="date" name="start_date" class="form-control" required></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary">Criar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not pairs %}
+<div class="card shadow-sm"><div class="card-body text-center text-muted py-5">Nenhuma mentoria cadastrada.</div></div>
+{% else %}
+<div class="row">
+    {% for pair in pairs %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="card-title mb-1"><i class="bi bi-arrow-left-right"></i> {{ user_labels.get(pair.mentor_id, '—') }} → {{ user_labels.get(pair.mentee_id, '—') }}</h5>
+                        <div class="small text-muted">
+                            <i class="bi bi-diagram-3"></i> {{ team_labels.get(pair.team_id, '—') }}
+                            · desde {{ pair.start_date.strftime('%d/%m/%Y') }}
+                            · {{ 'Ativa' if pair.active else 'Encerrada' }}
+                        </div>
+                    </div>
+                </div>
+                {% if user_role in MANAGEMENT_ROLES %}
+                <div class="d-flex gap-2 mt-2">
+                    {% if pair.active %}
+                    <form method="POST" action="{{ url_for('work_culture_mentoring_end', mentorship_id=pair.mentorship_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-warning">Encerrar</button>
+                    </form>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('work_culture_mentoring_delete', mentorship_id=pair.mentorship_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir mentoria?');"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

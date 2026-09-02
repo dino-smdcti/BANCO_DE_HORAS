@@ -142,6 +142,50 @@ class S5Item:
 
 
 @dataclass
+class WikiArticle:
+        """An internal wiki article, team-scoped or public."""
+        title: str
+        body: str
+        author_id: int
+        team_id: Optional[int] = None
+        updated_at: datetime = field(default_factory=datetime.now)
+        wiki_article_id: Optional[int] = None
+
+
+@dataclass
+class Mentorship:
+        """A 1:1 mentor/mentee pairing within a team."""
+        team_id: int
+        mentor_id: int
+        mentee_id: int
+        start_date: date
+        active: bool = True
+        mentorship_id: Optional[int] = None
+
+
+@dataclass
+class Kudos:
+        """A peer recognition message within the team feed."""
+        team_id: int
+        giver_id: int
+        receiver_id: int
+        message: str
+        created_at: datetime = field(default_factory=datetime.now)
+        kudo_id: Optional[int] = None
+
+
+@dataclass
+class TeamEvent:
+        """An internal calendar event such as a workshop or training."""
+        team_id: int
+        title: str
+        date: date
+        description: Optional[str] = None
+        created_at: datetime = field(default_factory=datetime.now)
+        event_id: Optional[int] = None
+
+
+@dataclass
 class WorkSchedule:
         user_id: int
         expected_arrival: time

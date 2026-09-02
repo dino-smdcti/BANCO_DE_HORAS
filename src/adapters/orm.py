@@ -1,8 +1,8 @@
-from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float, UniqueConstraint, Index
+from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, Enum as SQLEnum, MetaData, Boolean, DateTime, Float, UniqueConstraint, Index, Text
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Mentorship, Kudos, TeamEvent
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -149,6 +149,50 @@ s5_items = Table(
     Column("s5_audit_id", Integer, ForeignKey("s5_audits.id"), nullable=False),
     Column("label", String(NAME_COLUMN_LENGTH), nullable=False),
     Column("passed", Boolean, default=False, nullable=False),
+)
+
+wiki_articles = Table(
+    "wiki_articles",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("team_id", Integer, ForeignKey("teams.id"), nullable=True),
+    Column("author_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("title", String(NAME_COLUMN_LENGTH), nullable=False),
+    Column("body", Text, nullable=False),
+    Column("updated_at", DateTime, default=datetime.now, nullable=False),
+)
+
+mentorships = Table(
+    "mentorships",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("team_id", Integer, ForeignKey("teams.id"), nullable=False),
+    Column("mentor_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("mentee_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("start_date", Date, nullable=False),
+    Column("active", Boolean, default=True, nullable=False),
+)
+
+kudos = Table(
+    "kudos",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("team_id", Integer, ForeignKey("teams.id"), nullable=False),
+    Column("giver_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("receiver_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("message", String(NOTES_COLUMN_LENGTH), nullable=False),
+    Column("created_at", DateTime, default=datetime.now, nullable=False),
+)
+
+team_events = Table(
+    "team_events",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("team_id", Integer, ForeignKey("teams.id"), nullable=False),
+    Column("title", String(NAME_COLUMN_LENGTH), nullable=False),
+    Column("date", Date, nullable=False),
+    Column("description", String(NOTES_COLUMN_LENGTH), nullable=True),
+    Column("created_at", DateTime, default=datetime.now, nullable=False),
 )
 
 audit_logs = Table(
@@ -460,3 +504,7 @@ def start_mappers():
                 properties=_column_properties(s5_items.c.id, "s5_item_id"),
         )
         mapper_registry.map_imperatively(S5Audit, s5_audits, properties=s5_properties)
+        mapper_registry.map_imperatively(WikiArticle, wiki_articles, properties=_column_properties(wiki_articles.c.id, "wiki_article_id"))
+        mapper_registry.map_imperatively(Mentorship, mentorships, properties=_column_properties(mentorships.c.id, "mentorship_id"))
+        mapper_registry.map_imperatively(Kudos, kudos, properties=_column_properties(kudos.c.id, "kudo_id"))
+        mapper_registry.map_imperatively(TeamEvent, team_events, properties=_column_properties(team_events.c.id, "event_id"))

@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime, date
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session, selectinload
-from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item
+from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Mentorship, Kudos, TeamEvent
 
 class AbstractRepository(ABC):
         @abstractmethod
@@ -249,6 +249,74 @@ class AbstractRepository(ABC):
 
         @abstractmethod
         def average_s5_score_by_team(self, team_id: int) -> float:
+                pass
+
+        @abstractmethod
+        def add_wiki_article(self, article: WikiArticle):
+                pass
+
+        @abstractmethod
+        def get_wiki_article_by_id(self, wiki_article_id: int) -> Optional[WikiArticle]:
+                pass
+
+        @abstractmethod
+        def list_wiki_articles(self, team_id: int = None) -> List[WikiArticle]:
+                pass
+
+        @abstractmethod
+        def update_wiki_article(self, wiki_article_id: int, *, title: str = None, body: str = None):
+                pass
+
+        @abstractmethod
+        def delete_wiki_article(self, wiki_article_id: int):
+                pass
+
+        @abstractmethod
+        def add_mentorship(self, mentorship: Mentorship):
+                pass
+
+        @abstractmethod
+        def get_mentorship_by_id(self, mentorship_id: int) -> Optional[Mentorship]:
+                pass
+
+        @abstractmethod
+        def list_mentorships_by_team(self, team_id: int) -> List[Mentorship]:
+                pass
+
+        @abstractmethod
+        def end_mentorship(self, mentorship_id: int):
+                pass
+
+        @abstractmethod
+        def delete_mentorship(self, mentorship_id: int):
+                pass
+
+        @abstractmethod
+        def add_kudo(self, kudo: Kudos):
+                pass
+
+        @abstractmethod
+        def list_kudos_by_team(self, team_id: int) -> List[Kudos]:
+                pass
+
+        @abstractmethod
+        def delete_kudo(self, kudo_id: int):
+                pass
+
+        @abstractmethod
+        def add_team_event(self, event: TeamEvent):
+                pass
+
+        @abstractmethod
+        def get_team_event_by_id(self, event_id: int) -> Optional[TeamEvent]:
+                pass
+
+        @abstractmethod
+        def list_team_events_by_team(self, team_id: int) -> List[TeamEvent]:
+                pass
+
+        @abstractmethod
+        def delete_team_event(self, event_id: int):
                 pass
 
 class SqlAlchemyRepository(AbstractRepository):
@@ -639,4 +707,91 @@ class SqlAlchemyRepository(AbstractRepository):
                 return self.session.execute(
                         select(func.coalesce(func.avg(S5Audit.score), 0.0)).where(S5Audit.team_id == team_id)
                 ).scalar_one()
+
+        def add_wiki_article(self, article: WikiArticle):
+                self.session.add(article)
+
+        def get_wiki_article_by_id(self, wiki_article_id: int) -> Optional[WikiArticle]:
+                return self.session.execute(
+                        select(WikiArticle).where(WikiArticle.wiki_article_id == wiki_article_id)
+                ).scalar_one_or_none()
+
+        def list_wiki_articles(self, team_id: int = None) -> List[WikiArticle]:
+                stmt = select(WikiArticle).order_by(WikiArticle.updated_at.desc())
+                if team_id is not None:
+                        stmt = stmt.where(WikiArticle.team_id == team_id)
+                else:
+                        stmt = stmt.where(WikiArticle.team_id.is_(None))
+                return self.session.execute(stmt).scalars().all()
+
+        def update_wiki_article(self, wiki_article_id: int, *, title: str = None, body: str = None):
+                values = {}
+                if title is not None:
+                        values["title"] = title
+                if body is not None:
+                        values["body"] = body
+                values["updated_at"] = datetime.now()
+                if values:
+                        self.session.execute(
+                                update(WikiArticle).where(WikiArticle.wiki_article_id == wiki_article_id).values(**values)
+                        )
+
+        def delete_wiki_article(self, wiki_article_id: int):
+                self.session.execute(
+                        delete(WikiArticle).where(WikiArticle.wiki_article_id == wiki_article_id)
+                )
+
+        def add_mentorship(self, mentorship: Mentorship):
+                self.session.add(mentorship)
+
+        def get_mentorship_by_id(self, mentorship_id: int) -> Optional[Mentorship]:
+                return self.session.execute(
+                        select(Mentorship).where(Mentorship.mentorship_id == mentorship_id)
+                ).scalar_one_or_none()
+
+        def list_mentorships_by_team(self, team_id: int) -> List[Mentorship]:
+                return self.session.execute(
+                        select(Mentorship).where(Mentorship.team_id == team_id).order_by(Mentorship.start_date.desc())
+                ).scalars().all()
+
+        def end_mentorship(self, mentorship_id: int):
+                self.session.execute(
+                        update(Mentorship).where(Mentorship.mentorship_id == mentorship_id).values(active=False)
+                )
+
+        def delete_mentorship(self, mentorship_id: int):
+                self.session.execute(
+                        delete(Mentorship).where(Mentorship.mentorship_id == mentorship_id)
+                )
+
+        def add_kudo(self, kudo: Kudos):
+                self.session.add(kudo)
+
+        def list_kudos_by_team(self, team_id: int) -> List[Kudos]:
+                return self.session.execute(
+                        select(Kudos).where(Kudos.team_id == team_id).order_by(Kudos.created_at.desc())
+                ).scalars().all()
+
+        def delete_kudo(self, kudo_id: int):
+                self.session.execute(
+                        delete(Kudos).where(Kudos.kudo_id == kudo_id)
+                )
+
+        def add_team_event(self, event: TeamEvent):
+                self.session.add(event)
+
+        def get_team_event_by_id(self, event_id: int) -> Optional[TeamEvent]:
+                return self.session.execute(
+                        select(TeamEvent).where(TeamEvent.event_id == event_id)
+                ).scalar_one_or_none()
+
+        def list_team_events_by_team(self, team_id: int) -> List[TeamEvent]:
+                return self.session.execute(
+                        select(TeamEvent).where(TeamEvent.team_id == team_id).order_by(TeamEvent.date.desc())
+                ).scalars().all()
+
+        def delete_team_event(self, event_id: int):
+                self.session.execute(
+                        delete(TeamEvent).where(TeamEvent.event_id == event_id)
+                )
 

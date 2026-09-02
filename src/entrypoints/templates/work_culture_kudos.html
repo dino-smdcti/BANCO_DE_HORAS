@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-heart"></i> Kudos</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createKudoModal"><i class="bi bi-plus-lg"></i> Enviar kudos</button>
+</div>
+
+<div class="modal fade" id="createKudoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('work_culture_kudos_create') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header"><h5 class="modal-title">Enviar kudos</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Time</label>
+                        <select name="team_id" class="form-select" required>
+                            {% for team in scoped_teams %}
+                            <option value="{{ team.team_id }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Reconhecimento</label>
+                        <select name="receiver_id" class="form-select" required>
+                            {% for user in users %}
+                            <option value="{{ user.user_id }}">{{ user.profile.full_name or user.email }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Mensagem</label><textarea name="message" class="form-control" rows="2" required></textarea></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary">Enviar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if not kudos %}
+<div class="card shadow-sm"><div class="card-body text-center text-muted py-5">Ainda não há kudos por aqui.</div></div>
+{% else %}
+<div class="row">
+    {% for kudo in kudos %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge bg-light text-dark mb-2"><i class="bi bi-heart text-danger"></i> {{ user_labels.get(kudo.giver_id, '—') }} → {{ user_labels.get(kudo.receiver_id, '—') }}</span>
+                        <p class="card-text mb-1">{{ kudo.message }}</p>
+                        <div class="small text-muted"><i class="bi bi-diagram-3"></i> {{ team_labels.get(kudo.team_id, '—') }} · {{ kudo.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                    </div>
+                    {% if kudo.giver_id == current_user_id %}
+                    <form method="POST" action="{{ url_for('work_culture_kudos_delete', kudo_id=kudo.kudo_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-x"></i></button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

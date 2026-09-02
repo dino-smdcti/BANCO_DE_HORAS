@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-journal-text"></i> Wiki</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createWikiModal"><i class="bi bi-plus-lg"></i> Novo artigo</button>
+</div>
+
+<div class="modal fade" id="createWikiModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('work_culture_wiki_create') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header"><h5 class="modal-title">Novo artigo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Time <small class="text-muted">(vazio = público)</small></label>
+                        <select name="team_id" class="form-select">
+                            <option value="">— público —</option>
+                            {% for team in scoped_teams %}
+                            <option value="{{ team.team_id }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3"><label class="form-label">Título</label><input type="text" name="title" class="form-control" required></div>
+                    <div class="mb-3"><label class="form-label">Conteúdo</label><textarea name="body" class="form-control" rows="6" required></textarea></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary">Publicar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if not articles %}
+<div class="card shadow-sm"><div class="card-body text-center text-muted py-5">Nenhum artigo publicado.</div></div>
+{% else %}
+<div class="row">
+    {% for article in articles %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title mb-1">{{ article.title }}</h5>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editWikiModal{{ article.wiki_article_id }}"><i class="bi bi-pencil"></i></button>
+                        <form method="POST" action="{{ url_for('work_culture_wiki_delete', wiki_article_id=article.wiki_article_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir artigo?');"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+                <p class="card-text small text-muted mb-1">
+                    {% if article.team_id %}<i class="bi bi-diagram-3"></i> {{ team_labels.get(article.team_id, '—') }}{% else %}<i class="bi bi-globe"></i> Público{% endif %}
+                    · <i class="bi bi-person"></i> {{ author_labels.get(article.author_id, '—') }}
+                </p>
+                <div class="card-text small" style="white-space:pre-wrap;">{{ article.body }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editWikiModal{{ article.wiki_article_id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="{{ url_for('work_culture_wiki_update', wiki_article_id=article.wiki_article_id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-header"><h5 class="modal-title">Editar artigo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                    <div class="modal-body">
+                        <div class="mb-3"><label class="form-label">Título</label><input type="text" name="title" class="form-control" value="{{ article.title }}"></div>
+                        <div class="mb-3"><label class="form-label">Conteúdo</label><textarea name="body" class="form-control" rows="6">{{ article.body }}</textarea></div>
+                    </div>
+                    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
