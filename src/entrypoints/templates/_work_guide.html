@@ -1,0 +1,14 @@
+<div class="card shadow-sm mb-4">
+    <button class="btn btn-link text-decoration-none w-100 d-flex justify-content-between align-items-center text-start p-3"
+            type="button" data-bs-toggle="collapse" data-bs-target="#workGuideCollapse" aria-expanded="false" aria-controls="workGuideCollapse">
+        <span class="fw-semibold"><i class="bi bi-question-circle me-2"></i>Como funciona?</span>
+        <i class="bi bi-chevron-down"></i>
+    </button>
+    <div class="collapse px-3 pb-3" id="workGuideCollapse">
+        <ol class="mb-0">
+            {% for item in guide_items %}
+            <li class="mb-1">{{ item }}</li>
+            {% endfor %}
+        </ol>
+    </div>
+</div>

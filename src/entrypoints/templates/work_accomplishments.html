@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+{% set guide_items = [
+    'Conquistas registram metas e marcos atingidos pelos times.',
+    'Gestores e admin criam conquistas com período e responsáveis.',
+    'Visíveis no time e no Executivo para acompanhamento da evolução.',
+] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-trophy"></i> Conquistas</h1>
     {% if user_role in MANAGEMENT_ROLES %}
@@ -8,6 +13,7 @@
     </button>
     {% endif %}
 </div>
+{% include "_work_guide.html" %}
 
 {% if user_role in MANAGEMENT_ROLES %}
 <div class="modal fade" id="createAccomplishmentModal" tabindex="-1">

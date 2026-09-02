@@ -46,9 +46,9 @@ Milestones from user feedback (this TODO):
 - [x] Tests: nav dropdowns render expected items; no clutter regression
 
 ## Phase E — Per-feature onboarding guides
-- [ ] Shared guide snippet/macro (collapsible "Como funciona?" card) used on each work template
-- [ ] Adopt on: dashboard, tasks, accomplishments, ideas, teams, 5s, culture (wiki/mentoring/kudos/events), exec
-- [ ] Tests: guide block present on each page (parity)
+- [x] Shared guide snippet/macro (collapsible "Como funciona?" card) used on each work template
+- [x] Adopt on: dashboard, tasks, accomplishments, ideas, teams, 5s, culture (wiki/mentoring/kudos/events), exec, reports
+- [x] Tests: guide block present on each page (parity)
 
 ## Phase F — Resilience (deactivations, leader removal, team renames)
 - [ ] Add `User.active`/soft-deactivation (or replace `delete_user` with deactivate) so workforce history, decisions, approvals, audit remain intact and FK references survive

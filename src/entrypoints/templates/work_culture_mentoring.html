@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
+{% set guide_items = [
+    'Mentorias emparelham colegas experientes com quem quer evoluir.',
+    'Gestores e admin criam mentorias e podem encerrá-las.',
+    'Você acompanha mentorias ativas e já concluídas do time.'
+] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-people"></i> Mentoria</h1>
     {% if user_role in MANAGEMENT_ROLES %}
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createMentorshipModal"><i class="bi bi-plus-lg"></i> Nova mentoria</button>
     {% endif %}
 </div>
+{% include "_work_guide.html" %}
 
 {% if user_role in MANAGEMENT_ROLES %}
 <div class="modal fade" id="createMentorshipModal" tabindex="-1">

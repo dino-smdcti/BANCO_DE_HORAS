@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+{% set guide_items = [
+    'Tarefas são criadas por gestores e admin para organizar o trabalho dos times.',
+    'Marque itens de execução conforme avança; ao concluir, mude o status em Atividade.',
+    'Acompanhe pendências por time e use prazos para priorizar.',
+] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-check2-square"></i> Tarefas</h1>
     {% if user_role in MANAGEMENT_ROLES %}
@@ -8,6 +13,7 @@
     </button>
     {% endif %}
 </div>
+{% include "_work_guide.html" %}
 
 {% if user_role in MANAGEMENT_ROLES %}
 <div class="modal fade" id="createTaskModal" tabindex="-1">

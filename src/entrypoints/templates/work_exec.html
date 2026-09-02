@@ -1,8 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
+{% set guide_items = [
+    'O Executivo sintetiza KPIs por time para a gestão.',
+    'Filtre por período para comparar evolução.',
+    'Clique em um time para ver o detalhamento.'
+] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-bar-chart-line"></i> Dashboard Executivo</h1>
 </div>
+{% include "_work_guide.html" %}
 
 <form method="GET" action="{{ url_for('work_exec') }}" class="card card-body shadow-sm mb-4">
     <div class="row g-2 align-items-end">

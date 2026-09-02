@@ -1,9 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
+{% set guide_items = [
+    'Kudos são reconhecimentos rápidos entre colegas.',
+    'Enviamos a quem colaborou; ficam visíveis no time.',
+    'Apoie uma cultura de reconhecimento constante.'
+] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-heart"></i> Kudos</h1>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createKudoModal"><i class="bi bi-plus-lg"></i> Enviar kudos</button>
 </div>
+{% include "_work_guide.html" %}
 
 <div class="modal fade" id="createKudoModal" tabindex="-1">
     <div class="modal-dialog">

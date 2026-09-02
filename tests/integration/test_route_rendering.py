@@ -1100,4 +1100,27 @@ class TestWorkReports:
         assert r.status_code == 302
 
 
+class TestWorkGuides:
+    @pytest.mark.parametrize("url", [
+        "/work",
+        "/work/tasks",
+        "/work/accomplishments",
+        "/work/ideas",
+        "/work/teams",
+        "/work/5s",
+        "/work/culture/wiki",
+        "/work/culture/mentoring",
+        "/work/culture/kudos",
+        "/work/culture/events",
+        "/work/exec",
+        "/work/reports",
+    ])
+    def test_every_work_page_has_guide(self, client, uow, url):
+        uid = _create_user(uow, f"emp_guide_{abs(hash(url)) % 10**6}@test.com", role="employee")
+        _login(client, uid)
+        r = client.get(url)
+        assert r.status_code == 200
+        assert "Como funciona?".encode("utf-8") in r.data
+
+
 # ===================================================================

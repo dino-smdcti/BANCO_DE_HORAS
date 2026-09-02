@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+{% set guide_items = [
+    'As auditorias 5S avaliam Setri/Sort/Scan/Seiton/Seiketsu por setor.',
+    'Gestores e admin criam auditorias com notas e itens.',
+    'A média de pontuação alimenta o Executivo por time.',
+] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-clipboard-check"></i> 5S por setor</h1>
     {% if can_create %}
@@ -8,6 +13,7 @@
     </button>
     {% endif %}
 </div>
+{% include "_work_guide.html" %}
 
 {% if can_create %}
 <div class="modal fade" id="createS5Modal" tabindex="-1">

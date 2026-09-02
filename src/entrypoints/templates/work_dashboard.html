@@ -1,11 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
+{% set guide_items = [
+    'O Painel resume as atividades de todos os times no seu escopo.',
+    'Técnicos e servidores veem apenas o próprio time; gestores e admins veem o que gerem.',
+    'Use o Executivo para análises por time; use Relatórios para exportar períodos.',
+] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-speedometer2"></i> Painel Workforce</h1>
     <div class="d-flex gap-2">
         <a class="btn btn-outline-primary" href="{{ url_for('work_exec') }}"><i class="bi bi-bar-chart-line"></i> Executivo</a>
     </div>
 </div>
+{% include "_work_guide.html" %}
 
 {% if not kpis %}
 <div class="card shadow-sm mb-4"><div class="card-body text-center text-muted py-5">Nenhum time em seu escopo.</div></div>

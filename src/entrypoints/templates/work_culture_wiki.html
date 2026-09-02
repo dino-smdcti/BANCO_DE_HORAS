@@ -1,9 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
+{% set guide_items = [
+    'A Wiki centraliza procedimentos e conhecimento do time.',
+    'Crie artigos para documentar o que o time precisa saber.',
+    'Artigos podem ser do time ou públicos.'
+] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-journal-text"></i> Wiki</h1>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createWikiModal"><i class="bi bi-plus-lg"></i> Novo artigo</button>
 </div>
+{% include "_work_guide.html" %}
 
 <div class="modal fade" id="createWikiModal" tabindex="-1">
     <div class="modal-dialog">
