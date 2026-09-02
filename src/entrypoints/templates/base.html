@@ -12,7 +12,7 @@
 </head>
 <body>
     {% if WORKFORCE_ENABLED %}
-    <span id="appModeWorkHome" data-url="{{ url_for('work_tasks') }}" hidden></span>
+    <span id="appModeWorkHome" data-url="{{ url_for('work_dashboard') }}" hidden></span>
     {% endif %}
     <span id="appModeClockHome" data-url="{{ url_for('dashboard') }}" hidden></span>
     <nav class="navbar navbar-expand-lg navbar-dark">
@@ -67,6 +67,9 @@
                     {% if current_user.is_authenticated %}
                         {% if data_app_mode == 'work' %}
                             {% if WORKFORCE_ENABLED %}
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_dashboard') }}">
+                                <i class="bi bi-speedometer2"></i> <span>Painel</span>
+                            </a>
                             <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_tasks') }}">
                                 <i class="bi bi-check2-square"></i> <span>Tarefas</span>
                             </a>

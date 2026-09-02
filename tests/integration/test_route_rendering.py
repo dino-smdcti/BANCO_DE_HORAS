@@ -1018,3 +1018,39 @@ class TestWorkforceMode:
 
 
 # ===================================================================
+# WORKFORCE DASHBOARD (new landing)
+# ===================================================================
+
+class TestWorkDashboard:
+    def test_dashboard_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_dash@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work")
+        assert r.status_code == 200
+        assert "Painel Workforce".encode("utf-8") in r.data
+        assert 'data-app-mode="work"'.encode("utf-8") in r.data
+
+    def test_dashboard_shows_scoped_team(self, client, uow):
+        uid = _create_user(uow, "emp_dashb@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work")
+        assert r.status_code == 200
+        html = r.data.decode("utf-8")
+        assert "__route_default__" in html
+        assert "Atividade recente" in html
+
+    def test_dashboard_empty_when_no_team(self, client, uow):
+        from src.domain.model import User
+        from werkzeug.security import generate_password_hash
+        with uow:
+            user = User(email="emp_dashc@test.com", password_hash=generate_password_hash("pass"), role="employee", team_id=None)
+            uow.session.add(user)
+            uow.commit()
+            uid = user.user_id
+        _login(client, uid)
+        r = client.get("/work")
+        assert r.status_code == 200
+        assert "Nenhum time em seu escopo".encode("utf-8") in r.data
+
+
+# ===================================================================

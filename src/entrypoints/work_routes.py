@@ -12,6 +12,7 @@ def register_routes(app):
                 # Workforce expansion is behind a soft-launch gate; when disabled
                 # no /work/* routes are exposed and the module stays dormant.
                 return
+        app.add_url_rule("/work", "work_dashboard", work_dashboard)
         app.add_url_rule("/work/tasks", "work_tasks", work_tasks)
         app.add_url_rule("/work/tasks/create", "work_tasks_create", work_tasks_create, methods=["POST"])
         app.add_url_rule("/work/tasks/<int:task_id>/status", "work_tasks_status", work_tasks_status, methods=["POST"])
@@ -58,6 +59,58 @@ def _optional_date(value):
         if parsed is INVALID_DATE or parsed is None:
                 return None
         return parsed
+
+
+@login_required
+@handle_errors
+def work_dashboard():
+        uow = new_uow()
+        with uow:
+                kpis = services.list_exec_kpis(uow, current_user.id)
+                all_teams, team_labels, user_labels, users = _culture_context(uow)
+                scoped = _scoped_team_list(uow, all_teams)
+                scoped_ids = {team.team_id for team in scoped}
+                in_scope = [k for k in kpis if k["team_id"] in scoped_ids]
+                summary = _dashboard_summary(in_scope)
+                recent = _recent_activity(uow, scoped_ids)
+                return render_template(
+                        "work_dashboard.html",
+                        kpis=in_scope,
+                        summary=summary,
+                        recent=recent,
+                        team_labels=team_labels,
+                        user_labels=user_labels,
+                        user_role=current_user.role,
+                )
+
+
+def _dashboard_summary(kpis):
+        return {
+                "teams": len(kpis),
+                "members": sum(k["members"] for k in kpis),
+                "open_tasks": sum(k["open_tasks"] for k in kpis),
+                "open_ideas": sum(k["open_ideas"] for k in kpis),
+                "implemented_ideas": sum(k["implemented_ideas"] for k in kpis),
+                "accomplishments": sum(k["accomplishments"] for k in kpis),
+                "kudos": sum(k["kudos"] for k in kpis),
+                "avg_5s": round((sum(k["avg_5s"] for k in kpis) / len(kpis)) if kpis else 0.0, 1),
+        }
+
+
+def _recent_activity(uow, scoped_ids):
+        recent = []
+        for team_id in scoped_ids:
+                for task in uow.users.list_tasks_by_team(team_id):
+                        recent.append(("task", task))
+                for acc in uow.users.list_accomplishments_by_team(team_id):
+                        recent.append(("accomplishment", acc))
+        recent.sort(key=lambda item: getattr(item[1], "created_at", None) or _default_date(), reverse=True)
+        return recent[:8]
+
+
+def _default_date():
+        from datetime import datetime
+        return datetime(1970, 1, 1)
 
 
 @login_required

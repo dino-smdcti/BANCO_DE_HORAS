@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-speedometer2"></i> Painel Workforce</h1>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('work_exec') }}"><i class="bi bi-bar-chart-line"></i> Executivo</a>
+    </div>
+</div>
+
+{% if not kpis %}
+<div class="card shadow-sm mb-4"><div class="card-body text-center text-muted py-5">Nenhum time em seu escopo.</div></div>
+{% else %}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.teams }}</div><small class="text-muted">Times</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.members }}</div><small class="text-muted">Membros</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.open_tasks }}</div><small class="text-muted">Tarefas abertas</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.open_ideas }}</div><small class="text-muted">Ideias abertas</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.accomplishments }}</div><small class="text-muted">Conquistas</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.kudos }}</div><small class="text-muted">Kudos</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.implemented_ideas }}</div><small class="text-muted">Ideias implementadas</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.avg_5s }}</div><small class="text-muted">5S (média)</small></div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header">Resumo por time</div>
+            <div class="card-body table-responsive p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Time</th>
+                            <th class="text-center">Membros</th>
+                            <th class="text-center">Tarefas</th>
+                            <th class="text-center">Ideias</th>
+                            <th class="text-center">Conquistas</th>
+                            <th class="text-center">5S</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for k in kpis %}
+                        <tr>
+                            <td><strong>{{ k.name }}</strong>{% if k.secretariat %}<div class="small text-muted">{{ k.secretariat }}</div>{% endif %}</td>
+                            <td class="text-center">{{ k.members }}</td>
+                            <td class="text-center">{{ k.open_tasks }}</td>
+                            <td class="text-center">{{ k.open_ideas }}</td>
+                            <td class="text-center">{{ k.accomplishments }}</td>
+                            <td class="text-center">{{ k.avg_5s }}</td>
+                            <td class="text-center"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('work_exec_team', team_id=k.team_id) }}"><i class="bi bi-eye"></i></a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header">Atividade recente</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for kind, item in recent %}
+                    <li class="list-group-item">
+                        <i class="bi {{ 'bi-check2-square' if kind == 'task' else 'bi-trophy' }} text-primary"></i>
+                        {{ item.title }}
+                        <div class="small text-muted">{{ team_labels.get(item.team_id, '---') }}</div>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">Nenhuma atividade recente no seu escopo.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+    <div class="card-header">Áreas do Workforce</div>
+    <div class="card-body">
+        <div class="row g-2">
+            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_tasks') }}"><i class="bi bi-check2-square"></i> Tarefas</a></div>
+            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_accomplishments') }}"><i class="bi bi-trophy"></i> Conquistas</a></div>
+            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_ideas') }}"><i class="bi bi-lightbulb"></i> Ideias</a></div>
+            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_teams') }}"><i class="bi bi-diagram-3"></i> Equipes</a></div>
+            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_5s') }}"><i class="bi bi-clipboard-check"></i> 5S</a></div>
+            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_culture_wiki') }}"><i class="bi bi-journal-text"></i> Cultura</a></div>
+            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_exec') }}"><i class="bi bi-bar-chart-line"></i> Executivo</a></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
