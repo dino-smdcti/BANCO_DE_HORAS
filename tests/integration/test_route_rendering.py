@@ -976,14 +976,16 @@ class TestWorkforceMode:
         r = client.get("/work/tasks")
         assert r.status_code == 200
         html = r.data.decode("utf-8")
-        assert ">Tarefas<" in html
-        assert ">Executivo<" in html
+        assert "Tarefas" in html
+        assert "Executivo" in html
         assert ">Voltar ao Ponto<" in html
         assert 'id="appModeSwitch"' in html
         assert "app-mode-switch-track" in html
         assert "app-mode-switch-knob" in html
         assert 'data-mode="work"' in html
-        assert ">Gestão<" not in html
+        assert ">Atividade<" in html
+        assert ">Gestão<" in html
+        assert ">Ponto<" not in html
         assert ">Times<" not in html
 
     def test_clock_page_nav_is_isolated(self, client, uow):

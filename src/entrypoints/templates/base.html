@@ -70,24 +70,25 @@
                             <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_dashboard') }}">
                                 <i class="bi bi-speedometer2"></i> <span>Painel</span>
                             </a>
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_tasks') }}">
-                                <i class="bi bi-check2-square"></i> <span>Tarefas</span>
-                            </a>
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_accomplishments') }}">
-                                <i class="bi bi-trophy"></i> <span>Conquistas</span>
-                            </a>
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_ideas') }}">
-                                <i class="bi bi-lightbulb"></i> <span>Ideias</span>
-                            </a>
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_teams') }}">
-                                <i class="bi bi-diagram-3"></i> <span>Equipes</span>
-                            </a>
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_5s') }}">
-                                <i class="bi bi-clipboard-check"></i> <span>5S</span>
-                            </a>
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_reports') }}">
-                                <i class="bi bi-file-earmark-bar-graph"></i> <span>Relatórios</span>
-                            </a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-check2-square"></i> <span>Atividade</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-item" href="{{ url_for('work_tasks') }}"><i class="bi bi-list-check me-1"></i> Tarefas</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('work_accomplishments') }}"><i class="bi bi-trophy me-1"></i> Conquistas</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('work_ideas') }}"><i class="bi bi-lightbulb me-1"></i> Ideias</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('work_5s') }}"><i class="bi bi-clipboard-check me-1"></i> 5S</a></li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-diagram-3"></i> <span>Estrutura</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-item" href="{{ url_for('work_teams') }}"><i class="bi bi-people me-1"></i> Equipes</a></li>
+                                </ul>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                     <i class="bi bi-bullseye"></i> <span>Cultura</span>
@@ -99,9 +100,15 @@
                                     <li><a class="dropdown-item" href="{{ url_for('work_culture_events') }}"><i class="bi bi-calendar-event me-1"></i> Eventos</a></li>
                                 </ul>
                             </li>
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_exec') }}">
-                                <i class="bi bi-bar-chart-line"></i> <span>Executivo</span>
-                            </a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-bar-chart-line"></i> <span>Gestão</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-item" href="{{ url_for('work_reports') }}"><i class="bi bi-file-earmark-bar-graph me-1"></i> Relatórios</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('work_exec') }}"><i class="bi bi-bar-chart-steps me-1"></i> Executivo</a></li>
+                                </ul>
+                            </li>
 <button type="button" id="appModeSwitch" class="nav-link app-mode-switch text-white" data-mode="work">
                                 <span class="app-mode-switch-label">Voltar ao Ponto</span>
                                 <span class="app-mode-switch-track"><span class="app-mode-switch-knob"></span></span>
