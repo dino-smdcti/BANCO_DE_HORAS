@@ -122,6 +122,26 @@ class IdeaVote:
 
 
 @dataclass
+class S5Audit:
+        """A periodic 5S audit for a sector/team with a pass-fail checklist and score."""
+        team_id: int
+        date: date
+        auditor_id: int
+        score: float = 0.0
+        notes: Optional[str] = None
+        s5_audit_id: Optional[int] = None
+
+
+@dataclass
+class S5Item:
+        """A single verifiable 5S checklist item within an audit."""
+        s5_audit_id: int
+        label: str
+        passed: bool = False
+        s5_item_id: Optional[int] = None
+
+
+@dataclass
 class WorkSchedule:
         user_id: int
         expected_arrival: time

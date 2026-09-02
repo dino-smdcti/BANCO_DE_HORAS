@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -129,6 +129,26 @@ idea_votes = Table(
     Column("idea_id", Integer, ForeignKey("ideas.id"), nullable=False),
     Column("voter_user_id", Integer, ForeignKey("users.id"), nullable=False),
     UniqueConstraint("idea_id", "voter_user_id", name="unique_idea_voter"),
+)
+
+s5_audits = Table(
+    "s5_audits",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("team_id", Integer, ForeignKey("teams.id"), nullable=False),
+    Column("date", Date, nullable=False),
+    Column("auditor_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("score", Float, default=0.0, nullable=False),
+    Column("notes", String(NOTES_COLUMN_LENGTH), nullable=True),
+)
+
+s5_items = Table(
+    "s5_items",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("s5_audit_id", Integer, ForeignKey("s5_audits.id"), nullable=False),
+    Column("label", String(NAME_COLUMN_LENGTH), nullable=False),
+    Column("passed", Boolean, default=False, nullable=False),
 )
 
 audit_logs = Table(
@@ -428,3 +448,15 @@ def start_mappers():
                 idea_votes,
                 properties=_column_properties(idea_votes.c.id, "vote_id"),
         )
+        s5_properties = _column_properties(s5_audits.c.id, "s5_audit_id")
+        s5_properties["items"] = relationship(
+                S5Item,
+                order_by=s5_items.c.id,
+                cascade="all, delete-orphan",
+        )
+        mapper_registry.map_imperatively(
+                S5Item,
+                s5_items,
+                properties=_column_properties(s5_items.c.id, "s5_item_id"),
+        )
+        mapper_registry.map_imperatively(S5Audit, s5_audits, properties=s5_properties)

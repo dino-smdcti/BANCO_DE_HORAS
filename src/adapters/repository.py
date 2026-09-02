@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime, date
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session, selectinload
-from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote
+from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item
 
 class AbstractRepository(ABC):
         @abstractmethod
@@ -221,6 +221,34 @@ class AbstractRepository(ABC):
 
         @abstractmethod
         def count_idea_votes(self, idea_id: int) -> int:
+                pass
+
+        @abstractmethod
+        def add_s5_audit(self, audit: S5Audit):
+                pass
+
+        @abstractmethod
+        def update_s5_score(self, s5_audit_id: int, score: float):
+                pass
+
+        @abstractmethod
+        def add_s5_item(self, item: S5Item):
+                pass
+
+        @abstractmethod
+        def get_s5_audit_by_id(self, s5_audit_id: int) -> Optional[S5Audit]:
+                pass
+
+        @abstractmethod
+        def list_s5_audits_by_team(self, team_id: int) -> List[S5Audit]:
+                pass
+
+        @abstractmethod
+        def delete_s5_audit(self, s5_audit_id: int):
+                pass
+
+        @abstractmethod
+        def average_s5_score_by_team(self, team_id: int) -> float:
                 pass
 
 class SqlAlchemyRepository(AbstractRepository):
@@ -574,5 +602,41 @@ class SqlAlchemyRepository(AbstractRepository):
                         select(func.count())
                         .select_from(IdeaVote)
                         .where(IdeaVote.idea_id == idea_id)
+                ).scalar_one()
+
+        def add_s5_audit(self, audit: S5Audit):
+                self.session.add(audit)
+
+        def update_s5_score(self, s5_audit_id: int, score: float):
+                self.session.execute(
+                        update(S5Audit).where(S5Audit.s5_audit_id == s5_audit_id).values(score=score)
+                )
+
+        def add_s5_item(self, item: S5Item):
+                self.session.add(item)
+
+        def get_s5_audit_by_id(self, s5_audit_id: int) -> Optional[S5Audit]:
+                return self.session.execute(
+                        select(S5Audit)
+                        .where(S5Audit.s5_audit_id == s5_audit_id)
+                        .options(selectinload(S5Audit.items))
+                ).scalar_one_or_none()
+
+        def list_s5_audits_by_team(self, team_id: int) -> List[S5Audit]:
+                return self.session.execute(
+                        select(S5Audit)
+                        .where(S5Audit.team_id == team_id)
+                        .options(selectinload(S5Audit.items))
+                        .order_by(S5Audit.date.desc())
+                ).scalars().all()
+
+        def delete_s5_audit(self, s5_audit_id: int):
+                self.session.execute(
+                        delete(S5Audit).where(S5Audit.s5_audit_id == s5_audit_id)
+                )
+
+        def average_s5_score_by_team(self, team_id: int) -> float:
+                return self.session.execute(
+                        select(func.coalesce(func.avg(S5Audit.score), 0.0)).where(S5Audit.team_id == team_id)
                 ).scalar_one()
 

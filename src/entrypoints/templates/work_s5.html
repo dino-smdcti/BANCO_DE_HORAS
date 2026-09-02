@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-clipboard-check"></i> 5S por setor</h1>
+    {% if can_create %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createS5Modal">
+        <i class="bi bi-plus-lg"></i> Nova auditoria
+    </button>
+    {% endif %}
+</div>
+
+{% if can_create %}
+<div class="modal fade" id="createS5Modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('work_5s_create') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova auditoria 5S</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Time</label>
+                            <select name="team_id" class="form-select" required>
+                                {% for team in teams %}
+                                <option value="{{ team.team_id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Data</label>
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Itens verificados</label>
+                        {% for label in default_items %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="item_{{ loop.index0 }}" value="1" id="s5item{{ loop.index0 }}">
+                            <label class="form-check-label" for="s5item{{ loop.index0 }}">{{ label }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observações</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not audits %}
+<div class="card shadow-sm">
+    <div class="card-body text-center text-muted py-5">Nenhuma auditoria 5S por aqui.</div>
+</div>
+{% else %}
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr><th>Data</th><th>Time</th><th>Auditor</th><th>Score</th><th>Itens</th><th></th></tr>
+                </thead>
+                <tbody>
+                {% for audit in audits %}
+                    <tr>
+                        <td>{{ audit.date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ team_labels.get(audit.team_id, '—') }}</td>
+                        <td>{{ auditor_labels.get(audit.auditor_id, '—') }}</td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if audit.score >= 80 else 'bg-warning text-dark' if audit.score >= 50 else 'bg-danger' }}">{{ audit.score }}%</span>
+                        </td>
+                        <td>
+                            {% for item in audit.items %}
+                            <span class="badge bg-light text-dark me-1">{{ '✓' if item.passed else '✗' }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if can_create %}
+                            <form method="POST" action="{{ url_for('work_5s_delete', s5_audit_id=audit.s5_audit_id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir auditoria?');"><i class="bi bi-trash"></i></button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

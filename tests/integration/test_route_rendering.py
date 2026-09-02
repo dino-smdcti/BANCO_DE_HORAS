@@ -781,3 +781,37 @@ class TestWorkTeams:
         _login(client, emp_id)
         r = client.post("/work/teams/1/update", data={"name": "X"})
         assert r.status_code == 302
+
+
+# ===================================================================
+# WORK 5S
+# ===================================================================
+
+class TestWorkS5:
+    def test_5s_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_s5@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/5s")
+        assert r.status_code == 200
+        assert "5S".encode("utf-8") in r.data
+
+    def test_5s_page_shows_created_audit(self, client, uow):
+        emp_id = _create_user(uow, "emp_s5b@test.com", role="employee")
+        with uow:
+            team_id = uow.users.get_user_by_id(emp_id).team_id
+            from src.service_layer.user_service import register_user
+            register_user(uow, "boss_s5@test.com", "pass", "gestor")
+            boss = uow.users.get_user_by_email("boss_s5@test.com")
+            uow.commit()
+            from src.service_layer.s5_service import create_s5_audit
+            create_s5_audit(uow, boss.user_id, team_id=team_id, date=date(2026, 1, 10), passed_ids=[0, 1])
+        _login(client, emp_id)
+        r = client.get("/work/5s")
+        assert r.status_code == 200
+        assert "10/01/2026".encode("utf-8") in r.data
+
+    def test_5s_create_endpoint_manager_only(self, client, uow):
+        emp_id = _create_user(uow, "emp_s5c@test.com", role="employee")
+        _login(client, emp_id)
+        r = client.post("/work/5s/create", data={"team_id": "1", "date": "2026-01-01"})
+        assert r.status_code == 302

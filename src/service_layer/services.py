@@ -54,6 +54,7 @@ from src.service_layer.schedule_service import (
         update_journey_type,
 )
 from src.service_layer.retroactive_logs_service import complete_retroactive_logs
+from src.service_layer.s5_service import create_s5_audit, delete_s5_audit, get_s5_average, list_s5_audits
 from src.service_layer.user_service import (
         delete_user,
         demote_to_employee,
@@ -73,6 +74,10 @@ __all__ = [
         "update_team",
         "scoped_update_team",
         "complete_retroactive_logs",
+        "create_s5_audit",
+        "delete_s5_audit",
+        "get_s5_average",
+        "list_s5_audits",
         "add_facultativo",
         "add_holiday",
         "add_notification",

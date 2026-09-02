@@ -26,6 +26,9 @@ def register_routes(app):
         app.add_url_rule("/work/ideas/<int:idea_id>/delete", "work_ideas_delete", work_ideas_delete, methods=["POST"])
         app.add_url_rule("/work/teams", "work_teams", work_teams)
         app.add_url_rule("/work/teams/<int:team_id>/update", "work_teams_update", work_teams_update, methods=["POST"])
+        app.add_url_rule("/work/5s", "work_5s", work_5s)
+        app.add_url_rule("/work/5s/create", "work_5s_create", work_5s_create, methods=["POST"])
+        app.add_url_rule("/work/5s/<int:s5_audit_id>/delete", "work_5s_delete", work_5s_delete, methods=["POST"])
 
 
 def _optional_date(value):
@@ -387,3 +390,66 @@ def work_teams_update(team_id):
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_teams"))
+
+
+@login_required
+@handle_errors
+def work_5s():
+        uow = new_uow()
+        with uow:
+                from src.service_layer.permissions import scoped_team_ids
+                from src.service_layer.s5_service import DEFAULT_S5_ITEMS
+                audits = services.list_s5_audits(uow, current_user.id)
+                all_teams = services.list_teams(uow)
+                scoped = set(scoped_team_ids(uow, current_user.id))
+                teams = [t for t in all_teams if t.team_id in scoped]
+                team_labels = {team.team_id: team.name for team in all_teams}
+                auditor_labels = {u.user_id: (u.profile.full_name or u.email) for u in uow.users.list_all()}
+                can_create = is_management_role(current_user.role)
+                return render_template(
+                        "work_s5.html",
+                        audits=audits,
+                        teams=teams,
+                        team_labels=team_labels,
+                        auditor_labels=auditor_labels,
+                        default_items=DEFAULT_S5_ITEMS,
+                        can_create=can_create,
+                )
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_5s_create():
+        uow = new_uow()
+        try:
+                passed_ids = []
+                for key in request.form:
+                        if key.startswith("item_") and request.form.get(key) in ("1", "true", "on"):
+                                index = int(key.split("_", 1)[1])
+                                passed_ids.append(index)
+                services.create_s5_audit(
+                        uow,
+                        current_user.id,
+                        team_id=request.form.get("team_id"),
+                        date=_optional_date(request.form.get("date")),
+                        passed_ids=passed_ids,
+                        notes=request.form.get("notes"),
+                )
+                flash("Auditoria 5S registrada.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_5s"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_5s_delete(s5_audit_id):
+        uow = new_uow()
+        try:
+                services.delete_s5_audit(uow, current_user.id, s5_audit_id)
+                flash("Auditoria excluída.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_5s"))
