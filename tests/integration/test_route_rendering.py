@@ -980,6 +980,9 @@ class TestWorkforceMode:
         assert ">Executivo<" in html
         assert ">Voltar ao Ponto<" in html
         assert 'id="appModeSwitch"' in html
+        assert "app-mode-switch-track" in html
+        assert "app-mode-switch-knob" in html
+        assert 'data-mode="work"' in html
         assert ">Gestão<" not in html
         assert ">Times<" not in html
 
@@ -994,6 +997,9 @@ class TestWorkforceMode:
         assert ">Ponto<" in html
         assert ">Dados<" in html
         assert ">Workforce<" in html
+        assert "app-mode-switch-track" in html
+        assert "app-mode-switch-knob" in html
+        assert 'data-mode="clock"' in html
         assert ">Tarefas<" not in html
         assert ">Executivo<" not in html
         assert ">Notas<" not in html

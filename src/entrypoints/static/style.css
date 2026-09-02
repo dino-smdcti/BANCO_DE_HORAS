@@ -67,18 +67,61 @@
     --pulse-primary-glow-fade: rgba(46, 92, 138, 0);
 }
 
-/* Navbar mode switch (day/night style) that toggles between the clock and workforce modes. */
+/* Navbar mode switch (day/night style) that toggles between the clock and workforce modes.
+   Rendered as a labelled toggle switch: a track with a sliding knob next to the label.
+   The knob position reflects the current mode via [data-app-mode] on the button. */
 .app-mode-switch {
-    border: 1px solid var(--border-color);
-    border-radius: 999rem;
-    background-color: rgba(255, 255, 255, 0.08);
-    padding: 0.35rem 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    background: transparent;
+    padding: 0;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
     white-space: nowrap;
+    font-weight: 500;
 }
-.app-mode-switch:hover {
-    background-color: rgba(255, 255, 255, 0.18);
+.app-mode-switch:hover .app-mode-switch-label {
+    opacity: 0.85;
+}
+.app-mode-switch-label {
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: opacity 0.2s ease;
+}
+/* Track: a slim rounded bar. */
+.app-mode-switch-track {
+    position: relative;
+    display: inline-block;
+    width: 2.6rem;
+    height: 1.45rem;
+    border-radius: 999rem;
+    background-color: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    transition: background-color 0.2s ease;
+    flex: none;
+}
+/* Knob: the sliding circle inside the track. */
+.app-mode-switch-knob {
+    position: absolute;
+    top: 50%;
+    left: 0.15rem;
+    width: 1.05rem;
+    height: 1.05rem;
+    border-radius: 50%;
+    background-color: #ffffff;
+    transform: translateY(-50%);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    transition: left 0.2s ease, background-color 0.2s ease;
+}
+/* Workforce mode: switch is "on" (knob slid to the right) with active color. */
+.app-mode-switch[data-mode="work"] .app-mode-switch-track {
+    background-color: var(--secondary);
+    border-color: var(--secondary);
+}
+.app-mode-switch[data-mode="work"] .app-mode-switch-knob {
+    left: 1.4rem;
+    background-color: #ffffff;
 }
 .app-mode-switch i {
     font-size: 1rem;
