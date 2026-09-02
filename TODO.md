@@ -123,7 +123,7 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 ## Phase F0 — Shared assignment/scope foundation
 - [x] `managed_team_ids(uow, actor)` (write/create scope) + `scoped_team_ids(uow, actor)` (read scope: ADMIN/GESTOR all; MANAGER own team; EMPLOYEE own team read)
 - [x] Tests: `tests/unit/test_assignment_base.py` (11)
-- [ ] NOTE: `Team.lead_user_id` moved to Phase D. Adding it to the existing prod `teams` table needs a Postgres ALTER migration (no-ALTER rule for the zero-risk foundation); fresh DBs get it via `metadata.create_all`.
+- [x] NOTE: `Team.lead_user_id` added in Phase D — idempotent Postgres ALTER in `apply_migrations.py`; fresh DBs get it via `metadata.create_all`.
 
 ## Phase A — Tasks & internal checklists
 - [x] Models `TeamTask` + `TaskChecklistItem` (base de assignment)
@@ -138,17 +138,17 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [x] Tests: period validation, team scoping, overlap guard
 
 ## Phase C — Idea board / KAIZEN (brainstorming)
-- [ ] Models `Idea` (`category` idea/kaizen) + `IdeaVote` (UNIQUE(idea_id, voter_id)); statuses open→under_review→implemented/declined (KAIZEN us-a `implemented`); optional review_date/review_owner (PDCA cadence)
-- [ ] Service + routes `/work/ideas/*` (anyone posts/votes; managers set status) + templates
-- [ ] Notify author on status change
-- [ ] Tests: post, unique vote, vote toggle, status transitions incl. `implemented`, kaizen category filter
+- [x] Models `Idea` (`category` idea/kaizen) + `IdeaVote` (UNIQUE(idea_id, voter_id)); statuses open→under_review→implemented/declined (KAIZEN us-a `implemented`); optional review_date/review_owner (PDCA cadence)
+- [x] Service + routes `/work/ideas/*` (anyone posts/votes; managers set status) + templates
+- [x] Notify author on status change
+- [x] Tests: post, unique vote, vote toggle, status transitions incl. `implemented`, kaizen category filter
 
 ## Phase D — Team dashboards (management expansion)
-- [ ] Add `Team.lead_user_id` (optional team lead): domain + orm `teams` column for fresh DBs (`create_all`) + **idempotent Postgres ALTER in `apply_migrations.py`** for existing prod (verify on staging first, per runbook)
-- [ ] Extend dashboard roll-ups from `management_panel()`/`teams.html`: members, open tasks, open ideas, accomplishments/period (feeds A7)
-- [ ] Rename team + lead assignment
-- [ ] Routes `/work/teams/*`; employees view own team read-only
-- [ ] Tests: lead assignment, rollup counts, manager-scoped dashboard data
+- [x] Add `Team.lead_user_id` (optional team lead): domain + orm `teams` column for fresh DBs (`create_all`) + **idempotent Postgres ALTER in `apply_migrations.py`** for existing prod (verify on staging first, per runbook)
+- [x] Extend dashboard roll-ups from `management_panel()`/`teams.html`: members, open tasks, open ideas, accomplishments/period (feeds A7)
+- [x] Rename team + lead assignment
+- [x] Routes `/work/teams/*`; employees view own team read-only
+- [x] Tests: lead assignment, rollup counts, manager-scoped dashboard data
 
 ## Phase B-extra — 5S por setor (filosofia de trabalho)
 - [ ] Models `S5Audit` (`team_id`, `auditor_id`, `date`, `total_items`, `passed_items`, `score`, `notes`) + `S5Item` default per section; reuse Vertical A infra where possible
