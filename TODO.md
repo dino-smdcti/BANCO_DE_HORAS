@@ -175,9 +175,9 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [x] Gate behind env flag `WORKFORCE_ENABLED` (false default) for soft-launch/instant rollback
 
 ## Phase A6 — Patch notes / release board interno (last, droppable)
-- [ ] Model `ChangeLogNote` (`version_or_date`, `title`, `description`, `category` feature/fix/config, `created_by`, `created_at`)
-- [ ] Routes `/work/changelog/*` (managers/admins publish; all read; in-app notification on new note)
-- [ ] Tests: publish scoping, listing, notification on new note
+- [x] Model `ChangeLogNote` (`version_or_date`, `title`, `description`, `category` feature/fix/config, `created_by`, `created_at`)
+- [x] Routes `/work/changelog/*` (managers/admins publish; all read; in-app notification on new note)
+- [x] Tests: publish scoping, listing, notification on new note
 
 ---
 *Discipline: atomic commits, test parity per commit, push only at phase end. Suite: `.venv\Scripts\python.exe -m pytest -q` (baseline 279 passed, 7 subtests).*
