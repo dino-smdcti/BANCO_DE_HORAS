@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime, date
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session, selectinload
-from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Mentorship, Kudos, TeamEvent, ChangeLogNote
+from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Mentorship, Kudos, TeamEvent
 
 class AbstractRepository(ABC):
         @abstractmethod
@@ -331,21 +331,6 @@ class AbstractRepository(ABC):
         def delete_team_event(self, event_id: int):
                 pass
 
-        @abstractmethod
-        def add_changelog_note(self, note: ChangeLogNote):
-                pass
-
-        @abstractmethod
-        def list_changelog_notes(self) -> List[ChangeLogNote]:
-                pass
-
-        @abstractmethod
-        def get_changelog_note_by_id(self, changelog_id: int) -> Optional[ChangeLogNote]:
-                pass
-
-        @abstractmethod
-        def delete_changelog_note(self, changelog_id: int):
-                pass
 
 class SqlAlchemyRepository(AbstractRepository):
         def __init__(self, session: Session):
@@ -844,23 +829,5 @@ class SqlAlchemyRepository(AbstractRepository):
         def delete_team_event(self, event_id: int):
                 self.session.execute(
                         delete(TeamEvent).where(TeamEvent.event_id == event_id)
-                )
-
-        def add_changelog_note(self, note: ChangeLogNote):
-                self.session.add(note)
-
-        def list_changelog_notes(self) -> List[ChangeLogNote]:
-                return self.session.execute(
-                        select(ChangeLogNote).order_by(ChangeLogNote.created_at.desc())
-                ).scalars().all()
-
-        def get_changelog_note_by_id(self, changelog_id: int) -> Optional[ChangeLogNote]:
-                return self.session.execute(
-                        select(ChangeLogNote).where(ChangeLogNote.changelog_id == changelog_id)
-                ).scalar_one_or_none()
-
-        def delete_changelog_note(self, changelog_id: int):
-                self.session.execute(
-                        delete(ChangeLogNote).where(ChangeLogNote.changelog_id == changelog_id)
                 )
 

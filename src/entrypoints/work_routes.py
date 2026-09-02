@@ -50,9 +50,6 @@ def register_routes(app):
         app.add_url_rule("/work/culture/events/<int:event_id>/delete", "work_culture_events_delete", work_culture_events_delete, methods=["POST"])
         app.add_url_rule("/work/exec", "work_exec", work_exec)
         app.add_url_rule("/work/exec/<int:team_id>", "work_exec_team", work_exec_team)
-        app.add_url_rule("/work/changelog", "work_changelog", work_changelog)
-        app.add_url_rule("/work/changelog/create", "work_changelog_create", work_changelog_create, methods=["POST"])
-        app.add_url_rule("/work/changelog/<int:changelog_id>/delete", "work_changelog_delete", work_changelog_delete, methods=["POST"])
 
 
 def _optional_date(value):
@@ -778,52 +775,3 @@ def work_exec_team(team_id):
                         kudos=uow.users.list_kudos_by_team(team_id),
                         audits=uow.users.list_s5_audits_by_team(team_id),
                 )
-
-
-@login_required
-@handle_errors
-def work_changelog():
-        uow = new_uow()
-        with uow:
-                notes = services.list_changelog_notes(uow, current_user.id)
-                all_teams, team_labels, user_labels, users = _culture_context(uow)
-                return render_template(
-                        "work_changelog.html",
-                        notes=notes,
-                        user_labels=user_labels,
-                        current_user_id=current_user.id,
-                        user_role=current_user.role,
-                )
-
-
-@login_required
-@manager_required
-@handle_errors
-def work_changelog_create():
-        uow = new_uow()
-        try:
-                services.create_changelog_note(
-                        uow,
-                        current_user.id,
-                        version_or_date=request.form.get("version_or_date"),
-                        title=request.form.get("title"),
-                        description=request.form.get("description"),
-                        category=request.form.get("category"),
-                )
-                flash("Nota de versão publicada.", "success")
-        except (ValueError, PermissionError) as error:
-                flash(str(error), "danger")
-        return redirect(url_for("work_changelog"))
-
-
-@login_required
-@manager_required
-@handle_errors
-def work_changelog_delete(changelog_id):
-        uow = new_uow()
-        try:
-                services.delete_changelog_note(uow, current_user.id, changelog_id)
-                flash("Nota excluída.", "success")
-        except (ValueError, PermissionError) as error:
-                flash(str(error), "danger")
-        return redirect(url_for("work_changelog"))
