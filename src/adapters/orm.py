@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -90,6 +90,20 @@ task_checklist_items = Table(
     Column("task_id", Integer, ForeignKey("team_tasks.id"), nullable=False),
     Column("label", String(NAME_COLUMN_LENGTH), nullable=False),
     Column("done", Boolean, default=False, nullable=False),
+)
+
+accomplishments = Table(
+    "accomplishments",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("team_id", Integer, ForeignKey("teams.id"), nullable=False),
+    Column("title", String(NAME_COLUMN_LENGTH), nullable=False),
+    Column("description", String(NOTES_COLUMN_LENGTH), nullable=True),
+    Column("start_date", Date, nullable=False),
+    Column("end_date", Date, nullable=True),
+    Column("achieved_by_user_id", Integer, ForeignKey("users.id"), nullable=True),
+    Column("created_by", Integer, ForeignKey("users.id"), nullable=True),
+    Column("created_at", DateTime, default=datetime.now, nullable=False),
 )
 
 audit_logs = Table(
@@ -371,3 +385,8 @@ def start_mappers():
                 properties=_column_properties(task_checklist_items.c.id, "checklist_item_id"),
         )
         mapper_registry.map_imperatively(TeamTask, team_tasks, properties=task_properties)
+        mapper_registry.map_imperatively(
+                Accomplishment,
+                accomplishments,
+                properties=_column_properties(accomplishments.c.id, "accomplishment_id"),
+        )

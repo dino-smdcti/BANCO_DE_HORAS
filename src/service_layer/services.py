@@ -1,4 +1,11 @@
 """Facade re-exporting the service-layer use cases under the historic `services` namespace."""
+from src.service_layer.accomplishment_service import (
+        create_accomplishment,
+        delete_accomplishment,
+        edit_accomplishment,
+        get_accomplishment,
+        list_accomplishments,
+)
 from src.service_layer.attestation_service import add_attestation, remove_attestation_day
 from src.service_layer.facultativo_service import add_facultativo
 from src.service_layer.holiday_service import add_holiday, seed_holidays
@@ -59,24 +66,29 @@ __all__ = [
         "add_notification",
         "add_vacation",
         "clock_in_out",
+        "create_accomplishment",
         "create_journey_type",
         "create_team",
         "create_task",
+        "delete_accomplishment",
         "delete_journey_type",
         "delete_ponto_entry",
         "delete_task",
         "delete_user",
         "demote_to_employee",
         "dismiss_justification",
+        "edit_accomplishment",
         "edit_task",
         "ensure_manager",
         "ensure_managed_user",
         "ensure_not_self",
         "generate_excel_report",
+        "get_accomplishment",
         "get_all_employees",
         "get_journey_type",
         "get_start_analysis_date",
         "get_task",
+        "list_accomplishments",
         "list_journey_types",
         "list_pending_corrections",
         "list_team_members",

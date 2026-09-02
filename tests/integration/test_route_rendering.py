@@ -658,3 +658,46 @@ class TestWorkTasks:
         _login(client, uid)
         r = client.post("/work/tasks/create", data={"team_id": "1", "title": "X"})
         assert r.status_code == 302
+
+
+# ===================================================================
+# WORK ACCOMPLISHMENTS
+# ===================================================================
+
+class TestWorkAccomplishments:
+    def test_accomplishments_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_wa@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/accomplishments")
+        assert r.status_code == 200
+        assert "Conquistas".encode("utf-8") in r.data
+
+    def test_accomplishments_page_shows_created_accomplishment(self, client, uow):
+        emp_id = _create_user(uow, "emp_wa2@test.com", role="employee")
+        with uow:
+            team_id = emp_team = uow.users.get_user_by_id(emp_id).team_id
+            from src.service_layer.user_service import register_user
+            register_user(uow, "boss_wa@test.com", "pass", "gestor")
+            boss = uow.users.get_user_by_email("boss_wa@test.com")
+            boss.team_id = emp_team
+            uow.commit()
+            boss_id = boss.user_id
+        with uow:
+            from src.service_layer.accomplishment_service import create_accomplishment
+            create_accomplishment(
+                uow, boss_id, team_id=team_id, title="Conquista visível",
+                start_date=date(2026, 1, 1), end_date=date(2026, 1, 31),
+            )
+        _login(client, emp_id)
+        r = client.get("/work/accomplishments")
+        assert r.status_code == 200
+        assert "Conquista visível".encode("utf-8") in r.data
+
+    def test_accomplishments_create_endpoint_manager_only(self, client, uow):
+        uid = _create_user(uow, "emp_wacreate@test.com", role="employee")
+        _login(client, uid)
+        r = client.post(
+            "/work/accomplishments/create",
+            data={"team_id": "1", "title": "X", "start_date": "2026-01-01"},
+        )
+        assert r.status_code == 302

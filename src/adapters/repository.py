@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session, selectinload
-from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem
+from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment
 
 class AbstractRepository(ABC):
         @abstractmethod
@@ -123,6 +123,36 @@ class AbstractRepository(ABC):
 
         @abstractmethod
         def delete_checklist_item(self, item_id: int):
+                pass
+
+        @abstractmethod
+        def add_accomplishment(self, accomplishment: Accomplishment):
+                pass
+
+        @abstractmethod
+        def get_accomplishment_by_id(self, accomplishment_id: int) -> Optional[Accomplishment]:
+                pass
+
+        @abstractmethod
+        def list_accomplishments_by_team(self, team_id: int) -> List[Accomplishment]:
+                pass
+
+        @abstractmethod
+        def update_accomplishment(
+                self,
+                accomplishment_id: int,
+                *,
+                title: Optional[str] = None,
+                description: Optional[str] = None,
+                start_date=None,
+                end_date=None,
+                achieved_by_user_id: Optional[int] = None,
+                clear_end_date: bool = False,
+        ):
+                pass
+
+        @abstractmethod
+        def delete_accomplishment(self, accomplishment_id: int):
                 pass
 
 class SqlAlchemyRepository(AbstractRepository):
@@ -309,5 +339,54 @@ class SqlAlchemyRepository(AbstractRepository):
         def delete_checklist_item(self, item_id: int):
                 self.session.execute(
                         delete(TaskChecklistItem).where(TaskChecklistItem.checklist_item_id == item_id)
+                )
+
+        def add_accomplishment(self, accomplishment: Accomplishment):
+                self.session.add(accomplishment)
+
+        def get_accomplishment_by_id(self, accomplishment_id: int) -> Optional[Accomplishment]:
+                return self.session.execute(
+                        select(Accomplishment).where(Accomplishment.accomplishment_id == accomplishment_id)
+                ).scalar_one_or_none()
+
+        def list_accomplishments_by_team(self, team_id: int) -> List[Accomplishment]:
+                return self.session.execute(
+                        select(Accomplishment)
+                        .where(Accomplishment.team_id == team_id)
+                        .order_by(Accomplishment.start_date.desc())
+                ).scalars().all()
+
+        def update_accomplishment(
+                self,
+                accomplishment_id: int,
+                *,
+                title: Optional[str] = None,
+                description: Optional[str] = None,
+                start_date=None,
+                end_date=None,
+                achieved_by_user_id: Optional[int] = None,
+                clear_end_date: bool = False,
+        ):
+                values = {}
+                if title is not None:
+                        values["title"] = title
+                if description is not None:
+                        values["description"] = description
+                if start_date is not None:
+                        values["start_date"] = start_date
+                if clear_end_date:
+                        values["end_date"] = None
+                elif end_date is not None:
+                        values["end_date"] = end_date
+                if achieved_by_user_id is not None:
+                        values["achieved_by_user_id"] = achieved_by_user_id
+                if values:
+                        self.session.execute(
+                                update(Accomplishment).where(Accomplishment.accomplishment_id == accomplishment_id).values(**values)
+                        )
+
+        def delete_accomplishment(self, accomplishment_id: int):
+                self.session.execute(
+                        delete(Accomplishment).where(Accomplishment.accomplishment_id == accomplishment_id)
                 )
 

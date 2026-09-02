@@ -15,6 +15,10 @@ def register_routes(app):
         app.add_url_rule("/work/tasks/<int:task_id>/items/add", "work_tasks_items_add", work_tasks_items_add, methods=["POST"])
         app.add_url_rule("/work/tasks/<int:task_id>/items/<int:item_id>/toggle", "work_tasks_items_toggle", work_tasks_items_toggle, methods=["POST"])
         app.add_url_rule("/work/tasks/<int:task_id>/items/<int:item_id>/remove", "work_tasks_items_remove", work_tasks_items_remove, methods=["POST"])
+        app.add_url_rule("/work/accomplishments", "work_accomplishments", work_accomplishments)
+        app.add_url_rule("/work/accomplishments/create", "work_accomplishments_create", work_accomplishments_create, methods=["POST"])
+        app.add_url_rule("/work/accomplishments/<int:accomplishment_id>/edit", "work_accomplishments_edit", work_accomplishments_edit, methods=["POST"])
+        app.add_url_rule("/work/accomplishments/<int:accomplishment_id>/delete", "work_accomplishments_delete", work_accomplishments_delete, methods=["POST"])
 
 
 def _optional_date(value):
@@ -150,3 +154,84 @@ def work_tasks_items_remove(task_id, item_id):
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_tasks"))
+
+
+@login_required
+@handle_errors
+def work_accomplishments():
+        uow = new_uow()
+        with uow:
+                accomplishments = services.list_accomplishments(uow, current_user.id)
+                all_teams = services.list_teams(uow)
+                all_users = uow.users.list_all()
+                managed = all_teams if is_management_role(current_user.role) else []
+                team_labels = {team.team_id: team.name for team in all_teams}
+                user_labels = {u.user_id: (u.profile.full_name or u.email) for u in all_users}
+                users = sorted(all_users, key=lambda u: (u.profile.full_name or u.email).lower())
+                return render_template(
+                        "work_accomplishments.html",
+                        accomplishments=accomplishments,
+                        teams=managed,
+                        users=users,
+                        team_labels=team_labels,
+                        user_labels=user_labels,
+                        user_role=current_user.role,
+                )
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_accomplishments_create():
+        uow = new_uow()
+        try:
+                services.create_accomplishment(
+                        uow,
+                        current_user.id,
+                        team_id=request.form.get("team_id"),
+                        title=request.form.get("title"),
+                        description=request.form.get("description"),
+                        start_date=_optional_date(request.form.get("start_date")),
+                        end_date=_optional_date(request.form.get("end_date")),
+                        achieved_by_user_id=request.form.get("achieved_by_user_id") or None,
+                )
+                flash("Conquista registrada.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_accomplishments"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_accomplishments_edit(accomplishment_id):
+        uow = new_uow()
+        try:
+                services.edit_accomplishment(
+                        uow,
+                        current_user.id,
+                        accomplishment_id,
+                        title=request.form.get("title") or None,
+                        description=request.form.get("description") or None,
+                        start_date=_optional_date(request.form.get("start_date")),
+                        end_date=_optional_date(request.form.get("end_date")),
+                        achieved_by_user_id=request.form.get("achieved_by_user_id") or None,
+                        clear_end_date=request.form.get("clear_end_date") in ("1", "true", "on"),
+                )
+                flash("Conquista atualizada.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_accomplishments"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_accomplishments_delete(accomplishment_id):
+        uow = new_uow()
+        try:
+                services.delete_accomplishment(uow, current_user.id, accomplishment_id)
+                flash("Conquista excluída.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_accomplishments"))

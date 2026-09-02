@@ -84,6 +84,20 @@ class TaskChecklistItem:
 
 
 @dataclass
+class Accomplishment:
+        """A team accomplishment recorded over a date period (open-ended allowed)."""
+        team_id: int
+        title: str
+        description: Optional[str] = None
+        start_date: date = None
+        end_date: Optional[date] = None
+        achieved_by_user_id: Optional[int] = None
+        created_by: Optional[int] = None
+        created_at: datetime = field(default_factory=datetime.now)
+        accomplishment_id: Optional[int] = None
+
+
+@dataclass
 class WorkSchedule:
         user_id: int
         expected_arrival: time

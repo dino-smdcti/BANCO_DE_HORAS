@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-trophy"></i> Conquistas</h1>
+    {% if user_role in MANAGEMENT_ROLES %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAccomplishmentModal">
+        <i class="bi bi-plus-lg"></i> Nova conquista
+    </button>
+    {% endif %}
+</div>
+
+{% if user_role in MANAGEMENT_ROLES %}
+<div class="modal fade" id="createAccomplishmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('work_accomplishments_create') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova conquista</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Time</label>
+                            <select name="team_id" class="form-select" required>
+                                {% for team in teams %}
+                                <option value="{{ team.team_id }}">{{ team.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Realizada por</label>
+                            <select name="achieved_by_user_id" class="form-select">
+                                <option value="">—</option>
+                                {% for user in users %}
+                                <option value="{{ user.user_id }}">{{ user.profile.full_name or user.email }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Início</label>
+                            <input type="date" name="start_date" class="form-control" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Fim <small class="text-muted">(opcional)</small></label>
+                            <input type="date" name="end_date" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not accomplishments %}
+<div class="card shadow-sm">
+    <div class="card-body text-center text-muted py-5">Nenhuma conquista registrada.</div>
+</div>
+{% else %}
+<div class="row">
+    {% for acc in accomplishments %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title mb-1"><i class="bi bi-trophy text-warning"></i> {{ acc.title }}</h5>
+                    <span class="badge {{ 'bg-success' if acc.end_date else 'bg-info text-dark' }}">
+                        {% if acc.end_date %}Concluída{% else %}Em andamento{% endif %}
+                    </span>
+                </div>
+                {% if acc.description %}
+                <p class="card-text text-muted small">{{ acc.description }}</p>
+                {% endif %}
+                <div class="small text-muted mb-2">
+                    <i class="bi bi-diagram-3"></i> {{ team_labels.get(acc.team_id, '—') }}
+                    {% if acc.achieved_by_user_id %}
+                    · <i class="bi bi-person"></i> {{ user_labels.get(acc.achieved_by_user_id, '—') }}
+                    {% endif %}
+                    · <i class="bi bi-calendar-range"></i>
+                    {{ acc.start_date.strftime('%d/%m/%Y') }}
+                    {% if acc.end_date %}
+                    → {{ acc.end_date.strftime('%d/%m/%Y') }}
+                    {% else %}
+                    → em aberto
+                    {% endif %}
+                </div>
+
+                {% if user_role in MANAGEMENT_ROLES %}
+                <div class="d-flex gap-2 mt-2">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editAccomplishmentModal{{ acc.accomplishment_id }}">
+                        <i class="bi bi-pencil"></i> Editar
+                    </button>
+                    <form method="POST" action="{{ url_for('work_accomplishments_delete', accomplishment_id=acc.accomplishment_id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir esta conquista?');"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+
+                <div class="modal fade" id="editAccomplishmentModal{{ acc.accomplishment_id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="POST" action="{{ url_for('work_accomplishments_edit', accomplishment_id=acc.accomplishment_id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Editar conquista</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Título</label>
+                                        <input type="text" name="title" class="form-control" value="{{ acc.title }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Descrição</label>
+                                        <textarea name="description" class="form-control" rows="2">{{ acc.description or '' }}</textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Realizada por</label>
+                                        <select name="achieved_by_user_id" class="form-select">
+                                            <option value="">—</option>
+                                            {% for user in users %}
+                                            <option value="{{ user.user_id }}" {% if user.user_id == acc.achieved_by_user_id %}selected{% endif %}>{{ user.profile.full_name or user.email }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label">Início</label>
+                                            <input type="date" name="start_date" class="form-control" value="{{ acc.start_date.isoformat() }}" required>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label">Fim <small class="text-muted">(opcional)</small></label>
+                                            <input type="date" name="end_date" class="form-control" value="{{ acc.end_date.isoformat() if acc.end_date else '' }}">
+                                        </div>
+                                    </div>
+                                    {% if acc.end_date %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="clear_end_date" value="on" id="clearEnd{{ acc.accomplishment_id }}">
+                                        <label class="form-check-label" for="clearEnd{{ acc.accomplishment_id }}">Reabrir (sem data de fim)</label>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-primary">Salvar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
