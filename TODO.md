@@ -170,7 +170,7 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 ## Phase W — "Magic button" mode switch (navbar day/night-style switch)
 - [x] Second palette in `style.css` under `[data-app-mode="work"]` (professional navy/slate corps theme overriding brand custom properties)
 - [x] Auto-detect: clock pages = `clock` mode; `/work/*` pages = `work` mode (path-driven, always applied — direct visits always show the correct palette/nav)
-- [x] Navbar switch control (`.app-mode-switch`, day/night style) replaces the floating button: clock nav shows "Workforce" (before Dados), work nav shows "Voltar ao Ponto" (before Dados); rendered only when `WORKFORCE_ENABLED`
+- [x] Navbar switch control (`.app-mode-switch`, rendered as a labelled day/night-style toggle switch, not a button/link) replaces the floating button: clock nav shows "Workforce" (before Dados), work nav shows "Voltar ao Ponto" (before Dados); knob slides to reflect the active mode (`data-mode`); rendered only when `WORKFORCE_ENABLED`
 - [x] Work mode uses its own dedicated navbar (Workforce brand + Tarefas/Conquistas/Ideias/Equipes/5S/Cultura/Executivo/Notas); clock mode shows only the clock nav — no mixed/crowded links
 - [x] Gate behind env flag `WORKFORCE_ENABLED` (false default) for soft-launch/instant rollback; switch hidden when disabled
 - [x] Parity tests: work/clock nav isolation, palette always-on by path, switch present/absent by flag (TestWorkforceMode expanded)
