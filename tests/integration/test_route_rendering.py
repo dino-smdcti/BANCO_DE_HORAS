@@ -701,3 +701,57 @@ class TestWorkAccomplishments:
             data={"team_id": "1", "title": "X", "start_date": "2026-01-01"},
         )
         assert r.status_code == 302
+
+
+# ===================================================================
+# WORK IDEAS / KAIZEN
+# ===================================================================
+
+class TestWorkIdeas:
+    def test_ideas_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_wi@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/ideas")
+        assert r.status_code == 200
+        assert "Ideias".encode("utf-8") in r.data
+
+    def test_ideas_page_shows_created_idea(self, client, uow):
+        emp_id = _create_user(uow, "emp_wi2@test.com", role="employee")
+        with uow:
+            team_id = emp_team = uow.users.get_user_by_id(emp_id).team_id
+            from src.service_layer.idea_service import create_idea
+            create_idea(uow, emp_id, team_id=team_id, title="Ideia visível", category="idea")
+        _login(client, emp_id)
+        r = client.get("/work/ideas")
+        assert r.status_code == 200
+        assert "Ideia visível".encode("utf-8") in r.data
+
+    def test_ideas_page_filters_by_kaizen(self, client, uow):
+        uid = _create_user(uow, "emp_wk@test.com", role="employee")
+        with uow:
+            team_id = uow.users.get_user_by_id(uid).team_id
+            from src.service_layer.idea_service import create_idea
+            create_idea(uow, uid, team_id=team_id, title="Melhoria kaizen", category="kaizen")
+        _login(client, uid)
+        r = client.get("/work/ideas?category=kaizen")
+        assert r.status_code == 200
+        assert "Melhoria kaizen".encode("utf-8") in r.data
+
+    def test_ideas_vote_and_status_endpoints(self, client, uow):
+        emp_id = _create_user(uow, "emp_wiv@test.com", role="employee")
+        mgr_id = _create_user(uow, "mgr_wiv@test.com", role="manager")
+        with uow:
+            team_id = uow.users.get_user_by_id(emp_id).team_id
+            from src.service_layer.idea_service import create_idea
+            idea = create_idea(uow, emp_id, team_id=team_id, title="Votar")
+            idea_id = idea.idea_id
+        _login(client, emp_id)
+        r = client.post(f"/work/ideas/{idea_id}/vote")
+        assert r.status_code == 302
+        _login(client, mgr_id)
+        r = client.post(f"/work/ideas/{idea_id}/status", data={"status": "implemented"})
+        assert r.status_code == 302
+        with uow:
+            from src.domain.model import Idea
+            updated = uow.users.get_idea_by_id(idea_id)
+            assert updated.status == "implemented"

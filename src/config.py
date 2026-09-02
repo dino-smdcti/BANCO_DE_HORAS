@@ -334,6 +334,18 @@ TASK_STATUS_IN_PROGRESS = "in_progress"
 TASK_STATUS_DONE = "done"
 TASK_STATUS_CANCELLED = "cancelled"
 
+# Workforce idea/kaizen statuses (KAIZEN uses `implemented`).
+IDEA_STATUSES = ["open", "under_review", "implemented", "declined"]
+IDEA_STATUS_OPEN = "open"
+IDEA_STATUS_UNDER_REVIEW = "under_review"
+IDEA_STATUS_IMPLEMENTED = "implemented"
+IDEA_STATUS_DECLINED = "declined"
+
+# Workforce idea categories.
+IDEA_CATEGORIES = ["idea", "kaizen"]
+IDEA_CATEGORY_IDEA = "idea"
+IDEA_CATEGORY_KAIZEN = "kaizen"
+
 # Anomaly decision actions.
 ANOMALY_ACTION_APPROVE = "approve"
 ANOMALY_ACTION_EXCUSE = "excuse"

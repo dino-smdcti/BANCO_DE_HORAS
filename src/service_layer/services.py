@@ -9,6 +9,14 @@ from src.service_layer.accomplishment_service import (
 from src.service_layer.attestation_service import add_attestation, remove_attestation_day
 from src.service_layer.facultativo_service import add_facultativo
 from src.service_layer.holiday_service import add_holiday, seed_holidays
+from src.service_layer.idea_service import (
+        create_idea,
+        delete_idea,
+        get_idea,
+        list_ideas,
+        set_idea_status,
+        vote_idea,
+)
 from src.service_layer.settings_service import get_start_analysis_date
 from src.service_layer.team_service import assign_user_team, create_team, list_team_members, list_teams
 from src.service_layer.task_service import (
@@ -67,10 +75,12 @@ __all__ = [
         "add_vacation",
         "clock_in_out",
         "create_accomplishment",
+        "create_idea",
         "create_journey_type",
         "create_team",
         "create_task",
         "delete_accomplishment",
+        "delete_idea",
         "delete_journey_type",
         "delete_ponto_entry",
         "delete_task",
@@ -85,10 +95,12 @@ __all__ = [
         "generate_excel_report",
         "get_accomplishment",
         "get_all_employees",
+        "get_idea",
         "get_journey_type",
         "get_start_analysis_date",
         "get_task",
         "list_accomplishments",
+        "list_ideas",
         "list_journey_types",
         "list_pending_corrections",
         "list_team_members",
@@ -105,6 +117,7 @@ __all__ = [
         "review_anomaly_badge",
         "review_correction_request",
         "seed_holidays",
+        "set_idea_status",
         "set_work_schedule",
         "submit_correction_request",
         "toggle_checklist_item",
@@ -112,4 +125,5 @@ __all__ = [
         "update_journey_type",
         "update_task_status",
         "update_user_profile",
+        "vote_idea",
 ]

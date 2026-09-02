@@ -98,6 +98,29 @@ class Accomplishment:
 
 
 @dataclass
+class Idea:
+        """A brainstorming idea or kaizen (improvement) posted by a team member."""
+        team_id: int
+        title: str
+        author_user_id: int
+        category: str = "idea"
+        description: Optional[str] = None
+        status: str = "open"
+        review_date: Optional[date] = None
+        review_owner: Optional[str] = None
+        created_at: datetime = field(default_factory=datetime.now)
+        idea_id: Optional[int] = None
+
+
+@dataclass
+class IdeaVote:
+        """A single vote for an idea; one per (idea_id, voter_id)."""
+        idea_id: int
+        voter_user_id: int
+        vote_id: Optional[int] = None
+
+
+@dataclass
 class WorkSchedule:
         user_id: int
         expected_arrival: time

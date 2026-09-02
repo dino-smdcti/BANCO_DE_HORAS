@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0"><i class="bi bi-lightbulb"></i> Ideias &amp; Kaizen</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('work_ideas') }}" class="btn btn-sm {{ 'btn-outline-primary' if category else 'btn-primary' }}">Todas</a>
+        <a href="{{ url_for('work_ideas', category='idea') }}" class="btn btn-sm {{ 'btn-primary' if category == 'idea' else 'btn-outline-primary' }}">Ideias</a>
+        <a href="{{ url_for('work_ideas', category='kaizen') }}" class="btn btn-sm {{ 'btn-primary' if category == 'kaizen' else 'btn-outline-primary' }}">Kaizen</a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createIdeaModal">
+            <i class="bi bi-plus-lg"></i> Nova ideia
+        </button>
+    </div>
+</div>
+
+<div class="modal fade" id="createIdeaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('work_ideas_create') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nova ideia</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Categoria</label>
+                        <select name="category" class="form-select">
+                            <option value="idea">Ideia</option>
+                            <option value="kaizen">Kaizen (melhoria)</option>
+                        </select>
+                    </div>
+                    {% if user_role in MANAGEMENT_ROLES %}
+                    <div class="mb-3">
+                        <label class="form-label">Time</label>
+                        <select name="team_id" class="form-select" required>
+                            {% for team in teams %}
+                            <option value="{{ team.team_id }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descrição</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Postar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% if not ideas %}
+<div class="card shadow-sm">
+    <div class="card-body text-center text-muted py-5">Nenhuma ideia por aqui.</div>
+</div>
+{% else %}
+<div class="row">
+    {% for idea in ideas %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="card-title mb-1">
+                            {% if idea.category == 'kaizen' %}<i class="bi bi-gear-wide-connected text-success"></i> Kaizen: {% else %}<i class="bi bi-lightbulb text-warning"></i>{% endif %}
+                            {{ idea.title }}
+                        </h5>
+                        <div class="small text-muted">
+                            <i class="bi bi-diagram-3"></i> {{ team_labels.get(idea.team_id, '—') }}
+                            · <i class="bi bi-person"></i> {{ author_labels.get(idea.author_user_id, '—') }}
+                            {% if idea.review_date %}
+                            · <i class="bi bi-calendar-check"></i> revisão {{ idea.review_date.strftime('%d/%m/%Y') }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="badge {{ 'bg-success' if idea.status == 'implemented' else 'bg-warning text-dark' if idea.status == 'under_review' else 'bg-danger' if idea.status == 'declined' else 'bg-primary' }}">
+                        {% if idea.status == 'implemented' %}Implementada{% elif idea.status == 'under_review' %}Em análise{% elif idea.status == 'declined' %}Recusada{% else %}Aberta{% endif %}
+                    </span>
+                </div>
+                {% if idea.description %}
+                <p class="card-text text-muted small mt-2">{{ idea.description }}</p>
+                {% endif %}
+
+                <div class="d-flex align-items-center gap-2 mt-3">
+                    <form method="POST" action="{{ url_for('work_ideas_vote', idea_id=idea.idea_id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm {{ 'btn-success' if idea.idea_id in voted_idea_ids else 'btn-outline-success' }}">
+                            <i class="bi bi-hand-thumbs-up"></i> {{ idea.votes|length }}
+                        </button>
+                    </form>
+                </div>
+
+                {% if user_role in MANAGEMENT_ROLES %}
+                <hr class="my-2">
+                <form method="POST" action="{{ url_for('work_ideas_status', idea_id=idea.idea_id) }}" class="d-flex gap-2 flex-wrap align-items-center">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="status" class="form-select form-select-sm" style="width:auto;">
+                        <option value="open" {% if idea.status == 'open' %}selected{% endif %}>Aberta</option>
+                        <option value="under_review" {% if idea.status == 'under_review' %}selected{% endif %}>Em análise</option>
+                        <option value="implemented" {% if idea.status == 'implemented' %}selected{% endif %}>Implementada</option>
+                        <option value="declined" {% if idea.status == 'declined' %}selected{% endif %}>Recusada</option>
+                    </select>
+                    <input type="date" name="review_date" class="form-control form-control-sm" style="width:auto;" value="{{ idea.review_date.isoformat() if idea.review_date else '' }}">
+                    <input type="text" name="review_owner" class="form-control form-control-sm" style="width:auto;" placeholder="Responsável" value="{{ idea.review_owner or '' }}">
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Aplicar</button>
+                </form>
+                {% endif %}
+
+                {% if user_role in MANAGEMENT_ROLES or idea.author_user_id == current_user.id %}
+                <form method="POST" action="{{ url_for('work_ideas_delete', idea_id=idea.idea_id) }}" class="mt-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir esta ideia?');"><i class="bi bi-trash"></i> Excluir</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

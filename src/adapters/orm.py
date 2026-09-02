@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -104,6 +104,30 @@ accomplishments = Table(
     Column("achieved_by_user_id", Integer, ForeignKey("users.id"), nullable=True),
     Column("created_by", Integer, ForeignKey("users.id"), nullable=True),
     Column("created_at", DateTime, default=datetime.now, nullable=False),
+)
+
+ideas = Table(
+    "ideas",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("team_id", Integer, ForeignKey("teams.id"), nullable=False),
+    Column("title", String(NAME_COLUMN_LENGTH), nullable=False),
+    Column("author_user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("category", String(32), default="idea", nullable=False),
+    Column("description", String(NOTES_COLUMN_LENGTH), nullable=True),
+    Column("status", String(32), default="open", nullable=False),
+    Column("review_date", Date, nullable=True),
+    Column("review_owner", String(NAME_COLUMN_LENGTH), nullable=True),
+    Column("created_at", DateTime, default=datetime.now, nullable=False),
+)
+
+idea_votes = Table(
+    "idea_votes",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("idea_id", Integer, ForeignKey("ideas.id"), nullable=False),
+    Column("voter_user_id", Integer, ForeignKey("users.id"), nullable=False),
+    UniqueConstraint("idea_id", "voter_user_id", name="unique_idea_voter"),
 )
 
 audit_logs = Table(
@@ -389,4 +413,17 @@ def start_mappers():
                 Accomplishment,
                 accomplishments,
                 properties=_column_properties(accomplishments.c.id, "accomplishment_id"),
+        )
+        mapper_registry.map_imperatively(
+                Idea,
+                ideas,
+                properties={
+                        **_column_properties(ideas.c.id, "idea_id"),
+                        "votes": relationship(IdeaVote, cascade="all, delete-orphan"),
+                },
+        )
+        mapper_registry.map_imperatively(
+                IdeaVote,
+                idea_votes,
+                properties=_column_properties(idea_votes.c.id, "vote_id"),
         )

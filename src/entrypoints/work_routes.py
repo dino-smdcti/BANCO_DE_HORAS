@@ -19,6 +19,11 @@ def register_routes(app):
         app.add_url_rule("/work/accomplishments/create", "work_accomplishments_create", work_accomplishments_create, methods=["POST"])
         app.add_url_rule("/work/accomplishments/<int:accomplishment_id>/edit", "work_accomplishments_edit", work_accomplishments_edit, methods=["POST"])
         app.add_url_rule("/work/accomplishments/<int:accomplishment_id>/delete", "work_accomplishments_delete", work_accomplishments_delete, methods=["POST"])
+        app.add_url_rule("/work/ideas", "work_ideas", work_ideas)
+        app.add_url_rule("/work/ideas/create", "work_ideas_create", work_ideas_create, methods=["POST"])
+        app.add_url_rule("/work/ideas/<int:idea_id>/vote", "work_ideas_vote", work_ideas_vote, methods=["POST"])
+        app.add_url_rule("/work/ideas/<int:idea_id>/status", "work_ideas_status", work_ideas_status, methods=["POST"])
+        app.add_url_rule("/work/ideas/<int:idea_id>/delete", "work_ideas_delete", work_ideas_delete, methods=["POST"])
 
 
 def _optional_date(value):
@@ -235,3 +240,100 @@ def work_accomplishments_delete(accomplishment_id):
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_accomplishments"))
+
+
+@login_required
+@handle_errors
+def work_ideas():
+        uow = new_uow()
+        with uow:
+                category = request.args.get("category")
+                ideas = services.list_ideas(uow, current_user.id, category)
+                all_teams = services.list_teams(uow)
+                all_users = uow.users.list_all()
+                scoped = all_teams if is_management_role(current_user.role) else []
+                team_labels = {team.team_id: team.name for team in all_teams}
+                author_labels = {u.user_id: (u.profile.full_name or u.email) for u in all_users}
+                teams = sorted(all_teams, key=lambda t: (t.name or "").lower())
+                voted_idea_ids = set()
+                for idea in ideas:
+                        idea.votes = [] if idea.votes is None else idea.votes
+                        if any(v.voter_user_id == current_user.id for v in idea.votes):
+                                voted_idea_ids.add(idea.idea_id)
+                return render_template(
+                        "work_ideas.html",
+                        ideas=ideas,
+                        teams=teams,
+                        team_labels=team_labels,
+                        author_labels=author_labels,
+                        category=category,
+                        user_role=current_user.role,
+                        voted_idea_ids=voted_idea_ids,
+                )
+
+
+@login_required
+@handle_errors
+def work_ideas_create():
+        uow = new_uow()
+        try:
+                team_id = request.form.get("team_id")
+                if not team_id:
+                        with uow:
+                                team_id = uow.users.get_user_by_id(current_user.id).team_id
+                services.create_idea(
+                        uow,
+                        current_user.id,
+                        team_id=team_id,
+                        title=request.form.get("title"),
+                        category=request.form.get("category") or "idea",
+                        description=request.form.get("description"),
+                )
+                flash("Ideia postada.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_ideas"))
+
+
+@login_required
+@handle_errors
+def work_ideas_vote(idea_id):
+        uow = new_uow()
+        try:
+                voted = services.vote_idea(uow, current_user.id, idea_id)
+                flash("Voto registrado." if voted else "Voto removido.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(request.referrer or url_for("work_ideas"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def work_ideas_status(idea_id):
+        uow = new_uow()
+        try:
+                services.set_idea_status(
+                        uow,
+                        current_user.id,
+                        idea_id,
+                        request.form.get("status"),
+                        review_date=_optional_date(request.form.get("review_date")),
+                        review_owner=request.form.get("review_owner"),
+                )
+                flash("Status atualizado.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_ideas"))
+
+
+@login_required
+@handle_errors
+def work_ideas_delete(idea_id):
+        uow = new_uow()
+        try:
+                services.delete_idea(uow, current_user.id, idea_id)
+                flash("Ideia excluída.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("work_ideas"))

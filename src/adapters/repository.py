@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime, date
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session, selectinload
-from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment
+from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote
 
 class AbstractRepository(ABC):
         @abstractmethod
@@ -153,6 +153,50 @@ class AbstractRepository(ABC):
 
         @abstractmethod
         def delete_accomplishment(self, accomplishment_id: int):
+                pass
+
+        @abstractmethod
+        def add_idea(self, idea: Idea):
+                pass
+
+        @abstractmethod
+        def get_idea_by_id(self, idea_id: int) -> Optional[Idea]:
+                pass
+
+        @abstractmethod
+        def list_ideas_by_team(self, team_id: int) -> List[Idea]:
+                pass
+
+        @abstractmethod
+        def update_idea(
+                self,
+                idea_id: int,
+                *,
+                status: Optional[str] = None,
+                review_date=None,
+                review_owner: Optional[str] = None,
+                clear_review: bool = False,
+        ):
+                pass
+
+        @abstractmethod
+        def delete_idea(self, idea_id: int):
+                pass
+
+        @abstractmethod
+        def add_idea_vote(self, vote: IdeaVote) -> Optional[IdeaVote]:
+                pass
+
+        @abstractmethod
+        def get_idea_vote(self, idea_id: int, voter_user_id: int) -> Optional[IdeaVote]:
+                pass
+
+        @abstractmethod
+        def delete_idea_vote(self, vote_id: int):
+                pass
+
+        @abstractmethod
+        def count_idea_votes(self, idea_id: int) -> int:
                 pass
 
 class SqlAlchemyRepository(AbstractRepository):
@@ -389,4 +433,76 @@ class SqlAlchemyRepository(AbstractRepository):
                 self.session.execute(
                         delete(Accomplishment).where(Accomplishment.accomplishment_id == accomplishment_id)
                 )
+
+        def add_idea(self, idea: Idea):
+                self.session.add(idea)
+
+        def get_idea_by_id(self, idea_id: int) -> Optional[Idea]:
+                return self.session.execute(
+                        select(Idea)
+                        .where(Idea.idea_id == idea_id)
+                        .options(selectinload(Idea.votes))
+                ).scalar_one_or_none()
+
+        def list_ideas_by_team(self, team_id: int) -> List[Idea]:
+                return self.session.execute(
+                        select(Idea)
+                        .where(Idea.team_id == team_id)
+                        .options(selectinload(Idea.votes))
+                        .order_by(Idea.created_at.desc())
+                ).scalars().all()
+
+        def update_idea(
+                self,
+                idea_id: int,
+                *,
+                status: Optional[str] = None,
+                review_date=None,
+                review_owner: Optional[str] = None,
+                clear_review: bool = False,
+        ):
+                values = {}
+                if status is not None:
+                        values["status"] = status
+                if clear_review:
+                        values["review_date"] = None
+                        values["review_owner"] = None
+                else:
+                        if review_date is not None:
+                                values["review_date"] = review_date
+                        if review_owner is not None:
+                                values["review_owner"] = review_owner
+                if values:
+                        self.session.execute(
+                                update(Idea).where(Idea.idea_id == idea_id).values(**values)
+                        )
+
+        def delete_idea(self, idea_id: int):
+                self.session.execute(
+                        delete(Idea).where(Idea.idea_id == idea_id)
+                )
+
+        def add_idea_vote(self, vote: IdeaVote) -> Optional[IdeaVote]:
+                self.session.add(vote)
+                return vote
+
+        def get_idea_vote(self, idea_id: int, voter_user_id: int) -> Optional[IdeaVote]:
+                return self.session.execute(
+                        select(IdeaVote).where(
+                                IdeaVote.idea_id == idea_id,
+                                IdeaVote.voter_user_id == voter_user_id,
+                        )
+                ).scalar_one_or_none()
+
+        def delete_idea_vote(self, vote_id: int):
+                self.session.execute(
+                        delete(IdeaVote).where(IdeaVote.vote_id == vote_id)
+                )
+
+        def count_idea_votes(self, idea_id: int) -> int:
+                return self.session.execute(
+                        select(func.count())
+                        .select_from(IdeaVote)
+                        .where(IdeaVote.idea_id == idea_id)
+                ).scalar_one()
 
