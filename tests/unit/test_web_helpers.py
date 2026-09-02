@@ -9,6 +9,7 @@ from src.entrypoints.web_helpers import (
         parse_time,
         parse_time_arg,
         redirect_to_employee_logs,
+        render_markdown,
 )
 from src.config import DATE_FORMAT, TIME_FORMAT
 
@@ -70,6 +71,39 @@ class TestRedirectHelpers(unittest.TestCase):
                         self.assertEqual(response.status_code, 302)
                         self.assertIn("/dashboard", response.headers["Location"])
                         self.assertIn(("warning", "Ops"), list(session.get("_flashes", [])))
+
+
+class TestMarkdownRendering(unittest.TestCase):
+        def test_render_markdown_empty(self):
+                self.assertEqual(str(render_markdown("")), "")
+                self.assertEqual(str(render_markdown(None)), "")
+
+        def test_render_markdown_inline(self):
+                out = str(render_markdown("**negrito** e [link](https://ex.com)"))
+                self.assertIn("<strong>negrito</strong>", out)
+                self.assertIn('<a href="https://ex.com"', out)
+                self.assertEqual(out.count("<p>"), 1)
+
+        def test_render_markdown_headers_and_lists(self):
+                out = str(render_markdown("# Titulo\n\n- item a\n- item b"))
+                self.assertIn("<h1>Titulo</h1>", out)
+                self.assertIn("<ul>", out)
+                self.assertIn("<li>item a</li>", out)
+
+        def test_render_markdown_strips_unsafe_html(self):
+                out = str(render_markdown("<script>alert(1)</script>TEXTO"))
+                self.assertNotIn("<script>", out)
+                self.assertIn("TEXTO", out)
+
+        def test_render_markdown_strips_event_handlers(self):
+                out = str(render_markdown("<img src=x onerror=alert(1)>"))
+                self.assertNotIn("onerror", out)
+
+        def test_render_markdown_returns_markup_safe(self):
+                allocated = render_markdown("**a**")
+                from markupsafe import Markup
+
+                self.assertIsInstance(allocated, Markup)
 
 
 if __name__ == "__main__":

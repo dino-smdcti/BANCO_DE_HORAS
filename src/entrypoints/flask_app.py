@@ -15,7 +15,7 @@ import smtplib
 from sqlalchemy import create_engine
 
 from src.adapters.orm import start_mappers
-from src.entrypoints import admin_routes, auth_routes, employee_routes, manager_routes, work_routes
+from src.entrypoints import admin_routes, auth_routes, employee_routes, manager_routes, web_helpers, work_routes
 from src.service_layer import services
 from src.service_layer.absence_processor import process_daily_absences
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork, resolve_database_url
@@ -60,6 +60,7 @@ def _resolve_secret_key(environ):
 
 
 app = Flask(__name__, template_folder="templates")
+app.add_template_filter(web_helpers.render_markdown, name="markdown")
 app.config["SECRET_KEY"] = _resolve_secret_key(os.environ)
 app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER", DEFAULT_SMTP_SERVER)
 app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", DEFAULT_SMTP_PORT))

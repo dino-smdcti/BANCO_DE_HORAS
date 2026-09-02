@@ -837,6 +837,26 @@ class TestWorkWiki:
         r = client.get("/work/culture/wiki")
         assert "Guia".encode("utf-8") in r.data
 
+    def test_wiki_body_renders_markdown(self, client, uow):
+        emp_id = _create_user(uow, "emp_wikc@test.com", role="employee")
+        _login(client, emp_id)
+        body = "# Título\n\n**negrito** e [link](https://exemplo.com)"
+        client.post("/work/culture/wiki/create", data={"title": "Md", "body": body})
+        r = client.get("/work/culture/wiki")
+        assert "<h1>Título</h1>".encode("utf-8") in r.data
+        assert "<strong>negrito</strong>".encode("utf-8") in r.data
+        assert 'href="https://exemplo.com"'.encode("utf-8") in r.data
+
+    def test_wiki_body_strips_unsafe_html(self, client, uow):
+        emp_id = _create_user(uow, "emp_wikd@test.com", role="employee")
+        _login(client, emp_id)
+        body = "MARCADOR-DESATIVADO<script>alert(1)</script><img src=x onerror=alert(2)>TEXTO"
+        client.post("/work/culture/wiki/create", data={"title": "Seg", "body": body})
+        r = client.get("/work/culture/wiki")
+        assert b'<img src=x onerror=' not in r.data
+        assert "<h1>a</h1>".encode("utf-8") not in r.data
+        assert "TEXTO".encode("utf-8") in r.data
+
 
 class TestWorkMentoring:
     def test_mentoring_page_renders_for_employee(self, client, uow):

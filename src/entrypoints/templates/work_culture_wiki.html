@@ -28,7 +28,7 @@
                         </select>
                     </div>
                     <div class="mb-3"><label class="form-label">Título</label><input type="text" name="title" class="form-control" required></div>
-                    <div class="mb-3"><label class="form-label">Conteúdo</label><textarea name="body" class="form-control" rows="6" required></textarea></div>
+                    <div class="mb-3"><label class="form-label">Conteúdo <small class="text-muted">(suporta Markdown)</small></label><textarea name="body" class="form-control" rows="6" required></textarea></div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary">Publicar</button></div>
             </form>
@@ -58,7 +58,7 @@
                     {% if article.team_id %}<i class="bi bi-diagram-3"></i> {{ team_labels.get(article.team_id, '—') }}{% else %}<i class="bi bi-globe"></i> Público{% endif %}
                     · <i class="bi bi-person"></i> {{ author_labels.get(article.author_id, '—') }}
                 </p>
-                <div class="card-text small" style="white-space:pre-wrap;">{{ article.body }}</div>
+                <div class="card-text small prose">{{ article.body | markdown }}</div>
             </div>
         </div>
     </div>
@@ -71,7 +71,7 @@
                     <div class="modal-header"><h5 class="modal-title">Editar artigo</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                     <div class="modal-body">
                         <div class="mb-3"><label class="form-label">Título</label><input type="text" name="title" class="form-control" value="{{ article.title }}"></div>
-                        <div class="mb-3"><label class="form-label">Conteúdo</label><textarea name="body" class="form-control" rows="6">{{ article.body }}</textarea></div>
+                        <div class="mb-3"><label class="form-label">Conteúdo <small class="text-muted">(suporta Markdown)</small></label><textarea name="body" class="form-control" rows="6">{{ article.body }}</textarea></div>
                     </div>
                     <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="submit" class="btn btn-primary">Salvar</button></div>
                 </form>

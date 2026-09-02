@@ -1,11 +1,52 @@
 from datetime import datetime
 
+import markdown as _markdown
+import bleach as _bleach
+from markupsafe import Markup
+
 from flask import flash, redirect, url_for
 
 from src.config import DATE_FORMAT, MANAGEMENT_ROLES, MAPS_EMBED_URL, TIME_FORMAT
 
 MANAGEMENT_ROLES = MANAGEMENT_ROLES
 INVALID_DATE = object()
+
+# Allowed attributes/tags for rendered Markdown. Markdown output (headings,
+# lists, links, code, blockquotes, tables via the extra extension) is allowed;
+# anything risky (inline <script>, <iframe>, event handlers, etc.) is stripped.
+_ALLOWED_TAGS = [
+        "a", "abbr", "acronym", "b", "blockquote", "br", "code", "del", "em",
+        "h1", "h2", "h3", "h4", "h5", "h6", "hr", "i", "img", "li", "ol",
+        "p", "pre", "s", "strong", "sub", "sup", "table", "tbody", "td", "th",
+        "thead", "tr", "ul",
+]
+_ALLOWED_ATTRIBUTES = {
+        "a": ["href", "title"],
+        "img": ["src", "alt", "title"],
+        "abbr": ["title"],
+        "acronym": ["title"],
+        "td": ["align"],
+        "th": ["align"],
+}
+_ALLOWED_PROTOCOLS = ["http", "https", "mailto"]
+
+
+def render_markdown(source):
+    """Render a Markdown string to sanitized (safe) HTML for display."""
+    if not source:
+        return ""
+    html = _markdown.markdown(
+            source,
+            extensions=["extra", "sane_lists", "fenced_code"],
+        )
+    clean = _bleach.clean(
+            html,
+            tags=_ALLOWED_TAGS,
+            attributes=_ALLOWED_ATTRIBUTES,
+            protocols=_ALLOWED_PROTOCOLS,
+            strip=True,
+    )
+    return Markup(clean)
 
 
 def new_uow():

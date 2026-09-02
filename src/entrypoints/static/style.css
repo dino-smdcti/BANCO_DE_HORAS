@@ -316,3 +316,77 @@ html, body {
     transform-origin: center;
 }
 
+/* Rendered Markdown content (wiki body) */
+.prose {
+    color: inherit;
+    line-height: 1.6;
+    overflow-wrap: break-word;
+}
+.prose > :first-child {
+    margin-top: 0;
+}
+.prose > :last-child {
+    margin-bottom: 0;
+}
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+    margin: 1rem 0 0.5rem;
+    font-weight: 600;
+    line-height: 1.25;
+}
+.prose p {
+    margin: 0 0 0.75rem;
+}
+.prose ul,
+.prose ol {
+    margin: 0 0 0.75rem;
+    padding-left: 1.5rem;
+}
+.prose li {
+    margin: 0.25rem 0;
+}
+.prose pre {
+    background: var(--bg-muted);
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    overflow-x: auto;
+    margin: 0 0 0.75rem;
+}
+.prose code {
+    background: var(--bg-muted);
+    border-radius: var(--border-radius);
+    padding: 0.1rem 0.3rem;
+    font-size: 0.9em;
+}
+.prose pre code {
+    background: none;
+    padding: 0;
+}
+.prose blockquote {
+    border-left: 4px solid var(--border-color);
+    color: var(--text-muted);
+    margin: 0 0 0.75rem;
+    padding: 0.25rem 0.75rem;
+}
+.prose table {
+    border-collapse: collapse;
+    margin: 0 0 0.75rem;
+    width: 100%;
+}
+.prose th,
+.prose td {
+    border: var(--border-width) solid var(--border-color);
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+}
+.prose img {
+    max-width: 100%;
+    height: auto;
+}
+.prose a {
+    color: var(--primary);
+}
+
