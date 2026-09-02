@@ -163,9 +163,9 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [x] Tests: CRUD per entity + scope + audit
 
 ## Phase A7 — Dashboard executivo de Indicadores (KPIs)
-- [ ] Cross-team aggregation: members/task, open tasks, ideas implemented, accomplishments/period, avg 5S score, kudos
-- [ ] Routes `/work/exec/*`; ADMIN/GESTOR all, MANAGER own team, EMPLOYEE read-only own team
-- [ ] Tests: aggregation correctness by scope; coherent sources
+- [x] Cross-team aggregation: members/task, open tasks, ideas implemented, accomplishments/period, avg 5S score, kudos
+- [x] Routes `/work/exec/*`; ADMIN/GESTOR all, MANAGER own team, EMPLOYEE read-only own team
+- [x] Tests: aggregation correctness by scope; coherent sources
 
 ## Phase W — "Magic button" mode switch
 - [ ] Second palette in `style.css` under `[data-app-mode="work"]` (overrides brand custom properties)
