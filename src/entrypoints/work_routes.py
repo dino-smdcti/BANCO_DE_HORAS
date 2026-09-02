@@ -1,12 +1,17 @@
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from src.config import WORKFORCE_ENABLED
 from src.entrypoints.decorators import handle_errors, manager_required
 from src.entrypoints.web_helpers import INVALID_DATE, is_management_role, new_uow, parse_date
 from src.service_layer import services
 
 
 def register_routes(app):
+        if not WORKFORCE_ENABLED:
+                # Workforce expansion is behind a soft-launch gate; when disabled
+                # no /work/* routes are exposed and the module stays dormant.
+                return
         app.add_url_rule("/work/tasks", "work_tasks", work_tasks)
         app.add_url_rule("/work/tasks/create", "work_tasks_create", work_tasks_create, methods=["POST"])
         app.add_url_rule("/work/tasks/<int:task_id>/status", "work_tasks_status", work_tasks_status, methods=["POST"])

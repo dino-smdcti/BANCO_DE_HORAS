@@ -1,5 +1,9 @@
 import os
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
+# Enable the workforce module during tests so /work/* routes and the mode-switch
+# are exercised; the disable path is covered by a dedicated test that reloads
+# the config/work_routes modules with the flag cleared.
+os.environ.setdefault("WORKFORCE_ENABLED", "1")
 
 import pytest
 from sqlalchemy import create_engine

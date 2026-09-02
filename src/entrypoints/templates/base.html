@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-app-mode="{{ 'work' if request.path.startswith('/work') else 'clock' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,6 +11,10 @@
     {{ csrf_meta_tag() }}
 </head>
 <body>
+    {% if WORKFORCE_ENABLED %}
+    <span id="appModeWorkHome" data-url="{{ url_for('work_tasks') }}" hidden></span>
+    {% endif %}
+    <span id="appModeClockHome" data-url="{{ url_for('dashboard') }}" hidden></span>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
@@ -71,6 +75,7 @@
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
                             <i class="bi bi-calendar-check"></i> <span>Ponto</span>
                         </a>
+                        {% if WORKFORCE_ENABLED %}
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_tasks') }}">
                             <i class="bi bi-check2-square"></i> <span>Tarefas</span>
                         </a>
@@ -100,6 +105,7 @@
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_exec') }}">
                             <i class="bi bi-bar-chart-line"></i> <span>Executivo</span>
                         </a>
+                        {% endif %}
                         <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('profile') }}">
                             <i class="bi bi-person-gear"></i> <span>Dados</span>
                         </a>
@@ -174,6 +180,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='input_masks.js') }}"></script>
     <script src="{{ url_for('static', filename='main.js') }}?v={{ range(1, 1000000) | random }}"></script>
+    <script src="{{ url_for('static', filename='app_mode.js') }}"></script>
     <script>
         function markReadTrigger() { markRead("{{ url_for('mark_notifications_read') }}"); }
         function showConfirmModalTrigger(nextStage, scheduledTime, hasLunchBreak, lastClockTime, userRole) { 

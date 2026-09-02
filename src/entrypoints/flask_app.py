@@ -39,6 +39,7 @@ from src.config import (
         ROLE_MANAGER,
         SMTP_SSL_PORT,
         SMTP_TIMEOUT_SECONDS,
+        WORKFORCE_ENABLED,
 )
 
 load_dotenv()
@@ -191,6 +192,7 @@ def utility_processor():
                 MINUTES_PER_HOUR=MINUTES_PER_HOUR,
                 FALLBACK_ANALYSIS_DATE=FALLBACK_ANALYSIS_DATE,
                 DATE_FORMAT=DATE_FORMAT,
+                WORKFORCE_ENABLED=WORKFORCE_ENABLED,
         )
 
 

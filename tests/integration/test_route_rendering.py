@@ -937,3 +937,24 @@ class TestWorkExec:
         r = client.get(f"/work/exec/{team_id}")
         assert r.status_code == 200
         assert "Conquista visível".encode("utf-8") in r.data
+
+
+# ===================================================================
+# WORKFORCE MODE SWITCH (magic button)
+# ===================================================================
+
+class TestWorkforceMode:
+    def test_work_page_sets_work_app_mode(self, client, uow):
+        uid = _create_user(uow, "emp_mode@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/tasks")
+        assert r.status_code == 200
+        assert 'data-app-mode="work"'.encode("utf-8") in r.data
+
+    def test_dashboard_uses_clock_app_mode(self, client, uow):
+        uid = _create_user(uow, "emp_modeb@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/")
+        assert r.status_code in (200, 302)
+        if r.status_code == 200:
+            assert 'data-app-mode="clock"'.encode("utf-8") in r.data

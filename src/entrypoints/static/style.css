@@ -48,6 +48,46 @@
     --breakpoint-lg: 991.98px;
 }
 
+/* ------------------------------------------------------------------
+   Workforce mode ("magic button") palette.
+   When the root element carries data-app-mode="work", these override
+   the brand custom properties so the whole UI shifts to a work tone
+   while the clock/branch keeps the default brand.
+   ------------------------------------------------------------------ */
+[data-app-mode="work"] {
+    --bg-color: #F3F5F7;
+    --primary: #4A6CF7;
+    --secondary: #2B3E8F;
+    --accent: #1E2A5A;
+    --text-dark: #222A36;
+    --border-color: #d7dce3;
+    --text-muted: #5b6573;
+    --shadow-color: rgba(42, 62, 143, 0.3);
+    --pulse-primary-glow: rgba(74, 108, 247, 0.7);
+    --pulse-primary-glow-fade: rgba(74, 108, 247, 0);
+}
+
+/* Floating "magic button" that switches between the clock and workforce modes. */
+.app-mode-toggle {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 9999;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: none;
+    color: #ffffff;
+    background: var(--primary);
+    box-shadow: 0 0 0 0 var(--pulse-primary-glow);
+    font-size: 1.25rem;
+    animation: pulse-primary 2.5s infinite;
+}
+.app-mode-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
 html, body {
     margin: 0 !important;
     padding: 0 !important;

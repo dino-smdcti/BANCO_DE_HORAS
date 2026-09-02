@@ -4,6 +4,7 @@ Every hard-coded number, date, length, role, token lifetime, CSS-independent
 window size, SMTP setting, and domain rule default lives here so the whole
 application can be tuned in one place without hunting through the code.
 """
+import os
 from datetime import date
 
 
@@ -349,3 +350,12 @@ IDEA_CATEGORY_KAIZEN = "kaizen"
 # Anomaly decision actions.
 ANOMALY_ACTION_APPROVE = "approve"
 ANOMALY_ACTION_EXCUSE = "excuse"
+
+# --------------------------------------------------------------------------
+# Workforce soft-launch gate
+# --------------------------------------------------------------------------
+# The whole workforce expansion (tasks, accomplishments, ideas, teams, 5S,
+# culture, exec KPIs) is hidden behind this flag, defaulting to OFF so the
+# running production Banco de Horas is untouched until the operator opts in.
+# Set WORKFORCE_ENABLED=1 (or "true") in the environment to enable the module.
+WORKFORCE_ENABLED = os.environ.get("WORKFORCE_ENABLED", "").strip().lower() in ("1", "true", "yes", "on")
