@@ -186,6 +186,18 @@ class TeamEvent:
 
 
 @dataclass
+class ChangeLogNote:
+        """An entry in the internal release/patch-notes board."""
+        version_or_date: str
+        title: str
+        description: Optional[str] = None
+        category: str = "feature"
+        created_by: Optional[int] = None
+        created_at: datetime = field(default_factory=datetime.now)
+        changelog_id: Optional[int] = None
+
+
+@dataclass
 class WorkSchedule:
         user_id: int
         expected_arrival: time

@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Mentorship, Kudos, TeamEvent
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Mentorship, Kudos, TeamEvent, ChangeLogNote
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -192,6 +192,18 @@ team_events = Table(
     Column("title", String(NAME_COLUMN_LENGTH), nullable=False),
     Column("date", Date, nullable=False),
     Column("description", String(NOTES_COLUMN_LENGTH), nullable=True),
+    Column("created_at", DateTime, default=datetime.now, nullable=False),
+)
+
+changelog_notes = Table(
+    "changelog_notes",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("version_or_date", String(NAME_COLUMN_LENGTH), nullable=False),
+    Column("title", String(NAME_COLUMN_LENGTH), nullable=False),
+    Column("description", String(NOTES_COLUMN_LENGTH), nullable=True),
+    Column("category", String(NAME_COLUMN_LENGTH), nullable=False, default="feature"),
+    Column("created_by", Integer, ForeignKey("users.id"), nullable=True),
     Column("created_at", DateTime, default=datetime.now, nullable=False),
 )
 
@@ -508,3 +520,4 @@ def start_mappers():
         mapper_registry.map_imperatively(Mentorship, mentorships, properties=_column_properties(mentorships.c.id, "mentorship_id"))
         mapper_registry.map_imperatively(Kudos, kudos, properties=_column_properties(kudos.c.id, "kudo_id"))
         mapper_registry.map_imperatively(TeamEvent, team_events, properties=_column_properties(team_events.c.id, "event_id"))
+        mapper_registry.map_imperatively(ChangeLogNote, changelog_notes, properties=_column_properties(changelog_notes.c.id, "changelog_id"))

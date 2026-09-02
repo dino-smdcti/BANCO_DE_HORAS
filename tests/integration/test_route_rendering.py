@@ -958,3 +958,36 @@ class TestWorkforceMode:
         assert r.status_code in (200, 302)
         if r.status_code == 200:
             assert 'data-app-mode="clock"'.encode("utf-8") in r.data
+
+
+# ===================================================================
+# WORK CHANGELOG (release notes)
+# ===================================================================
+
+class TestWorkChangelog:
+    def test_changelog_page_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_chg@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/changelog")
+        assert r.status_code == 200
+        assert "Notas de Versão".encode("utf-8") in r.data
+
+    def test_changelog_shows_published_note(self, client, uow):
+        emp_id = _create_user(uow, "emp_chgb@test.com", role="employee")
+        with uow:
+            from src.service_layer.user_service import register_user
+            register_user(uow, "boss_chg@test.com", "pass", "gestor")
+            boss = uow.users.get_user_by_email("boss_chg@test.com")
+            uow.commit()
+            from src.service_layer.changelog_service import create_changelog_note
+            create_changelog_note(uow, boss.user_id, version_or_date="v2.4", title="Nota teste", description="Melhoria", category="feature")
+        _login(client, emp_id)
+        r = client.get("/work/changelog")
+        assert r.status_code == 200
+        assert "Nota teste".encode("utf-8") in r.data
+
+    def test_changelog_create_endpoint_manager_only(self, client, uow):
+        emp_id = _create_user(uow, "emp_chgc@test.com", role="employee")
+        _login(client, emp_id)
+        r = client.post("/work/changelog/create", data={"version_or_date": "v1", "title": "X", "category": "feature"})
+        assert r.status_code == 302

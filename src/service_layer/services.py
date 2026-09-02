@@ -24,6 +24,7 @@ from src.service_layer.culture_service import (
 )
 from src.service_layer.exec_service import list_exec_kpis
 from src.service_layer.attestation_service import add_attestation, remove_attestation_day
+from src.service_layer.changelog_service import create_changelog_note, delete_changelog_note, list_changelog_notes
 from src.service_layer.facultativo_service import add_facultativo
 from src.service_layer.holiday_service import add_holiday, seed_holidays
 from src.service_layer.idea_service import (
@@ -97,6 +98,7 @@ __all__ = [
         "clock_in_out",
         "complete_retroactive_logs",
         "create_accomplishment",
+        "create_changelog_note",
         "create_idea",
         "create_journey_type",
         "create_mentorship",
@@ -106,6 +108,7 @@ __all__ = [
         "create_task",
         "create_wiki_article",
         "delete_accomplishment",
+        "delete_changelog_note",
         "delete_idea",
         "delete_journey_type",
         "delete_kudo",
@@ -134,6 +137,7 @@ __all__ = [
         "get_task",
         "give_kudo",
         "list_accomplishments",
+        "list_changelog_notes",
         "list_exec_kpis",
         "list_ideas",
         "list_journey_types",
