@@ -62,6 +62,7 @@ from src.service_layer.clock_service import (
 from src.service_layer.notifications import add_notification, mark_notifications_as_read
 from src.service_layer.permissions import ensure_manager, ensure_managed_user, ensure_not_self
 from src.service_layer.report_service import generate_excel_report
+from src.service_layer.work_report_service import build_work_report
 from src.service_layer.schedule_service import (
         create_journey_type,
         delete_journey_type,
@@ -90,6 +91,7 @@ __all__ = [
         "add_notification",
         "add_vacation",
         "assign_user_team",
+        "build_work_report",
         "clear_team_lead",
         "team_rollups",
         "update_team",

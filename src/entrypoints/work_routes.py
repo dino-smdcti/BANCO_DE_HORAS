@@ -49,6 +49,7 @@ def register_routes(app):
         app.add_url_rule("/work/culture/events", "work_culture_events", work_culture_events)
         app.add_url_rule("/work/culture/events/create", "work_culture_events_create", work_culture_events_create, methods=["POST"])
         app.add_url_rule("/work/culture/events/<int:event_id>/delete", "work_culture_events_delete", work_culture_events_delete, methods=["POST"])
+        app.add_url_rule("/work/reports", "work_reports", work_reports)
         app.add_url_rule("/work/exec", "work_exec", work_exec)
         app.add_url_rule("/work/exec/<int:team_id>", "work_exec_team", work_exec_team)
 
@@ -111,6 +112,48 @@ def _recent_activity(uow, scoped_ids):
 def _default_date():
         from datetime import datetime
         return datetime(1970, 1, 1)
+
+
+def _parse_request_dates():
+        """Read ?from= & ?to= query params into date objects (None when blank)."""
+        period_start = _optional_date(request.args.get("from")) if "from" in request.args else None
+        period_end = _optional_date(request.args.get("to")) if "to" in request.args else None
+        if period_start and period_end and period_start > period_end:
+                period_start, period_end = period_end, period_start
+        return period_start, period_end
+
+
+@login_required
+@handle_errors
+def work_reports():
+        uow = new_uow()
+        with uow:
+                try:
+                        period_start, period_end = _parse_request_dates()
+                        team_id = request.args.get("team_id", type=int)
+                        report = services.build_work_report(
+                                uow,
+                                current_user.id,
+                                period_start=period_start,
+                                period_end=period_end,
+                                team_id=team_id,
+                        )
+                except PermissionError as error:
+                        flash(str(error), "danger")
+                        return redirect(url_for("work_reports"))
+                all_teams, team_labels, user_labels, users = _culture_context(uow)
+                scoped = _scoped_team_list(uow, all_teams)
+                return render_template(
+                        "work_reports.html",
+                        report=report,
+                        scoped_teams=scoped,
+                        team_labels=team_labels,
+                        user_labels=user_labels,
+                        user_role=current_user.role,
+                        period_start=report["period_start"],
+                        period_end=report["period_end"],
+                        selected_team=team_id,
+                )
 
 
 @login_required

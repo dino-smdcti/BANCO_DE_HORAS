@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
+    <h1 class="h3 mb-0"><i class="bi bi-file-earmark-bar-graph"></i> Relatórios</h1>
+    <button class="btn btn-outline-primary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+</div>
+
+<form method="get" action="{{ url_for('work_reports') }}" class="card shadow-sm mb-4 no-print">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">De</label>
+                <input type="date" class="form-control form-control-sm" name="from" value="{{ period_start.isoformat() if period_start }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Até</label>
+                <input type="date" class="form-control form-control-sm" name="to" value="{{ period_end.isoformat() if period_end }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Time</label>
+                <select class="form-select form-select-sm" name="team_id">
+                    <option value="">Todos os seus times</option>
+                    {% for team in scoped_teams %}
+                    <option value="{{ team.team_id }}" {{ 'selected' if selected_team == team.team_id }}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary btn-sm w-100" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="print-header text-center mb-3" style="display:none;">
+    <h2 class="h4 mb-0">Relatório Workforce</h2>
+    <div class="text-muted small">{% if period_start or period_end %}Período: {{ period_start.strftime('%d/%m/%Y') if period_start }} — {{ period_end.strftime('%d/%m/%Y') if period_end }}{% else %}Sem filtro de período{% endif %}</div>
+    <div class="small">{{ report.team_labels.values()|join(' · ') }}</div>
+</div>
+
+{% if not report.totals.teams %}
+<div class="card shadow-sm"><div class="card-body text-center text-muted py-5">Nenhum time em seu escopo.</div></div>
+{% else %}
+
+<div class="row g-2 mb-4">
+    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.tasks }}</div><small class="text-muted">Tarefas</small></div></div></div>
+    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.accomplishments }}</div><small class="text-muted">Conquistas</small></div></div></div>
+    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.ideas }}</div><small class="text-muted">Ideias</small></div></div></div>
+    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.s5 }}</div><small class="text-muted">Auditorias 5S</small></div></div></div>
+    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.kudos }}</div><small class="text-muted">Kudos</small></div></div></div>
+    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.events }}</div><small class="text-muted">Eventos</small></div></div></div>
+</div>
+
+{% macro section(icon, title, rows, empty) %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header"><i class="bi {{ icon }}"></i> {{ title }} <span class="badge text-bg-secondary">{{ rows|length }}</span></div>
+    <div class="card-body p-0">
+        {% if rows %}
+        <table class="table table-sm table-hover align-middle mb-0">
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    {% if 'date' in r %}<td class="text-nowrap small text-muted">{{ r.date.strftime('%d/%m/%Y') if r.date else '—' }}</td>{% endif %}
+                    <td>
+                        <strong>{{ r.title }}</strong>
+                        {% if r.team_id %}<span class="badge text-bg-light border ms-1">{{ report.team_labels.get(r.team_id, '---') }}</span>{% endif %}
+                    </td>
+                    {% if 'score' in r %}<td class="text-end">{{ r.score }}</td>{% endif %}
+                </tr>
+                {% else %}
+                <tr><td class="text-muted text-center py-3">{{ empty }}</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{{ section('bi-check2-square', 'Tarefas', report.sections.tasks, 'Sem tarefas no período.') }}
+{{ section('bi-trophy', 'Conquistas', report.sections.accomplishments, 'Sem conquistas no período.') }}
+{{ section('bi-lightbulb', 'Ideias', report.sections.ideas, 'Sem ideias no período.') }}
+{{ section('bi-clipboard-check', 'Auditorias 5S', report.sections.s5, 'Sem auditorias 5S no período.') }}
+{{ section('bi-heart', 'Kudos', report.sections.kudos, 'Sem kudos no período.') }}
+{{ section('bi-calendar-event', 'Eventos', report.sections.events, 'Sem eventos no período.') }}
+{{ section('bi-journal-text', 'Artigos da Wiki', report.sections.wiki, 'Sem artigos no período.') }}
+
+{% endif %}
+{% endblock %}

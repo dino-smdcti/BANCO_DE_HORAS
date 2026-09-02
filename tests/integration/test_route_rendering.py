@@ -1053,4 +1053,49 @@ class TestWorkDashboard:
         assert "Nenhum time em seu escopo".encode("utf-8") in r.data
 
 
+class TestWorkReports:
+    def test_reports_renders_for_employee(self, client, uow):
+        uid = _create_user(uow, "emp_wrep@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/reports")
+        assert r.status_code == 200
+        html = r.data.decode("utf-8")
+        assert "Relatórios" in html
+        assert 'data-app-mode="work"' in html
+        assert "Relatório Workforce" in html
+
+    def test_reports_date_filter_filters_rows(self, client, uow):
+        team_id = _default_team(uow)
+        boss_id = _create_user(uow, "boss_wrep@test.com", role="admin")
+        with uow:
+            from src.service_layer.accomplishment_service import create_accomplishment
+            create_accomplishment(
+                uow, boss_id, team_id=team_id, title="Conquista no período",
+                start_date=date(2026, 3, 10), end_date=date(2026, 3, 20),
+            )
+        _login(client, boss_id)
+        r = client.get("/work/reports?from=2026-06-01&to=2026-06-30")
+        assert r.status_code == 200
+        assert "Conquista no período".encode("utf-8") not in r.data
+        r2 = client.get("/work/reports?from=2026-03-01&to=2026-03-31")
+        assert "Conquista no período".encode("utf-8") in r2.data
+
+    def test_reports_period_swapped_is_safe(self, client, uow):
+        uid = _create_user(uow, "emp_wrepswap@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/reports?from=2026-06-30&to=2026-06-01")
+        assert r.status_code == 200
+
+    def test_reports_out_of_scope_team_redirects(self, client, uow):
+        uid = _create_user(uow, "emp_wrepscope@test.com", role="employee")
+        _login(client, uid)
+        with uow:
+            extra = Team(name="another_wrep_team")
+            uow.session.add(extra)
+            uow.commit()
+            target = extra.team_id
+        r = client.get(f"/work/reports?team_id={target}")
+        assert r.status_code == 302
+
+
 # ===================================================================
