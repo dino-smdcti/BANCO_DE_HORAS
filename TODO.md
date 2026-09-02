@@ -133,9 +133,9 @@ Full design: see `DOCUMENTATION_EXPANSION.md`.
 - [x] Tests: `tests/unit/test_tasks.py` (11) + `tests/integration/test_route_rendering.py::TestWorkTasks` (3)
 
 ## Phase B — Accomplishments with periods
-- [ ] Model `Accomplishment` (team_id, period, optional end_date = in-progress)
-- [ ] Service + routes `/work/accomplishments/*` + templates
-- [ ] Tests: period validation, team scoping, overlap guard
+- [x] Model `Accomplishment` (team_id, period, optional end_date = in-progress)
+- [x] Service + routes `/work/accomplishments/*` + templates
+- [x] Tests: period validation, team scoping, overlap guard
 
 ## Phase C — Idea board / KAIZEN (brainstorming)
 - [ ] Models `Idea` (`category` idea/kaizen) + `IdeaVote` (UNIQUE(idea_id, voter_id)); statuses open→under_review→implemented/declined (KAIZEN us-a `implemented`); optional review_date/review_owner (PDCA cadence)
