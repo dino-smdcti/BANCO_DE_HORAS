@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-br" data-app-mode="{{ 'work' if request.path.startswith('/work') else 'clock' }}">
+<html lang="pt-br" data-app-mode="{{ data_app_mode }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banco de Horas</title>
+    <title>{{ "Workforce · Banco de Horas" if data_app_mode == 'work' else "Banco de Horas" }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -17,15 +17,21 @@
     <span id="appModeClockHome" data-url="{{ url_for('dashboard') }}" hidden></span>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">
+            <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('index') }}">
                 {% if current_user.is_authenticated %}
-                    {% if current_user.full_name %}
+                    {% if data_app_mode == 'work' %}
+                        <i class="bi bi-diagram-3"></i> <span>Workforce</span>
+                    {% elif current_user.full_name %}
                         {{ current_user.full_name.split()[0] }}
                     {% else %}
                         {{ current_user.email.split('@')[0] }}
                     {% endif %}
                 {% else %}
-                    BANCO DE HORAS
+                    {% if data_app_mode == 'work' %}
+                        <i class="bi bi-diagram-3"></i> <span>WORKFORCE</span>
+                    {% else %}
+                        BANCO DE HORAS
+                    {% endif %}
                 {% endif %}
             </a>
 
@@ -59,59 +65,70 @@
                 <!-- Navigation links (collapsible on mobile) -->
                 <div class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
-                        {% if current_user.role in MANAGEMENT_ROLES %}
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
-                                <i class="bi bi-people"></i> <span>Gestão</span>
+                        {% if data_app_mode == 'work' %}
+                            {% if WORKFORCE_ENABLED %}
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_tasks') }}">
+                                <i class="bi bi-check2-square"></i> <span>Tarefas</span>
+                            </a>
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_accomplishments') }}">
+                                <i class="bi bi-trophy"></i> <span>Conquistas</span>
+                            </a>
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_ideas') }}">
+                                <i class="bi bi-lightbulb"></i> <span>Ideias</span>
+                            </a>
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_teams') }}">
+                                <i class="bi bi-diagram-3"></i> <span>Equipes</span>
+                            </a>
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_5s') }}">
+                                <i class="bi bi-clipboard-check"></i> <span>5S</span>
+                            </a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                    <i class="bi bi-bullseye"></i> <span>Cultura</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-item" href="{{ url_for('work_culture_wiki') }}"><i class="bi bi-journal-text me-1"></i> Wiki</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('work_culture_mentoring') }}"><i class="bi bi-people me-1"></i> Mentoria</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('work_culture_kudos') }}"><i class="bi bi-heart me-1"></i> Kudos</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('work_culture_events') }}"><i class="bi bi-calendar-event me-1"></i> Eventos</a></li>
+                                </ul>
+                            </li>
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_exec') }}">
+                                <i class="bi bi-bar-chart-line"></i> <span>Executivo</span>
+                            </a>
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('work_changelog') }}">
+                                <i class="bi bi-megaphone"></i> <span>Notas</span>
+                            </a>
+<button type="button" id="appModeSwitch" class="nav-link app-mode-switch text-white d-flex align-items-center gap-1" data-mode="work">
+                                <i class="bi bi-clock-history"></i> <span>Voltar ao Ponto</span>
+                            </button>
+                            {% endif %}
+                        {% else %}
+                            {% if current_user.role in MANAGEMENT_ROLES %}
+                                <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
+                                    <i class="bi bi-people"></i> <span>Gestão</span>
+                                </a>
+                            {% endif %}
+                            {% if current_user.role in ADMIN_ROLES %}
+                                <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('audit_logs') }}">
+                                    <i class="bi bi-shield-lock"></i> <span>Auditoria</span>
+                                </a>
+                                <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('teams_page') }}">
+                                    <i class="bi bi-diagram-3"></i> <span>Times</span>
+                                </a>
+                            {% endif %}
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
+                                <i class="bi bi-calendar-check"></i> <span>Ponto</span>
+                            </a>
+                            {% if WORKFORCE_ENABLED %}
+<button type="button" id="appModeSwitch" class="nav-link app-mode-switch text-white d-flex align-items-center gap-1" data-mode="clock">
+                                <i class="bi bi-diagram-3"></i> <span>Workforce</span>
+                            </button>
+                            {% endif %}
+                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('profile') }}">
+                                <i class="bi bi-person-gear"></i> <span>Dados</span>
                             </a>
                         {% endif %}
-                        {% if current_user.role in ADMIN_ROLES %}
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('audit_logs') }}">
-                                <i class="bi bi-shield-lock"></i> <span>Auditoria</span>
-                            </a>
-                            <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('teams_page') }}">
-                                <i class="bi bi-diagram-3"></i> <span>Times</span>
-                            </a>
-                        {% endif %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
-                            <i class="bi bi-calendar-check"></i> <span>Ponto</span>
-                        </a>
-                        {% if WORKFORCE_ENABLED %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_tasks') }}">
-                            <i class="bi bi-check2-square"></i> <span>Tarefas</span>
-                        </a>
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_accomplishments') }}">
-                            <i class="bi bi-trophy"></i> <span>Conquistas</span>
-                        </a>
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_ideas') }}">
-                            <i class="bi bi-lightbulb"></i> <span>Ideias</span>
-                        </a>
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_teams') }}">
-                            <i class="bi bi-diagram-3"></i> <span>Equipes</span>
-                        </a>
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_5s') }}">
-                            <i class="bi bi-clipboard-check"></i> <span>5S</span>
-                        </a>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
-                                <i class="bi bi-bullseye"></i> <span>Cultura</span>
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-dark">
-                                <li><a class="dropdown-item" href="{{ url_for('work_culture_wiki') }}"><i class="bi bi-journal-text me-1"></i> Wiki</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('work_culture_mentoring') }}"><i class="bi bi-people me-1"></i> Mentoria</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('work_culture_kudos') }}"><i class="bi bi-heart me-1"></i> Kudos</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('work_culture_events') }}"><i class="bi bi-calendar-event me-1"></i> Eventos</a></li>
-                            </ul>
-                        </li>
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_exec') }}">
-                            <i class="bi bi-bar-chart-line"></i> <span>Executivo</span>
-                        </a>
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('work_changelog') }}">
-                            <i class="bi bi-megaphone"></i> <span>Notas</span>
-                        </a>
-                        {% endif %}
-                        <a class="nav-link d-flex align-items-center gap-1" href="{{ url_for('profile') }}">
-                            <i class="bi bi-person-gear"></i> <span>Dados</span>
-                        </a>
                     {% endif %}
                 </div>
             </div>

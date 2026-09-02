@@ -1,34 +1,22 @@
-// Workforce "magic button" mode switch.
+// Workforce mode switch (navbar day/night-style toggle).
 //
-// The server stamps the mode on <html data-app-mode="work|clock"> by path
-// (workforce pages -> "work", everything else -> "clock"). This file adds a
-// floating toggle that lets the user override the automatic mode and persists
-// the choice in localStorage so it survives reloads. The clock experience keeps
-// the default brand; the workforce area uses the [data-app-mode="work"] palette.
+// The server stamps the mode on <html data-app-mode="work|clock"> and renders
+// the appropriate navbar set + palette entirely by URL path (workforce pages ->
+// "work", everything else -> "clock"). This file only wires the single navbar
+// switch control: clicking it navigates to the other mode's landing page. The
+// palette/nav are always driven by the path so directly visiting a workforce
+// URL always shows the workforce theme and navigation.
 (() => {
     'use strict';
 
-    var STORAGE_KEY = 'bh_app_mode';
     var root = document.documentElement;
-
-    function serverMode() {
-        return root.getAttribute('data-app-mode') || 'clock';
-    }
 
     function currentMode() {
         return root.getAttribute('data-app-mode') || 'clock';
     }
 
-    function applyMode(mode) {
-        root.setAttribute('data-app-mode', mode);
-        try { window.localStorage.setItem(STORAGE_KEY, mode); } catch (e) { /* ignore */ }
-    }
-
-    function readStored() {
-        try { return window.localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
-    }
-
-    // Landing page for each mode, resolved at runtime from data attributes.
+    // Landing page for the target mode, resolved from data attributes on the
+    // hidden spans rendered in base.html.
     function homeFor(mode) {
         if (mode === 'work') {
             var el = document.getElementById('appModeWorkHome');
@@ -38,32 +26,17 @@
         return clock ? clock.getAttribute('data-url') : '/';
     }
 
-    function buildToggle() {
-        if (document.getElementById('appModeToggle')) return;
-        var btn = document.createElement('button');
-        btn.id = 'appModeToggle';
-        btn.type = 'button';
-        btn.title = 'Alternar entre Banco de Horas e Workforce';
-        btn.setAttribute('aria-label', btn.title);
-        btn.innerHTML = '<i class="bi bi-arrow-left-right"></i>';
+    function wireSwitch() {
+        var btn = document.getElementById('appModeSwitch');
+        if (!btn) return;
         btn.addEventListener('click', function () {
-            var next = currentMode() === 'work' ? 'clock' : 'work';
-            window.location.href = homeFor(next);
+            var target = currentMode() === 'work' ? 'clock' : 'work';
+            window.location.href = homeFor(target);
         });
-        document.body.appendChild(btn);
     }
 
-    // Restore a persisted manual override, preferring the server default unless
-    // the user has explicitly opted into the branch palette on work pages.
     function init() {
-        var stored = readStored();
-        if (stored === 'clock') {
-            // User prefers the branch look everywhere, including work pages.
-            applyMode('clock');
-        } else {
-            applyMode(serverMode());
-        }
-        buildToggle();
+        wireSwitch();
     }
 
     if (document.readyState === 'loading') {

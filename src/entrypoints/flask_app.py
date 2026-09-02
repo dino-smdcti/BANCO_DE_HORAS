@@ -193,6 +193,7 @@ def utility_processor():
                 FALLBACK_ANALYSIS_DATE=FALLBACK_ANALYSIS_DATE,
                 DATE_FORMAT=DATE_FORMAT,
                 WORKFORCE_ENABLED=WORKFORCE_ENABLED,
+                data_app_mode="work" if request.path.startswith("/work") else "clock",
         )
 
 

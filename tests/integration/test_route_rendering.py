@@ -959,6 +959,57 @@ class TestWorkforceMode:
         if r.status_code == 200:
             assert 'data-app-mode="clock"'.encode("utf-8") in r.data
 
+    def test_work_page_uses_work_palette_regardless_of_stored_override(self, client, uow):
+        # Directly visiting a /work/* URL must always render the work palette
+        # and nav, even when a "clock" override was persisted to localStorage.
+        uid = _create_user(uow, "emp_modec@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/tasks", headers={"Cookie": "bh_app_mode=clock"})
+        assert r.status_code == 200
+        assert 'data-app-mode="work"'.encode("utf-8") in r.data
+
+    def test_work_page_nav_is_isolated(self, client, uow):
+        # The /work/* pages render only the workforce navigation, not the clock
+        # nav (Ponto/Gestão/Times), and show the switch labelled "Voltar ao Ponto".
+        uid = _create_user(uow, "emp_moded@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/work/tasks")
+        assert r.status_code == 200
+        html = r.data.decode("utf-8")
+        assert ">Tarefas<" in html
+        assert ">Executivo<" in html
+        assert ">Voltar ao Ponto<" in html
+        assert 'id="appModeSwitch"' in html
+        assert ">Gestão<" not in html
+        assert ">Times<" not in html
+
+    def test_clock_page_nav_is_isolated(self, client, uow):
+        # The clock dashboard renders the clock nav + the Workforce switch entry
+        # and must not show workforce-only links (Tarefas/Executivo/Notas).
+        uid = _create_user(uow, "emp_modee@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/")
+        assert r.status_code == 200
+        html = r.data.decode("utf-8")
+        assert ">Ponto<" in html
+        assert ">Dados<" in html
+        assert ">Workforce<" in html
+        assert ">Tarefas<" not in html
+        assert ">Executivo<" not in html
+        assert ">Notas<" not in html
+
+    def test_clock_switch_absent_when_workforce_disabled(self, client, uow, monkeypatch):
+        from src.entrypoints import flask_app as app_mod
+        monkeypatch.setattr(app_mod, "WORKFORCE_ENABLED", False)
+        uid = _create_user(uow, "emp_modef@test.com", role="employee")
+        _login(client, uid)
+        r = client.get("/")
+        assert r.status_code == 200
+        html = r.data.decode("utf-8")
+        assert "data-app-mode=" in html
+        assert ">Workforce<" not in html  # switch not rendered to non-workforce installs
+        assert 'id="appModeSwitch"' not in html
+
 
 # ===================================================================
 # WORK CHANGELOG (release notes)
