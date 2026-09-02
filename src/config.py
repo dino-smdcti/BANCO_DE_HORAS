@@ -7,6 +7,16 @@ application can be tuned in one place without hunting through the code.
 import os
 from datetime import date
 
+# Load .env as early as possible so configuration gates below (and any other
+# module that imports this one) see environment variables regardless of import
+# order. This mirrors the load_dotenv() call in flask_app.py but ensures config
+# itself is not evaluated before the file is loaded.
+try:
+        from dotenv import load_dotenv
+        load_dotenv()
+except Exception:  # pragma: no cover - dotenv is optional at the config level
+        pass
+
 
 # --------------------------------------------------------------------------
 # Analysis window / historical dates
