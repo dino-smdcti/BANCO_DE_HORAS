@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime, date
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.orm import Session, selectinload
-from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Mentorship, Kudos, TeamEvent
+from src.domain.model import User, UserRole, AuthToken, Team, RateLimitEntry, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Kudos, TeamEvent
 
 class AbstractRepository(ABC):
         @abstractmethod
@@ -139,8 +139,10 @@ class AbstractRepository(ABC):
                 description: Optional[str] = None,
                 assignee_id: Optional[int] = None,
                 due_date=None,
+                event_id: Optional[int] = None,
                 clear_assignee: bool = False,
                 clear_due_date: bool = False,
+                clear_event: bool = False,
                 status: Optional[str] = None,
         ):
                 pass
@@ -281,26 +283,6 @@ class AbstractRepository(ABC):
 
         @abstractmethod
         def delete_wiki_article(self, wiki_article_id: int):
-                pass
-
-        @abstractmethod
-        def add_mentorship(self, mentorship: Mentorship):
-                pass
-
-        @abstractmethod
-        def get_mentorship_by_id(self, mentorship_id: int) -> Optional[Mentorship]:
-                pass
-
-        @abstractmethod
-        def list_mentorships_by_team(self, team_id: int) -> List[Mentorship]:
-                pass
-
-        @abstractmethod
-        def end_mentorship(self, mentorship_id: int):
-                pass
-
-        @abstractmethod
-        def delete_mentorship(self, mentorship_id: int):
                 pass
 
         @abstractmethod
@@ -545,8 +527,10 @@ class SqlAlchemyRepository(AbstractRepository):
                 description: Optional[str] = None,
                 assignee_id: Optional[int] = None,
                 due_date=None,
+                event_id: Optional[int] = None,
                 clear_assignee: bool = False,
                 clear_due_date: bool = False,
+                clear_event: bool = False,
                 status: Optional[str] = None,
         ):
                 values = {}
@@ -562,6 +546,10 @@ class SqlAlchemyRepository(AbstractRepository):
                         values["due_date"] = None
                 elif due_date is not None:
                         values["due_date"] = due_date
+                if clear_event:
+                        values["event_id"] = None
+                elif event_id is not None:
+                        values["event_id"] = event_id
                 if status is not None:
                         values["status"] = status
                 if values:
@@ -775,29 +763,6 @@ class SqlAlchemyRepository(AbstractRepository):
         def delete_wiki_article(self, wiki_article_id: int):
                 self.session.execute(
                         delete(WikiArticle).where(WikiArticle.wiki_article_id == wiki_article_id)
-                )
-
-        def add_mentorship(self, mentorship: Mentorship):
-                self.session.add(mentorship)
-
-        def get_mentorship_by_id(self, mentorship_id: int) -> Optional[Mentorship]:
-                return self.session.execute(
-                        select(Mentorship).where(Mentorship.mentorship_id == mentorship_id)
-                ).scalar_one_or_none()
-
-        def list_mentorships_by_team(self, team_id: int) -> List[Mentorship]:
-                return self.session.execute(
-                        select(Mentorship).where(Mentorship.team_id == team_id).order_by(Mentorship.start_date.desc())
-                ).scalars().all()
-
-        def end_mentorship(self, mentorship_id: int):
-                self.session.execute(
-                        update(Mentorship).where(Mentorship.mentorship_id == mentorship_id).values(active=False)
-                )
-
-        def delete_mentorship(self, mentorship_id: int):
-                self.session.execute(
-                        delete(Mentorship).where(Mentorship.mentorship_id == mentorship_id)
                 )
 
         def add_kudo(self, kudo: Kudos):

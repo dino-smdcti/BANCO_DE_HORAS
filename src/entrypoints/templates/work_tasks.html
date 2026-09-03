@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 {% set guide_items = [
-    'Tarefas são criadas por gestores e admin para organizar o trabalho dos times.',
-    'Marque itens de execução conforme avança; ao concluir, mude o status em Atividade.',
-    'Acompanhe pendências por time e use prazos para priorizar.',
+    'Cada tarefa é um objetivo a ser cumprido pelo time.',
+    'Complete os itens do checklist para cumprir o objetivo; ao fechar o último, a tarefa é concluída automaticamente.',
+    'Uma tarefa só pode ser marcada como concluída quando todos os itens do checklist estiverem feitos.',
+    'Vincule a tarefa a um evento marcado no calendário, se ela ajudar a entregar esse evento.',
 ] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-check2-square"></i> Tarefas</h1>
@@ -57,6 +58,15 @@
                         <label class="form-label">Prazo</label>
                         <input type="date" name="due_date" class="form-control">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Evento vinculado <small class="text-muted">(opcional)</small></label>
+                        <select name="event_id" class="form-select">
+                            <option value="">— nenhum —</option>
+                            {% for event in events %}
+                            <option value="{{ event.event_id }}">{{ event.title }} ({{ event.date.strftime('%d/%m/%Y') }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -95,6 +105,19 @@
                     {% if task.due_date %}
                     · <i class="bi bi-calendar-event"></i> {{ task.due_date.strftime('%d/%m/%Y') }}
                     {% endif %}
+                    {% if task.event_id %}
+                    · <i class="bi bi-calendar2-check"></i> {{ event_labels.get(task.event_id, '—') }}
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span><i class="bi bi-bullseye"></i> Objetivo</span>
+                    <span>{{ task_progress.get(task.task_id, (0,0))[0] }}/{{ task_progress.get(task.task_id, (0,0))[1] }}</span>
+                </div>
+                {% set done, total = task_progress.get(task.task_id, (0, 0)) %}
+                {% set pct = (done * 100 // total) if total else 0 %}
+                <div class="progress mb-3" style="height: 8px;">
+                    <div class="progress-bar {{ 'bg-success' if done and done == total else 'bg-primary' }}" role="progressbar" style="width: {{ pct }}%;"></div>
                 </div>
 
                 {% if task.checklist_items %}
@@ -188,6 +211,15 @@
                                     <div class="mb-3">
                                         <label class="form-label">Prazo</label>
                                         <input type="date" name="due_date" class="form-control" value="{{ task.due_date.isoformat() if task.due_date else '' }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Evento vinculado <small class="text-muted">(opcional)</small></label>
+                                        <select name="event_id" class="form-select">
+                                            <option value="">— nenhum —</option>
+                                            {% for event in events %}
+                                            <option value="{{ event.event_id }}" {% if task.event_id == event.event_id %}selected{% endif %}>{{ event.title }} ({{ event.date.strftime('%d/%m/%Y') }})</option>
+                                            {% endfor %}
+                                        </select>
                                     </div>
                                 </div>
                                 <div class="modal-footer">

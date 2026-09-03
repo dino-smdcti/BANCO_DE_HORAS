@@ -39,10 +39,6 @@ def register_routes(app):
         app.add_url_rule("/work/culture/wiki/create", "work_culture_wiki_create", work_culture_wiki_create, methods=["POST"])
         app.add_url_rule("/work/culture/wiki/<int:wiki_article_id>/update", "work_culture_wiki_update", work_culture_wiki_update, methods=["POST"])
         app.add_url_rule("/work/culture/wiki/<int:wiki_article_id>/delete", "work_culture_wiki_delete", work_culture_wiki_delete, methods=["POST"])
-        app.add_url_rule("/work/culture/mentoring", "work_culture_mentoring", work_culture_mentoring)
-        app.add_url_rule("/work/culture/mentoring/create", "work_culture_mentoring_create", work_culture_mentoring_create, methods=["POST"])
-        app.add_url_rule("/work/culture/mentoring/<int:mentorship_id>/end", "work_culture_mentoring_end", work_culture_mentoring_end, methods=["POST"])
-        app.add_url_rule("/work/culture/mentoring/<int:mentorship_id>/delete", "work_culture_mentoring_delete", work_culture_mentoring_delete, methods=["POST"])
         app.add_url_rule("/work/culture/kudos", "work_culture_kudos", work_culture_kudos)
         app.add_url_rule("/work/culture/kudos/create", "work_culture_kudos_create", work_culture_kudos_create, methods=["POST"])
         app.add_url_rule("/work/culture/kudos/<int:kudo_id>/delete", "work_culture_kudos_delete", work_culture_kudos_delete, methods=["POST"])
@@ -168,6 +164,12 @@ def work_tasks():
                 team_labels = {team.team_id: team.name for team in all_teams}
                 user_labels = {u.user_id: (u.profile.full_name or u.email) for u in all_users}
                 users = sorted(all_users, key=lambda u: (u.profile.full_name or u.email).lower())
+                events = services.list_team_events(uow, current_user.id)
+                event_labels = {e.event_id: e.title for e in events}
+                task_progress = {
+                        task.task_id: _task_progress(task)
+                        for task in tasks
+                }
                 return render_template(
                         "work_tasks.html",
                         tasks=tasks,
@@ -175,8 +177,19 @@ def work_tasks():
                         users=users,
                         team_labels=team_labels,
                         user_labels=user_labels,
+                        events=events,
+                        event_labels=event_labels,
+                        task_progress=task_progress,
                         user_role=current_user.role,
                 )
+
+
+def _task_progress(task):
+        """Return (done_count, total_count) for a task's checklist."""
+        items = task.checklist_items or []
+        total = len(items)
+        done = sum(1 for i in items if i.done)
+        return done, total
 
 
 @login_required
@@ -194,6 +207,7 @@ def work_tasks_create():
                         description=request.form.get("description"),
                         assignee_id=request.form.get("assignee_id") or None,
                         due_date=_optional_date(request.form.get("due_date")),
+                        event_id=request.form.get("event_id") or None,
                 )
                 flash("Tarefa criada.", "success")
         except (ValueError, PermissionError) as error:
@@ -227,6 +241,8 @@ def work_tasks_edit(task_id):
                         description=request.form.get("description"),
                         assignee_id=request.form.get("assignee_id") or None,
                         due_date=_optional_date(request.form.get("due_date") or None),
+                        event_id=request.form.get("event_id") or None,
+                        clear_event=not bool(request.form.get("event_id")),
                 )
                 flash("Tarefa atualizada.", "success")
         except (ValueError, PermissionError) as error:
@@ -651,71 +667,6 @@ def work_culture_wiki_delete(wiki_article_id):
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_culture_wiki"))
-
-
-@login_required
-@handle_errors
-def work_culture_mentoring():
-        uow = new_uow()
-        with uow:
-                pairs = services.list_mentorships(uow, current_user.id)
-                all_teams, team_labels, user_labels, users = _culture_context(uow)
-                scoped_teams = _scoped_team_list(uow, all_teams)
-                return render_template(
-                        "work_culture_mentoring.html",
-                        pairs=pairs,
-                        scoped_teams=scoped_teams,
-                        team_labels=team_labels,
-                        user_labels=user_labels,
-                        users=users,
-                        user_role=current_user.role,
-                )
-
-
-@login_required
-@manager_required
-@handle_errors
-def work_culture_mentoring_create():
-        uow = new_uow()
-        try:
-                services.create_mentorship(
-                        uow,
-                        current_user.id,
-                        team_id=request.form.get("team_id"),
-                        mentor_id=request.form.get("mentor_id"),
-                        mentee_id=request.form.get("mentee_id"),
-                        start_date=_optional_date(request.form.get("start_date")),
-                )
-                flash("Mentoria criada.", "success")
-        except (ValueError, PermissionError) as error:
-                flash(str(error), "danger")
-        return redirect(url_for("work_culture_mentoring"))
-
-
-@login_required
-@manager_required
-@handle_errors
-def work_culture_mentoring_end(mentorship_id):
-        uow = new_uow()
-        try:
-                services.end_mentorship(uow, current_user.id, mentorship_id)
-                flash("Mentoria encerrada.", "success")
-        except (ValueError, PermissionError) as error:
-                flash(str(error), "danger")
-        return redirect(url_for("work_culture_mentoring"))
-
-
-@login_required
-@manager_required
-@handle_errors
-def work_culture_mentoring_delete(mentorship_id):
-        uow = new_uow()
-        try:
-                services.delete_mentorship(uow, current_user.id, mentorship_id)
-                flash("Mentoria excluída.", "success")
-        except (ValueError, PermissionError) as error:
-                flash(str(error), "danger")
-        return redirect(url_for("work_culture_mentoring"))
 
 
 @login_required

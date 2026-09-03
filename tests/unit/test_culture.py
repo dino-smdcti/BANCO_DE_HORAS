@@ -8,17 +8,13 @@ from sqlalchemy.orm import sessionmaker
 from src.adapters.orm import metadata, start_mappers
 from src.domain.model import UserRole
 from src.service_layer.culture_service import (
-        create_mentorship,
         create_team_event,
         create_wiki_article,
         delete_kudo,
-        delete_mentorship,
         delete_team_event,
         delete_wiki_article,
-        end_mentorship,
         give_kudo,
         list_kudos,
-        list_mentorships,
         list_team_events,
         list_wiki_articles,
         update_wiki_article,
@@ -98,42 +94,6 @@ def test_delete_wiki_author_or_manager(uow):
         article = create_wiki_article(uow, author, title="A", body="B", team_id=team_a)
         delete_wiki_article(uow, author, article.wiki_article_id)
         assert list_wiki_articles(uow, admin) == []
-
-
-# ---------------------------------------------------------------------------
-# Mentorship
-# ---------------------------------------------------------------------------
-
-def test_create_and_list_mentorship(uow):
-        admin = _register_admin(uow)
-        team_a, _ = _setup_teams(uow, admin)
-        mentor = _register_actor(uow, "m1@test.com", UserRole.EMPLOYEE.value, team_a)
-        mentee = _register_actor(uow, "m2@test.com", UserRole.EMPLOYEE.value, team_a)
-        create_mentorship(uow, admin, team_id=team_a, mentor_id=mentor, mentee_id=mentee, start_date=date(2026, 1, 1))
-        pairs = list_mentorships(uow, admin)
-        assert len(pairs) == 1
-        assert pairs[0].active is True
-
-
-def test_create_mentorship_requires_distinct(uow):
-        admin = _register_admin(uow)
-        team_a, _ = _setup_teams(uow, admin)
-        user = _register_actor(uow, "m3@test.com", UserRole.EMPLOYEE.value, team_a)
-        with pytest.raises(ValueError):
-                create_mentorship(uow, admin, team_id=team_a, mentor_id=user, mentee_id=user, start_date=date(2026, 1, 1))
-
-
-def test_end_mentorship_and_deny_employee(uow):
-        admin = _register_admin(uow)
-        team_a, _ = _setup_teams(uow, admin)
-        mentor = _register_actor(uow, "m4@test.com", UserRole.EMPLOYEE.value, team_a)
-        mentee = _register_actor(uow, "m5@test.com", UserRole.EMPLOYEE.value, team_a)
-        emp = _register_actor(uow, "m6@test.com", UserRole.EMPLOYEE.value, team_a)
-        pair = create_mentorship(uow, admin, team_id=team_a, mentor_id=mentor, mentee_id=mentee, start_date=date(2026, 1, 1))
-        with pytest.raises(PermissionError):
-                end_mentorship(uow, emp, pair.mentorship_id)
-        end_mentorship(uow, admin, pair.mentorship_id)
-        assert list_mentorships(uow, admin)[0].active is False
 
 
 # ---------------------------------------------------------------------------

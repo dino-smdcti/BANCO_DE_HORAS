@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Mentorship, Kudos, TeamEvent
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Kudos, TeamEvent
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -79,6 +79,7 @@ team_tasks = Table(
     Column("description", String(NOTES_COLUMN_LENGTH), nullable=True),
     Column("assignee_id", Integer, ForeignKey("users.id"), nullable=True),
     Column("due_date", Date, nullable=True),
+    Column("event_id", Integer, ForeignKey("team_events.id"), nullable=True),
     Column("status", String(CORRECTION_STATUS_COLUMN_LENGTH), default="todo", nullable=False),
     Column("created_by", Integer, ForeignKey("users.id"), nullable=True),
     Column("created_at", DateTime, default=datetime.now, nullable=False),
@@ -160,17 +161,6 @@ wiki_articles = Table(
     Column("title", String(NAME_COLUMN_LENGTH), nullable=False),
     Column("body", Text, nullable=False),
     Column("updated_at", DateTime, default=datetime.now, nullable=False),
-)
-
-mentorships = Table(
-    "mentorships",
-    metadata,
-    Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("team_id", Integer, ForeignKey("teams.id"), nullable=False),
-    Column("mentor_id", Integer, ForeignKey("users.id"), nullable=False),
-    Column("mentee_id", Integer, ForeignKey("users.id"), nullable=False),
-    Column("start_date", Date, nullable=False),
-    Column("active", Boolean, default=True, nullable=False),
 )
 
 kudos = Table(
@@ -506,6 +496,5 @@ def start_mappers():
         )
         mapper_registry.map_imperatively(S5Audit, s5_audits, properties=s5_properties)
         mapper_registry.map_imperatively(WikiArticle, wiki_articles, properties=_column_properties(wiki_articles.c.id, "wiki_article_id"))
-        mapper_registry.map_imperatively(Mentorship, mentorships, properties=_column_properties(mentorships.c.id, "mentorship_id"))
         mapper_registry.map_imperatively(Kudos, kudos, properties=_column_properties(kudos.c.id, "kudo_id"))
         mapper_registry.map_imperatively(TeamEvent, team_events, properties=_column_properties(team_events.c.id, "event_id"))

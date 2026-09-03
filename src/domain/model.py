@@ -63,12 +63,13 @@ class Team:
 
 @dataclass
 class TeamTask:
-        """An assignable to-do item on a team (the shared assignment base)."""
+        """An objective to achieve on a team, fulfilled through its checklist."""
         team_id: int
         title: str
         description: Optional[str] = None
         assignee_id: Optional[int] = None
         due_date: Optional[date] = None
+        event_id: Optional[int] = None
         status: str = "todo"
         created_by: Optional[int] = None
         created_at: datetime = field(default_factory=datetime.now)
@@ -150,17 +151,6 @@ class WikiArticle:
         team_id: Optional[int] = None
         updated_at: datetime = field(default_factory=datetime.now)
         wiki_article_id: Optional[int] = None
-
-
-@dataclass
-class Mentorship:
-        """A 1:1 mentor/mentee pairing within a team."""
-        team_id: int
-        mentor_id: int
-        mentee_id: int
-        start_date: date
-        active: bool = True
-        mentorship_id: Optional[int] = None
 
 
 @dataclass

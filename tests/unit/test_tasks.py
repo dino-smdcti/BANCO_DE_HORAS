@@ -1,4 +1,5 @@
 import pytest
+from datetime import date
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,6 +16,7 @@ from src.service_layer.task_service import (
         toggle_checklist_item,
         update_task_status,
 )
+from src.service_layer.culture_service import create_team_event
 from src.service_layer.team_service import create_team
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
 from src.service_layer.user_service import register_user
@@ -182,3 +184,65 @@ def test_checklist_add_toggle_remove(uow):
 
         remove_checklist_item(uow, admin, task_id, item_id)
         assert _task(uow, task_id).checklist_items == []
+
+
+def test_create_task_linked_to_event(uow):
+        admin = _register_admin(uow)
+        team_a, _ = _setup_teams(uow, admin)
+        with uow:
+                event = create_team_event(uow, admin, team_id=team_a, title="Treinamento", date=date(2026, 3, 1))
+                event_id = event.event_id
+        task_id = _create_event_task(uow, admin, team_a, "Preparar sala", event_id)
+        assert _task(uow, task_id).event_id == event_id
+
+
+def test_create_task_linked_event_out_of_scope_denied(uow):
+        admin = _register_admin(uow)
+        team_a, team_b = _setup_teams(uow, admin)
+        manager = _register_actor(uow, "mgrEvt@test.com", UserRole.MANAGER.value, team_a)
+        with uow:
+                event = create_team_event(uow, admin, team_id=team_b, title="Outro time", date=date(2026, 3, 1))
+                event_id = event.event_id
+        with pytest.raises(PermissionError):
+                create_task(uow, manager, team_id=team_a, title="X", event_id=event_id)
+
+
+def test_done_requires_all_checklist_items(uow):
+        admin = _register_admin(uow)
+        team_a, _ = _setup_teams(uow, admin)
+        assignee = _register_actor(uow, "empG@test.com", UserRole.EMPLOYEE.value, team_a)
+        task_id = _create(uow, admin, team_a, "Objetivo", assignee_id=assignee)
+        with uow:
+                i1 = add_checklist_item(uow, assignee, task_id, "Passo 1").checklist_item_id
+                i2 = add_checklist_item(uow, assignee, task_id, "Passo 2").checklist_item_id
+
+        with pytest.raises(ValueError):
+                update_task_status(uow, assignee, task_id, "done")
+
+        toggle_checklist_item(uow, assignee, task_id, i1, True)
+        with pytest.raises(ValueError):
+                update_task_status(uow, assignee, task_id, "done")
+
+
+def test_task_auto_completes_when_all_items_done(uow):
+        admin = _register_admin(uow)
+        team_a, _ = _setup_teams(uow, admin)
+        assignee = _register_actor(uow, "empAuto@test.com", UserRole.EMPLOYEE.value, team_a)
+        task_id = _create(uow, admin, team_a, "Atingir objetivo", assignee_id=assignee)
+        with uow:
+                i1 = add_checklist_item(uow, assignee, task_id, "A").checklist_item_id
+                i2 = add_checklist_item(uow, assignee, task_id, "B").checklist_item_id
+
+        toggle_checklist_item(uow, assignee, task_id, i1, True)
+        assert _task(uow, task_id).status != "done"
+        toggle_checklist_item(uow, assignee, task_id, i2, True)
+        assert _task(uow, task_id).status == "done"
+
+        toggle_checklist_item(uow, assignee, task_id, i1, False)
+        assert _task(uow, task_id).status == "in_progress"
+
+
+def _create_event_task(uow, admin, team_id, title, event_id):
+        with uow:
+                task = create_task(uow, admin, team_id=team_id, title=title, event_id=event_id)
+                return task.task_id

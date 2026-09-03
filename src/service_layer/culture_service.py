@@ -1,4 +1,4 @@
-from src.domain.model import Kudos, Mentorship, TeamEvent, WikiArticle
+from src.domain.model import Kudos, TeamEvent, WikiArticle
 from src.service_layer.audit import log_action
 from src.service_layer.notifications import add_notification
 from src.service_layer.permissions import managed_team_ids, scoped_team_ids
@@ -81,62 +81,6 @@ def delete_wiki_article(uow: AbstractUnitOfWork, actor_id: int, wiki_article_id:
                 uow.users.delete_wiki_article(wiki_article_id)
                 uow.commit()
                 log_action(uow, actor_id, "DELETE_WIKI", target_id=wiki_article_id, details="Wiki excluída")
-
-
-# ---------------------------------------------------------------------------
-# Mentorship
-# ---------------------------------------------------------------------------
-
-def create_mentorship(
-        uow: AbstractUnitOfWork, actor_id: int, *, team_id: int, mentor_id: int, mentee_id: int, start_date
-) -> Mentorship:
-        with uow:
-                _ensure_write_scope(uow, actor_id, team_id)
-                if not start_date:
-                        raise ValueError("A data de início é obrigatória.")
-                mentor_id = int(mentor_id)
-                mentee_id = int(mentee_id)
-                if mentor_id == mentee_id:
-                        raise ValueError("Mentor e mentorado devem ser diferentes.")
-                for uid in (mentor_id, mentee_id):
-                        if not uow.users.get_user_by_id(uid):
-                                raise ValueError("Usuário do pareamento não encontrado.")
-                mentorship = Mentorship(team_id=int(team_id), mentor_id=mentor_id, mentee_id=mentee_id, start_date=start_date)
-                uow.users.add_mentorship(mentorship)
-                uow.commit()
-                log_action(uow, actor_id, "CREATE_MENTORSHIP", target_id=mentorship.mentorship_id, details=f"Par {mentor_id}-{mentee_id}")
-                add_notification(uow, mentee_id, "Você foi vinculado a uma mentoria.")
-                return mentorship
-
-
-def list_mentorships(uow: AbstractUnitOfWork, actor_id: int) -> list[Mentorship]:
-        with uow:
-                result: list[Mentorship] = []
-                for team_id in _scoped_team_ids(uow, actor_id):
-                        result.extend(uow.users.list_mentorships_by_team(team_id))
-                return result
-
-
-def end_mentorship(uow: AbstractUnitOfWork, actor_id: int, mentorship_id: int):
-        with uow:
-                mentorship = uow.users.get_mentorship_by_id(mentorship_id)
-                if not mentorship:
-                        raise ValueError("Mentoria não encontrada.")
-                _ensure_write_scope(uow, actor_id, mentorship.team_id)
-                uow.users.end_mentorship(mentorship_id)
-                uow.commit()
-                log_action(uow, actor_id, "END_MENTORSHIP", target_id=mentorship_id, details="Mentoria encerrada")
-
-
-def delete_mentorship(uow: AbstractUnitOfWork, actor_id: int, mentorship_id: int):
-        with uow:
-                mentorship = uow.users.get_mentorship_by_id(mentorship_id)
-                if not mentorship:
-                        raise ValueError("Mentoria não encontrada.")
-                _ensure_write_scope(uow, actor_id, mentorship.team_id)
-                uow.users.delete_mentorship(mentorship_id)
-                uow.commit()
-                log_action(uow, actor_id, "DELETE_MENTORSHIP", target_id=mentorship_id, details="Mentoria excluída")
 
 
 # ---------------------------------------------------------------------------

@@ -29,6 +29,24 @@ def _ensure_manager_scope(uow: AbstractUnitOfWork, actor_id: int, team_id) -> se
         return teams
 
 
+def _resolve_event(uow: AbstractUnitOfWork, actor_id: int, team_id: int, event_id):
+        """Validate an optional linked event and return its id or None."""
+        if not event_id:
+                return None
+        event = uow.users.get_team_event_by_id(int(event_id))
+        if not event:
+                raise ValueError("Evento vinculado não encontrado.")
+        if event.team_id not in _ensure_manager_scope(uow, actor_id, team_id):
+                raise PermissionError("Evento fora do escopo do time.")
+        return int(event_id)
+
+
+def _incomplete_items(task: TeamTask) -> int:
+        """Number of not-done checklist items; 0 for a task with no checklist."""
+        items = task.checklist_items or []
+        return sum(0 if item.done else 1 for item in items)
+
+
 def create_task(
         uow: AbstractUnitOfWork,
         actor_id: int,
@@ -38,6 +56,7 @@ def create_task(
         description: str = None,
         assignee_id: int = None,
         due_date=None,
+        event_id: int = None,
 ) -> TeamTask:
         with uow:
                 managed = _ensure_manager_scope(uow, actor_id, team_id)
@@ -51,12 +70,14 @@ def create_task(
                                 raise ValueError("Responsável não encontrado.")
                         if int(team_id) not in scoped and assignee.team_id != int(team_id):
                                 raise PermissionError("Responsável fora do escopo do time.")
+                event_id = _resolve_event(uow, actor_id, team_id, event_id)
                 task = TeamTask(
                         team_id=int(team_id),
                         title=title,
                         description=(description or "").strip() or None,
                         assignee_id=int(assignee_id) if assignee_id else None,
                         due_date=due_date,
+                        event_id=event_id,
                         created_by=actor_id,
                 )
                 uow.users.add_task(task)
@@ -108,7 +129,9 @@ def get_task(uow: AbstractUnitOfWork, actor_id: int, task_id: int) -> TeamTask:
 def update_task_status(uow: AbstractUnitOfWork, actor_id: int, task_id: int, status: str):
         with uow:
                 _validate_status(status)
-                _get_managed_or_assigned_task(uow, actor_id, task_id)
+                task = _get_managed_or_assigned_task(uow, actor_id, task_id)
+                if status == "done" and _incomplete_items(task):
+                        raise ValueError("Conclua todos os itens do checklist antes de marcar a tarefa como concluída.")
                 uow.users.update_task(task_id, status=status)
                 uow.commit()
                 log_action(uow, actor_id, "UPDATE_TASK_STATUS", target_id=task_id, details=f"Task {task_id} -> {status}")
@@ -123,8 +146,10 @@ def edit_task(
         description: str = None,
         assignee_id: int = None,
         due_date=None,
+        event_id: int = None,
         clear_assignee: bool = False,
         clear_due_date: bool = False,
+        clear_event: bool = False,
 ):
         with uow:
                 task = uow.users.get_task_by_id(task_id)
@@ -134,14 +159,19 @@ def edit_task(
                 resolved_title = (title or "").strip() if title is not None else None
                 if resolved_title is not None and not resolved_title:
                         raise ValueError("O título da tarefa é obrigatório.")
+                resolved_event = None if clear_event else event_id
+                if resolved_event:
+                        resolved_event = _resolve_event(uow, actor_id, task.team_id, resolved_event)
                 uow.users.update_task(
                         task_id,
                         title=resolved_title,
                         description=(description.strip() or None) if description is not None else None,
                         assignee_id=int(assignee_id) if assignee_id else None,
                         due_date=due_date,
+                        event_id=resolved_event,
                         clear_assignee=clear_assignee,
                         clear_due_date=clear_due_date,
+                        clear_event=clear_event,
                 )
                 uow.commit()
                 log_action(uow, actor_id, "UPDATE_TASK", target_id=task_id, details=f"Task {task_id} editada")
@@ -169,6 +199,8 @@ def add_checklist_item(uow: AbstractUnitOfWork, actor_id: int, task_id: int, lab
                 task = _get_managed_or_assigned_task(uow, actor_id, task_id)
                 item = TaskChecklistItem(task_id=task_id, label=label)
                 uow.users.add_checklist_item(item)
+                if task.status == "done":
+                        uow.users.update_task(task_id, status="in_progress")
                 uow.commit()
                 log_action(uow, actor_id, "ADD_TASK_ITEM", target_id=task_id, details=f"Item: {label}")
                 return item
@@ -176,15 +208,23 @@ def add_checklist_item(uow: AbstractUnitOfWork, actor_id: int, task_id: int, lab
 
 def toggle_checklist_item(uow: AbstractUnitOfWork, actor_id: int, task_id: int, item_id: int, done: bool):
         with uow:
-                _get_managed_or_assigned_task(uow, actor_id, task_id)
+                task = _get_managed_or_assigned_task(uow, actor_id, task_id)
                 uow.users.set_checklist_item_done(item_id, done)
+                incomplete = _incomplete_items(task)
+                if not incomplete and task.status != "done":
+                        uow.users.update_task(task_id, status="done")
+                elif incomplete and task.status == "done":
+                        uow.users.update_task(task_id, status="in_progress")
                 uow.commit()
                 log_action(uow, actor_id, "TOGGLE_TASK_ITEM", target_id=task_id, details=f"Item {item_id} done={done}")
 
 
 def remove_checklist_item(uow: AbstractUnitOfWork, actor_id: int, task_id: int, item_id: int):
         with uow:
-                _get_managed_or_assigned_task(uow, actor_id, task_id)
+                task = _get_managed_or_assigned_task(uow, actor_id, task_id)
+                item = next((i for i in (task.checklist_items or []) if i.checklist_item_id == item_id), None)
                 uow.users.delete_checklist_item(item_id)
+                if (item and not item.done) and task.status == "done":
+                        uow.users.update_task(task_id, status="in_progress")
                 uow.commit()
                 log_action(uow, actor_id, "DELETE_TASK_ITEM", target_id=task_id, details=f"Item {item_id}")

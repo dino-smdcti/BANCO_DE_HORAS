@@ -659,6 +659,25 @@ class TestWorkTasks:
         r = client.post("/work/tasks/create", data={"team_id": "1", "title": "X"})
         assert r.status_code == 302
 
+    def test_tasks_page_shows_objective_progress_and_event_link(self, client, uow):
+        emp_id = _create_user(uow, "emp_obje@test.com", role="employee")
+        with uow:
+            team_id = uow.users.get_user_by_id(emp_id).team_id
+            from src.service_layer.user_service import register_user
+            register_user(uow, "boss_obje@test.com", "pass", "gestor")
+            boss = uow.users.get_user_by_email("boss_obje@test.com")
+            boss.team_id = team_id
+            uow.commit()
+            from src.service_layer.task_service import create_task, add_checklist_item
+            task_id = create_task(uow, boss.user_id, team_id=team_id, title="Atingir objetivo").task_id
+            item_id = add_checklist_item(uow, boss.user_id, task_id, "Passo 1").checklist_item_id
+        _login(client, emp_id)
+        r = client.get("/work/tasks")
+        assert r.status_code == 200
+        assert "Objetivo".encode("utf-8") in r.data
+        assert "0/1".encode("utf-8") in r.data
+        assert "progress-bar".encode("utf-8") in r.data
+
 
 # ===================================================================
 # WORK ACCOMPLISHMENTS
@@ -867,28 +886,6 @@ class TestWorkWiki:
         assert "Ler mais".encode("utf-8") in r.data
         assert b'class="prose small collapse"' in r.data
         assert "<h1>início</h1>".encode("utf-8") not in r.data
-
-
-class TestWorkMentoring:
-    def test_mentoring_page_renders_for_employee(self, client, uow):
-        uid = _create_user(uow, "emp_men@test.com", role="employee")
-        _login(client, uid)
-        r = client.get("/work/culture/mentoring")
-        assert r.status_code == 200
-
-    def test_mentoring_page_shows_pair(self, client, uow):
-        emp_id = _create_user(uow, "emp_men@test.com", role="employee")
-        mentor_id = _create_user(uow, "mentor_men@test.com", role="employee")
-        mentee_id = _create_user(uow, "mentee_men@test.com", role="employee")
-        boss_id = _create_user(uow, "boss_men@test.com", role="gestor")
-        with uow:
-            team_id = uow.users.get_user_by_id(mentor_id).team_id
-            from src.service_layer.culture_service import create_mentorship
-            create_mentorship(uow, boss_id, team_id=team_id, mentor_id=mentor_id, mentee_id=mentee_id, start_date=date(2026, 1, 1))
-        _login(client, emp_id)
-        r = client.get("/work/culture/mentoring")
-        assert r.status_code == 200
-        assert "Ativa".encode("utf-8") in r.data
 
 
 class TestWorkKudos:
@@ -1140,7 +1137,6 @@ class TestWorkGuides:
         "/work/teams",
         "/work/5s",
         "/work/culture/wiki",
-        "/work/culture/mentoring",
         "/work/culture/kudos",
         "/work/culture/events",
         "/work/exec",

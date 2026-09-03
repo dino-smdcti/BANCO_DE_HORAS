@@ -18,7 +18,7 @@ Entrega **quatro verticals complementares**, construídas uma a uma sobre uma **
 **Módulos complementares (cultura / filosofia de trabalho):**
 - **5S por setor** — checklist periódico de auditoria + pontuação por time.
 - **Wiki interna** — base de conhecimento colaborativa.
-- **Mentoria / pareamento** — vínculo mentor.
+- **Eventos** — eventos marcados no calendário; tarefas podem vincularse a um evento (objetivo ligado à entrega do evento).
 - **Kudos (reconhecimento entre pares)** — elogios simples.
 - **Calendário de eventos / oficinas** — agenda interna.
 - **A7 — Dashboard executivo de Indicadores (KPIs)** — visão consolidada da secretaria.
@@ -142,14 +142,14 @@ Test parity: `tests/unit/test_assignment_base.py`.
 - **Regras:** auditorias apenas por gestores/auditores do escopo; todos visualizam os scores do próprio time; histórico mensal.
 - **Test parity:** criação de auditoria, cálculo de score, escopo por time, histórico.
 
-## 6c. Módulo C-extra — Cultura colaborativa (Wiki, Mentoria, Kudos, Eventos)
+# 6c. Módulo C-extra — Cultura colaborativa (Wiki, Kudos, Eventos)
 
 Agrupamento de funcionalidades leves de cultura/colaboração, cada uma uma tabela fina:
 
-- **`WikiArticle` — Wiki interna:** `team_id` (ou pública), `author_id`, `title`, `body`, `updated_at`. Qualquer pessoa escreve/edita no escopo.
-- **`Mentorship` — Mentoria/pareamento:** `mentor_id`, `mentee_id`, `start_date`, `active`. Vínculo 1:1; gestores criam, todos veem pares.
+- **`WikiArticle` — Wiki interna:** `team_id` (ou pública), `author_id`, `title`, `body`, `updated_at`. Qualquer pessoa escreve/edita no escopo. O corpo suporta **Markdown** com sanitização; a listagem mostra snippets.
 - **`Kudos` — Reconhecimento entre pares:** `giver_id`, `receiver_id`, `message`, `created_at`. Qualquer pessoa doa; feed visível no time.
-- **`TeamEvent` — Calendário/eventos/inoficinas:** `team_id`, `title`, `date`, `description`. Reusa notificações.
+- **`TeamEvent` — Calendário/eventos/oficinas:** `team_id`, `title`, `date`, `description`. Reusa notificações. Uma tarefa pode vincularse a um evento via `team_tasks.event_id`.
+- **`Mentorship` — REMOVIDO:** a mentoria (pareamento 1:1) foi retirada end-to-end; a tabela prod fica intacta (sem DROP).
 - **Test parity:** CRUD por entidade + escopo + auditoria.
 
 ## 6d. Módulo A7 — Dashboard executivo de Indicadores (KPIs)
@@ -172,7 +172,7 @@ Agrupamento de funcionalidades leves de cultura/colaboração, cada uma uma tabe
 
 **Mecânica (puramente apresentacional):**
 - **Duas paletas** em `style.css`: paleta padrão (`:root`) = mundo do ponto; paleta override sob `[data-app-mode="work"]` = mundo gestão (troca as custom properties de marca — accent, primary, bg, etc.). A paleta de gestão usa **navy/slate corporativo** (navbar `#1F2A44`, primary `#2E5C8A`) — nitidamente distinta do verde do ponto, mantendo ares profissional.
-- **Duas navegações isoladas** num único `base.html`, chaveadas por `data_app_mode` (contexto injetado em `flask_app` a partir do `request.path`): páginas `/work/*` mostram **apenas** a nav de workforce, agora **agrupada em dropdowns** para reduzir poluição — **Painel** (top-level), **Atividade** (Tarefas/Conquistas/Ideias/5S), **Estrutura** (Equipes), **Cultura** (Wiki/Mentoria/Kudos/Eventos), **Gestão** (Relatórios/Executivo); páginas de ponto mostram **apenas** a nav do relógio (Ponto/Gestão/Auditoria/Times/Dados). Sem mix/crowding.
+- **Duas navegações isoladas** num único `base.html`, chaveadas por `data_app_mode` (contexto injetado em `flask_app` a partir do `request.path`): páginas `/work/*` mostram **apenas** a nav de workforce, agora **agrupada em dropdowns** para reduzir poluição — **Painel** (top-level), **Atividade** (Tarefas/Conquistas/Ideias/5S), **Estrutura** (Equipes), **Cultura** (Wiki/Kudos/Eventos), **Gestão** (Relatórios/Executivo); páginas de ponto mostram **apenas** a nav do relógio (Ponto/Gestão/Auditoria/Times/Dados). Sem mix/crowding.
 - **Auto-deteção por rota (sempre aplicada):** `request.path.startswith("/work")` decide a nav + paleta; **visitar diretamente um link de `/work/*` sempre renderiza a paleta/nav correta**, independente de preferência salva (removido o override por localStorage que tornava a troca invisível).
 - **Switch no navbar (estilo day/night, `.app-mode-switch`)** no lugar do botão flutuante: é um **toggle switch de verdade** — trilho + tecla deslizante (ligado/desligado) que reflete o modo ativo por `data-mode`, com rótulo ao lado; na nav de clock, "Workforce" (antes de Dados); na nav de gestão, "Voltar ao Ponto" (antes de Dados). Renderizado **somente quando `WORKFORCE_ENABLED`** (install puramente de clock nunca o vê).
 - **Sem dados duplicados:** é apenas a identidade visual + nav; o modelo de dados continua unificado.
@@ -193,7 +193,7 @@ Disciplina de trabalho: commits atômicos, teste por unidade, push **só no fim 
 | **C** | Quadro de ideias **+ KAIZEN (categoria `kaizen` + status `implemented` + review PDCA opcional)** | Escopo + notificações |
 | **D** | Painéis de equipe (roll-ups, lead) — inclui `Team.lead_user_id` (coluna `create_all` + ALTER Postgres idempotente) | Aprofunda `management_panel`; alimenta A7 |
 | **B-extra** | 5S por setor (auditoria periódica + score) | Instância de A |
-| **C-extra** | Wiki interna, Mentoria, Kudos, Calendário/eventos | Tabelas finas de cultura |
+| **C-extra** | Wiki interna, Kudos, Calendário/eventos | Tabelas finas de cultura |
 | **A7** | Dashboard executivo de KPIs (cross-team) | Consome roll-ups de D/B/C/5S |
 | **W** | Mode-switch (paleta `[data-app-mode]` + toggle + aplicação nas templates de gestão) | Botão mágico |
 | **A6** | Patch notes / release board interno | Último; descartável |
@@ -214,7 +214,7 @@ Tabelas novas em `orm.py` → criadas por `metadata.create_all` em `run_migratio
 - `/work/ideas/*` — Vertical C (quadro ideal/kaiizen + voto).
 - `/work/teams/*` — Vertical D (painéis de equipe).
 - `/work/5s/*` — B-extra (auditorias 5S).
-- `/work/culture/*` — C-extra (wiki, mentoria, kudos, eventos).
+- `/work/culture/*` — C-extra (wiki, kudos, eventos).
 - `/work/reports*` — **relatórios HTML** (filtro por período/team; seções de tarefas/conquistas/ideias/5S/kudos/eventos/wiki; exportável para impressão).
 - `/work/exec/*` — A7 (dashboard executivo de KPIs).
 - Prefixo `/work` carrega `data-app-mode="work"` → o "magic button" reconhece instantaneamente.
@@ -276,7 +276,7 @@ Ao concluir as 6 fases, o "Banco de Horas" deixa de ser só ponto eletrônico e 
 
 - Os mesmos usuários, times e autenticação.
 - O mesmo banco (tabelas novas convivem com `daily_pontos`/`audit_logs`).
-- Gestores gerenciam **tarefas, conquistas, painéis e KPIs executivos**; todos **participam com ideias/KAIZEN, wiki, mentoria, kudos e eventos**, e **auditam 5S por setor**.
+- Gestores gerenciam **tarefas, conquistas, painéis e KPIs executivos**; todos **participam com ideias/KAIZEN, wiki, kudos e eventos**, e **auditam 5S por setor**.
 - A filosofia de trabalho (**5S**) e a cultura colaborativa (**KAIZEN, kudos, wiki, eventos**) são entregues **sobre a mesma base compartilhada** — sem duplicar sistema ou dados.
 - O **"magic button"** separa visualmente as duas experiências — ponto vs gestão — mesmo dentro de um único site.
 

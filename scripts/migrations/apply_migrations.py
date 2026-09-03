@@ -62,6 +62,10 @@ BASE_MIGRATIONS = [
     # Soft deactivation (Phase F): keep the user row so workforce history and FK
     # references survive; deactivated users are hidden from login and active lists.
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;",
+
+    # Tasks as objectives linked to a calendar event (workforce expand): tasks can
+    # refer to an event they help deliver. Nullable so existing tasks stay valid.
+    "ALTER TABLE team_tasks ADD COLUMN IF NOT EXISTS event_id INTEGER REFERENCES team_events(id);",
 ]
 
 
