@@ -12,15 +12,15 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="mb-3">
                 <label class="form-label">Latitude</label>
-                <input type="number" step="any" name="lat" class="form-control" value="{{ Configuraçãos.lat if Configuraçãos else '' }}" required>
+                <input type="number" step="any" name="lat" class="form-control" value="{{ settings.lat if settings else '' }}" required>
             </div>
             <div class="mb-3">
                 <label class="form-label">Longitude</label>
-                <input type="number" step="any" name="lon" class="form-control" value="{{ Configuraçãos.lon if Configuraçãos else '' }}" required>
+                <input type="number" step="any" name="lon" class="form-control" value="{{ settings.lon if settings else '' }}" required>
             </div>
             <div class="mb-3">
                 <label class="form-label">Data de Início de Análise</label>
-                <input type="date" name="start_date" class="form-control" value="{{ Configuraçãos.start_analysis_date.strftime('%Y-%m-%d') if Configuraçãos else '' }}" required>
+                <input type="date" name="start_date" class="form-control" value="{{ settings.start_analysis_date.strftime('%Y-%m-%d') if settings else '' }}" required>
             </div>
             <button type="submit" class="btn btn-primary">Salvar Coordenadas</button>
         </form>
