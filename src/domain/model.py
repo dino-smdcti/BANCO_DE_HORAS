@@ -405,6 +405,25 @@ class CorrectionRequest:
 
 
 @dataclass
+class ClockRequest:
+        """A pre-approval request: the employee asks their superior in advance to
+        accept a late arrival / early departure on a given day, so that when the
+        clock happens the anomaly is auto-excused instead of being flagged."""
+        user_id: int
+        superior_id: int
+        entry_date: date
+        stage: str
+        direction: str
+        proposed_time: time
+        reason: Optional[str] = None
+        status: str = "pending"
+        reviewer_notes: Optional[str] = None
+        created_at: datetime = field(default_factory=datetime.now)
+        reviewed_at: Optional[datetime] = None
+        request_id: Optional[int] = None
+
+
+@dataclass
 class UserProfile:
         registration_number: Optional[str] = None
         cpf: Optional[str] = None

@@ -2,7 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, Date, Time, ForeignKey, E
 from sqlalchemy.types import TypeDecorator
 from sqlalchemy.orm import registry, relationship, composite
 from datetime import datetime, date
-from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Kudos, TeamEvent
+from src.domain.model import User, DailyPonto, UserProfile, UserRole, Vacation, Holiday, WorkSchedule, PontoStatus, JourneyType, Notification, AuditLog, CorrectionRequest, ClockRequest, CompanySettings, ScheduleType, Attestation, Facultativo, AuthToken, AbsenceState, RateLimitEntry, Team, TeamTask, TaskChecklistItem, Accomplishment, Idea, IdeaVote, S5Audit, S5Item, WikiArticle, Kudos, TeamEvent
 from src.config import (
         ATTESTATION_CID_COLUMN_LENGTH,
         AUDIT_ACTION_COLUMN_LENGTH,
@@ -301,6 +301,23 @@ correction_requests = Table(
     Column("created_at", DateTime, default=datetime.now),
 )
 
+clock_requests = Table(
+    "clock_requests",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("user_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("superior_id", Integer, ForeignKey("users.id"), nullable=False),
+    Column("entry_date", Date, nullable=False),
+    Column("stage", String(CORRECTION_STAGE_COLUMN_LENGTH), nullable=False),
+    Column("direction", String(20), nullable=False),
+    Column("proposed_time", Time, nullable=False),
+    Column("reason", String(NOTES_COLUMN_LENGTH), nullable=True),
+    Column("status", String(CORRECTION_STATUS_COLUMN_LENGTH), default=CORRECTION_STATUS_PENDING),
+    Column("reviewer_notes", String(NOTES_COLUMN_LENGTH), nullable=True),
+    Column("created_at", DateTime, default=datetime.now),
+    Column("reviewed_at", DateTime, nullable=True),
+)
+
 vacations = Table(
     "vacations",
     metadata,
@@ -442,6 +459,7 @@ def start_mappers():
         mapper_registry.map_imperatively(WorkSchedule, work_schedules, properties=_column_properties(work_schedules.c.id, "schedule_id"))
         mapper_registry.map_imperatively(DailyPonto, daily_pontos, properties=_column_properties(daily_pontos.c.id, "ponto_id"))
         mapper_registry.map_imperatively(CorrectionRequest, correction_requests, properties=_column_properties(correction_requests.c.id, "request_id"))
+        mapper_registry.map_imperatively(ClockRequest, clock_requests, properties=_column_properties(clock_requests.c.id, "request_id"))
         mapper_registry.map_imperatively(Vacation, vacations, properties=_column_properties(vacations.c.id, "vacation_id"))
         mapper_registry.map_imperatively(Attestation, attestations, properties=_column_properties(attestations.c.id, "attestation_id"))
         mapper_registry.map_imperatively(Facultativo, facultativos, properties=_column_properties(facultativos.c.id, "facultativo_id"))

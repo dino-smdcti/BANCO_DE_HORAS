@@ -33,22 +33,22 @@ def _ponto(lunch_start):
 class TestClockTimeFlags:
         def test_late_when_after_window(self):
                 p = _ponto(time(12, 30))
-                _flag_if_lunch_start_late(p, _user(), DAY, time(12, 30))
-                _flag_if_lunch_start_early(p, _user(), DAY, time(12, 30))
+                _flag_if_lunch_start_late(None, p, _user(), DAY, time(12, 30))
+                _flag_if_lunch_start_early(None, p, _user(), DAY, time(12, 30))
                 assert p.lunch_start_late
                 assert not p.lunch_start_early
 
         def test_early_when_before_window(self):
                 p = _ponto(time(11, 30))
-                _flag_if_lunch_start_late(p, _user(), DAY, time(11, 30))
-                _flag_if_lunch_start_early(p, _user(), DAY, time(11, 30))
+                _flag_if_lunch_start_late(None, p, _user(), DAY, time(11, 30))
+                _flag_if_lunch_start_early(None, p, _user(), DAY, time(11, 30))
                 assert p.lunch_start_early
                 assert not p.lunch_start_late
 
         def test_no_flag_within_tolerance(self):
                 p = _ponto(time(12, 5))
-                _flag_if_lunch_start_late(p, _user(), DAY, time(12, 5))
-                _flag_if_lunch_start_early(p, _user(), DAY, time(12, 5))
+                _flag_if_lunch_start_late(None, p, _user(), DAY, time(12, 5))
+                _flag_if_lunch_start_early(None, p, _user(), DAY, time(12, 5))
                 assert not p.lunch_start_late
                 assert not p.lunch_start_early
 

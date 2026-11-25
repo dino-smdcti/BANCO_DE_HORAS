@@ -296,6 +296,55 @@ html, body {
     }
 }
 
+/* Mobile bottom icon-only nav (replaces the stacked text collapse) */
+.mobile-bottom-nav {
+    display: none;
+}
+
+@media (max-width: var(--breakpoint-lg)) {
+    .navbar-toggler,
+    .navbar-collapse {
+        display: none !important;
+    }
+
+    .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 58px;
+        background-color: var(--accent);
+        z-index: 1030;
+        align-items: stretch;
+        justify-content: space-around;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .mobile-bottom-nav a,
+    .mobile-bottom-nav button {
+        flex: 1 1 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 1.5rem;
+        text-decoration: none;
+        background: none;
+        border: none;
+    }
+
+    .mobile-bottom-nav a:active,
+    .mobile-bottom-nav button:active {
+        color: #ffffff;
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    body {
+        padding-bottom: 66px;
+    }
+}
+
 /* Pin without location: red with strikethrough */
 .pin-no-location {
     position: relative;

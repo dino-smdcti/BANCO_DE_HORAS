@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="bi bi-clock-history"></i> Solicitações de Ajuste de Ponto</h2>
+    <a href="{{ url_for('management_panel') }}" class="btn btn-outline-dark">Voltar ao Painel</a>
+</div>
+
+<div class="card shadow">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Funcionário</th>
+                    <th>Data</th>
+                    <th>Estágio</th>
+                    <th>Direção</th>
+                    <th>Horário proposto</th>
+                    <th>Motivo</th>
+                    <th>Status</th>
+                    <th class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in requests %}
+                <tr>
+                    <td>{{ r.requester }}</td>
+                    <td>{{ r.entry_date.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        {% if r.stage == 'arrival' %}Chegada
+                        {% elif r.stage == 'lunch_start' %}Saída Almoço
+                        {% elif r.stage == 'lunch_end' %}Retorno Almoço
+                        {% elif r.stage == 'departure' %}Fim Jornada
+                        {% else %}{{ r.stage }}{% endif %}
+                    </td>
+                    <td>{{ 'Mais tarde' if r.direction == 'later' else 'Mais cedo' }}</td>
+                    <td>{{ r.proposed_time.strftime('%H:%M') }}</td>
+                    <td>{{ r.reason or '—' }}</td>
+                    <td>
+                        {% if r.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pendente</span>
+                        {% elif r.status == 'approved' %}
+                            <span class="badge bg-success">Aprovada</span>
+                        {% else %}
+                            <span class="badge bg-danger">Rejeitada</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end text-nowrap">
+                        {% if r.can_review %}
+                        <form action="{{ url_for('review_clock_request', request_id=r.id) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="action" value="approve">
+                            <button type="submit" class="btn btn-sm btn-outline-success" title="Aprovar">
+                                <i class="bi bi-check-lg"></i> Aprovar
+                            </button>
+                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ r.id }}">
+                            <i class="bi bi-x-lg"></i> Rejeitar
+                        </button>
+
+                        <div class="modal fade" id="rejectModal{{ r.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <form action="{{ url_for('review_clock_request', request_id=r.id) }}" method="POST" class="modal-content">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="action" value="reject">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Rejeitar solicitação</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <label class="form-label">Motivo da rejeição</label>
+                                        <textarea name="reviewer_notes" class="form-control" rows="3" required></textarea>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" class="btn btn-danger">Rejeitar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        {% elif r.status == 'rejected' and r.reviewer_notes %}
+                            <small class="text-muted">{{ r.reviewer_notes }}</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">Nenhuma solicitação de ajuste encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

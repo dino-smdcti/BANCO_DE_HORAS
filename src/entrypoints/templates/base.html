@@ -118,6 +118,9 @@
                                 <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('management_panel') }}">
                                     <i class="bi bi-people"></i> <span>Gestão</span>
                                 </a>
+                                <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('clock_requests_panel') }}">
+                                    <i class="bi bi-clock-history"></i> <span>Solicitações</span>
+                                </a>
                             {% endif %}
                             {% if current_user.role in ADMIN_ROLES %}
                                 <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('audit_logs') }}">
@@ -147,6 +150,31 @@
                 </div>
             </div>
         </div>
+    </nav>
+
+    <!-- Mobile bottom icon-only nav -->
+    <nav class="mobile-bottom-nav d-lg-none">
+        {% if current_user.is_authenticated %}
+            {% if data_app_mode == 'work' %}
+                <a href="{{ url_for('work_dashboard') }}" title="Painel"><i class="bi bi-speedometer2"></i></a>
+                <a href="{{ url_for('work_tasks') }}" title="Tarefas"><i class="bi bi-list-check"></i></a>
+                <a href="{{ url_for('work_ideas') }}" title="Ideias"><i class="bi bi-lightbulb"></i></a>
+                <a href="{{ url_for('work_exec') }}" title="Executivo"><i class="bi bi-bar-chart-steps"></i></a>
+                <a href="{{ url_for('work_reports') }}" title="Relatórios"><i class="bi bi-file-earmark-bar-graph"></i></a>
+            {% else %}
+                <a href="{{ url_for('dashboard') }}" title="Ponto"><i class="bi bi-calendar-check"></i></a>
+                {% if current_user.role in MANAGEMENT_ROLES %}
+                    <a href="{{ url_for('management_panel') }}" title="Gestão"><i class="bi bi-people"></i></a>
+                    <a href="{{ url_for('clock_requests_panel') }}" title="Solicitações"><i class="bi bi-clock-history"></i></a>
+                {% endif %}
+                {% if current_user.role in ADMIN_ROLES %}
+                    <a href="{{ url_for('audit_logs') }}" title="Auditoria"><i class="bi bi-shield-lock"></i></a>
+                    <a href="{{ url_for('teams_page') }}" title="Times"><i class="bi bi-diagram-3"></i></a>
+                    <a href="{{ url_for('metrics_panel') }}" title="Métricas"><i class="bi bi-bar-chart-line"></i></a>
+                {% endif %}
+                <a href="{{ url_for('profile') }}" title="Dados"><i class="bi bi-person-gear"></i></a>
+            {% endif %}
+        {% endif %}
     </nav>
 
     <!-- Notification Modal -->

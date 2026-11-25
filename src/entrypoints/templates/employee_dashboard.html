@@ -217,6 +217,10 @@
                 <h6 class="small fw-bold">Pedido de Correção</h6>
                 <p class="small text-muted mb-2">Esqueceu de bater o ponto ontem? Solicite uma correção que será analisada pelo gestor.</p>
                 <button class="btn btn-xs btn-danger py-0" onclick="new bootstrap.Modal(document.getElementById('correctionModal')).show()">Solicitar Correção Retroativa</button>
+
+                <h6 class="small fw-bold mt-3">Solicitação de Ajuste Antecipado</h6>
+                <p class="small text-muted mb-2">Vai chegar atrasado ou sair mais cedo? Peça aprovação antes e não precise justificar depois.</p>
+                <button class="btn btn-xs btn-warning py-0 text-dark" onclick="new bootstrap.Modal(document.getElementById('clockRequestModal')).show()">Solicitar Ajuste Antecipado</button>
             </div>
         </div>
     </div>
@@ -330,6 +334,52 @@
                 </div>
                 <div class="modal-footer">
                     <button type="submit" class="btn btn-danger w-100">Enviar para Análise do Gestor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Solicitação de Ajuste Antecipado (pré-aprovação) -->
+    <div class="modal fade" id="clockRequestModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form action="{{ url_for('clock_request') }}" method="POST" class="modal-content">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Solicitar Ajuste Antecipado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small">Data do ajuste</label>
+                        <input type="date" name="entry_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Estágio</label>
+                        <select name="stage" class="form-select" required>
+                            <option value="arrival">Chegada</option>
+                            <option value="lunch_start">Saída Almoço</option>
+                            <option value="lunch_end">Volta Almoço</option>
+                            <option value="departure">Fim Jornada</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Direção</label>
+                        <select name="direction" class="form-select" required>
+                            <option value="later">Mais tarde</option>
+                            <option value="earlier">Mais cedo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Horário proposto (HH:MM)</label>
+                        <input type="time" name="proposed_time" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Motivo</label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="Ex: consulta médica, reunião..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-warning w-100 text-dark">Enviar para Aprovação</button>
                 </div>
             </form>
         </div>

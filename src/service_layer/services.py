@@ -58,6 +58,7 @@ from src.service_layer.clock_service import (
         submit_justification,
 )
 from src.service_layer.notifications import add_notification, mark_notifications_as_read
+from src.service_layer.clock_request_service import create_clock_request, get_superior_id, list_all_clock_requests, list_clock_requests_for_superior, list_clock_requests_for_user, review_clock_request
 from src.service_layer.metrics_service import compute_period_metrics, format_minutes, generate_bulk_report_excel, list_clocking_users, team_name_for
 from src.service_layer.permissions import ensure_manager, ensure_managed_user, ensure_not_self
 from src.service_layer.report_service import generate_excel_report
@@ -99,6 +100,7 @@ __all__ = [
         "complete_retroactive_logs",
         "compute_period_metrics",
         "create_accomplishment",
+        "create_clock_request",
         "create_idea",
         "create_journey_type",
         "create_s5_audit",
@@ -132,9 +134,13 @@ __all__ = [
         "get_journey_type",
         "get_s5_average",
         "get_start_analysis_date",
+        "get_superior_id",
         "get_task",
         "give_kudo",
         "list_accomplishments",
+        "list_all_clock_requests",
+        "list_clock_requests_for_superior",
+        "list_clock_requests_for_user",
         "list_exec_kpis",
         "list_ideas",
         "list_journey_types",
@@ -157,6 +163,7 @@ __all__ = [
         "remove_vacation_day",
         "review_anomaly_badge",
         "review_correction_request",
+        "review_clock_request",
         "review_justification",
         "seed_holidays",
         "set_idea_status",

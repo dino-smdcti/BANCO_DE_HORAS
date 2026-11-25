@@ -10,6 +10,7 @@ from src.service_layer.permissions import ensure_manager, ensure_not_self, ensur
 from src.service_layer.notifications import add_notification
 from src.service_layer.audit import log_action
 from src.service_layer.attendance_helpers import _ponto_for, _require_user
+from src.service_layer.clock_request_service import has_approved_clock_request
 from src.config import (
         ANOMALY_ACTION_APPROVE,
         ANOMALY_ACTION_EXCUSE,
@@ -42,7 +43,7 @@ def clock_in_out(uow: AbstractUnitOfWork, user_id: int, location: Optional[str] 
                         now_time, today = _brazil_now()
                         ponto = _todays_ponto(user, today)
                         target_stage = stage or _next_stage(ponto)
-                        _register_stage(user, ponto, target_stage, now_time, today, location or CLOCK_LOCATION_NA, notes)
+                        _register_stage(uow, user, ponto, target_stage, now_time, today, location or CLOCK_LOCATION_NA, notes)
                         message = _STAGE_MESSAGES[target_stage]
                         log_action(uow, user_id, "CLOCK_EVENT", target_id=user_id, details=f"{message} ({target_stage})")
                 except IntegrityError:
@@ -172,47 +173,47 @@ def _next_stage(ponto):
         raise ValueError("Jornada de hoje já está completa.")
 
 
-def _register_stage(user, ponto, stage, now_time, today, location, notes):
+def _register_stage(uow, user, ponto, stage, now_time, today, location, notes):
         # Any registerable stage may start the day's log; a late arrival (or an
         # explicit manual POST) must not block later stages on an absent Chegada.
         if not ponto:
                 ponto = _emit_ponto(user, today)
                 user.time_entries.append(ponto)
         if stage == STAGE_ARRIVAL:
-                _register_arrival(user, ponto, now_time, today, location)
+                _register_arrival(uow, user, ponto, now_time, today, location)
         elif stage == STAGE_LUNCH_START:
-                _register_lunch_start(user, ponto, now_time, today, location)
+                _register_lunch_start(uow, user, ponto, now_time, today, location)
         elif stage == STAGE_LUNCH_END:
-                _register_lunch_end(user, ponto, now_time, today, location)
+                _register_lunch_end(uow, user, ponto, now_time, today, location)
         elif stage == STAGE_DEPARTURE:
-                _register_departure(user, ponto, now_time, today, location, notes)
+                _register_departure(uow, user, ponto, now_time, today, location, notes)
         else:
                 raise ValueError("Estágio inválido.")
 
 
-def _register_arrival(user, ponto, now_time, today, location):
+def _register_arrival(uow, user, ponto, now_time, today, location):
         ponto.arrival = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_ARRIVAL}: {location}")
-        _flag_if_arrival_late(ponto, user, today, now_time)
+        _flag_if_arrival_late(uow, ponto, user, today, now_time)
 
 
-def _register_lunch_start(user, ponto, now_time, today, location):
+def _register_lunch_start(uow, user, ponto, now_time, today, location):
         ponto.lunch_start = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_LUNCH_START}: {location}")
-        _flag_if_lunch_start_late(ponto, user, today, now_time)
-        _flag_if_lunch_start_early(ponto, user, today, now_time)
+        _flag_if_lunch_start_late(uow, ponto, user, today, now_time)
+        _flag_if_lunch_start_early(uow, ponto, user, today, now_time)
 
 
-def _register_lunch_end(user, ponto, now_time, today, location):
+def _register_lunch_end(uow, user, ponto, now_time, today, location):
         ponto.lunch_end = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_LUNCH_END}: {location}")
-        _flag_if_lunch_end_late(ponto, user, today, now_time)
+        _flag_if_lunch_end_late(uow, ponto, user, today, now_time)
 
 
-def _register_departure(user, ponto, now_time, today, location, notes):
+def _register_departure(uow, user, ponto, now_time, today, location, notes):
         ponto.departure = now_time
         _log_location(ponto, f"{LOCATION_PREFIX_DEPARTURE}: {location}")
-        _flag_if_departure_early(ponto, user, today, now_time)
+        _flag_if_departure_early(uow, ponto, user, today, now_time)
         if notes:
                 ponto.notes = notes
 
@@ -240,39 +241,54 @@ def _log_location(ponto, text):
         ponto.location_data += f"{LOCATION_SEPARATOR}{text}"
 
 
-def _flag_if_arrival_late(ponto, user, today, now_time):
+def _flag_if_arrival_late(uow, ponto, user, today, now_time):
         schedule = user.work_schedule
         if schedule and now_time > limit_after(schedule.expected_arrival, schedule.tolerance_minutes, today):
-                ponto.status = PontoStatus.LATE
-                ponto.arrival_late = True
+                if uow is not None and has_approved_clock_request(uow, user.user_id, today, STAGE_ARRIVAL):
+                        ponto.arrival_late_approved = True
+                else:
+                        ponto.status = PontoStatus.LATE
+                        ponto.arrival_late = True
 
 
-def _flag_if_lunch_start_late(ponto, user, today, now_time):
+def _flag_if_lunch_start_late(uow, ponto, user, today, now_time):
         schedule = user.work_schedule
         if schedule and schedule.expected_lunch_start and now_time > limit_after(schedule.expected_lunch_start, schedule.tolerance_minutes, today):
-                ponto.status = PontoStatus.LATE
-                ponto.lunch_start_late = True
+                if uow is not None and has_approved_clock_request(uow, user.user_id, today, STAGE_LUNCH_START):
+                        ponto.lunch_start_late_approved = True
+                else:
+                        ponto.status = PontoStatus.LATE
+                        ponto.lunch_start_late = True
 
 
-def _flag_if_lunch_start_early(ponto, user, today, now_time):
+def _flag_if_lunch_start_early(uow, ponto, user, today, now_time):
         schedule = user.work_schedule
         if schedule and schedule.expected_lunch_start and now_time < limit_before(schedule.expected_lunch_start, schedule.tolerance_minutes, today):
-                ponto.status = PontoStatus.LATE
-                ponto.lunch_start_early = True
+                if uow is not None and has_approved_clock_request(uow, user.user_id, today, STAGE_LUNCH_START):
+                        ponto.lunch_start_early_approved = True
+                else:
+                        ponto.status = PontoStatus.LATE
+                        ponto.lunch_start_early = True
 
 
-def _flag_if_lunch_end_late(ponto, user, today, now_time):
+def _flag_if_lunch_end_late(uow, ponto, user, today, now_time):
         schedule = user.work_schedule
         if schedule and schedule.expected_lunch_end and now_time > limit_after(schedule.expected_lunch_end, schedule.tolerance_minutes, today):
-                ponto.status = PontoStatus.LATE
-                ponto.lunch_end_late = True
+                if uow is not None and has_approved_clock_request(uow, user.user_id, today, STAGE_LUNCH_END):
+                        ponto.lunch_end_late_approved = True
+                else:
+                        ponto.status = PontoStatus.LATE
+                        ponto.lunch_end_late = True
 
 
-def _flag_if_departure_early(ponto, user, today, now_time):
+def _flag_if_departure_early(uow, ponto, user, today, now_time):
         schedule = user.work_schedule
         if schedule and now_time < limit_before(schedule.expected_departure, schedule.tolerance_minutes, today):
-                ponto.status = PontoStatus.LATE
-                ponto.departure_early = True
+                if uow is not None and has_approved_clock_request(uow, user.user_id, today, STAGE_DEPARTURE):
+                        ponto.departure_early_approved = True
+                else:
+                        ponto.status = PontoStatus.LATE
+                        ponto.departure_early = True
 
 
 def _find_request(uow, request_id):

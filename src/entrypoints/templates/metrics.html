@@ -46,6 +46,27 @@
     </div>
 </div>
 
+{% if chart_data %}
+<div class="row g-3 mb-4">
+    <div class="col-lg-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h5 class="card-title small fw-bold text-muted mb-3"><i class="bi bi-battery-charging"></i> Saldo de Horas por Funcionário</h5>
+                <canvas id="balanceChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow h-100">
+            <div class="card-body">
+                <h5 class="card-title small fw-bold text-muted mb-3"><i class="bi bi-clock-history"></i> Trabalhadas × Esperadas</h5>
+                <canvas id="workedChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="card shadow">
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
@@ -86,4 +107,78 @@
 <div class="text-muted small mt-2">
     Período exibido: {{ start_date.strftime('%d/%m/%Y') }} até {{ end_date.strftime('%d/%m/%Y') }}.
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if chart_data %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const metricsData = {{ chart_data | tojson }};
+
+    function toHoursLabel(min) {
+        const sign = min < 0 ? "-" : "";
+        const abs = Math.abs(min);
+        return `${sign}${Math.floor(abs / 60)}h ${String(abs % 60).padStart(2, "0")}m`;
+    }
+
+    const labels = metricsData.map(d => d.name);
+    const balanceValues = metricsData.map(d => d.balance);
+    const balanceColors = balanceValues.map(v => v < 0 ? "#dc3545" : "#198754");
+    const workedValues = metricsData.map(d => d.worked);
+    const expectedValues = metricsData.map(d => d.expected);
+
+    new Chart(document.getElementById("balanceChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Saldo (minutos)",
+                data: balanceValues,
+                backgroundColor: balanceColors,
+                borderRadius: 4,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: { label: ctx => " " + toHoursLabel(ctx.raw) },
+                },
+            },
+            scales: {
+                y: {
+                    ticks: { callback: v => toHoursLabel(v) },
+                },
+            },
+        },
+    });
+
+    new Chart(document.getElementById("workedChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                { label: "Trabalhadas", data: workedValues, backgroundColor: "#1F6F5F", borderRadius: 4 },
+                { label: "Esperadas", data: expectedValues, backgroundColor: "#b6c4c0", borderRadius: 4 },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: { label: ctx => ` ${ctx.dataset.label}: ${toHoursLabel(ctx.raw)}` },
+                },
+            },
+            scales: {
+                y: {
+                    ticks: { callback: v => toHoursLabel(v) },
+                },
+            },
+        },
+    });
+</script>
+{% endif %}
 {% endblock %}

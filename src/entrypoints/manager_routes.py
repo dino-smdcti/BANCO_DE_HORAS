@@ -61,6 +61,8 @@ def register_routes(app):
         app.add_url_rule("/manager/demote/<int:user_id>", "demote_user", demote_user, methods=["POST"])
         app.add_url_rule("/manager/archive-justification/<int:employee_id>/<string:entry_date>", "archive_justification", archive_justification, methods=["POST"])
         app.add_url_rule("/manager/review-justification/<int:employee_id>/<string:entry_date>", "review_justification", review_justification, methods=["POST"])
+        app.add_url_rule("/clock-requests", "clock_requests_panel", clock_requests_panel)
+        app.add_url_rule("/clock-request/<int:request_id>/review", "review_clock_request", review_clock_request_route, methods=["POST"])
         app.add_url_rule("/manager/archived-justifications", "archived_justifications", archived_justifications)
         app.add_url_rule("/manager/archive-justification-action/<int:employee_id>/<string:entry_date>", "archive_justification_action", archive_justification_action, methods=["POST"])
         app.add_url_rule("/management", "management_panel", management_panel)
@@ -182,6 +184,52 @@ def review_justification(employee_id, entry_date):
         except ValueError as error:
                 flash(str(error), "danger")
         return redirect(url_for("management_panel"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def clock_requests_panel():
+        uow = new_uow()
+        with uow:
+                if current_user.role in ADMIN_ROLES:
+                        requests = services.list_all_clock_requests(uow)
+                else:
+                        requests = services.list_clock_requests_for_superior(uow, int(current_user.id))
+                display = [_clock_request_row(uow, request) for request in requests]
+                return render_template("clock_requests.html", requests=display)
+
+
+@login_required
+@manager_required
+@handle_errors
+def review_clock_request_route(request_id):
+        approved = request.form.get("action") == "approve"
+        reviewer_notes = request.form.get("reviewer_notes") or None
+        uow = new_uow()
+        try:
+                services.review_clock_request(uow, int(current_user.id), request_id, approved, reviewer_notes)
+                flash("Solicitação de ajuste processada.", "success")
+        except (ValueError, PermissionError) as error:
+                flash(str(error), "danger")
+        return redirect(url_for("clock_requests_panel"))
+
+
+def _clock_request_row(uow, request):
+        requester = uow.users.get_user_by_id(request.user_id)
+        return {
+                "id": request.request_id,
+                "requester": (requester.profile.full_name or requester.email) if requester else "-",
+                "entry_date": request.entry_date,
+                "stage": request.stage,
+                "direction": request.direction,
+                "proposed_time": request.proposed_time,
+                "reason": request.reason,
+                "status": request.status,
+                "reviewer_notes": request.reviewer_notes,
+                "created_at": request.created_at,
+                "can_review": request.superior_id == int(current_user.id) and request.status == "pending",
+        }
 
 
 @login_required

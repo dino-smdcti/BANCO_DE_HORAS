@@ -16,6 +16,7 @@ def register_routes(app):
         app.add_url_rule("/profile", "profile", profile, methods=["GET", "POST"])
         app.add_url_rule("/submit-correction", "submit_correction", submit_correction, methods=["POST"])
         app.add_url_rule("/submit-justification", "submit_justification", submit_justification, methods=["POST"])
+        app.add_url_rule("/clock-request", "clock_request", clock_request, methods=["POST"])
         app.add_url_rule("/notifications/read", "mark_notifications_read", mark_notifications_read, methods=["POST"])
         app.add_url_rule("/clock", "clock", clock, methods=["POST"])
         app.add_url_rule("/update-note", "update_note", update_note, methods=["POST"])
@@ -89,6 +90,22 @@ def submit_justification():
                 flash("Justificativa enviada para análise.", "success")
         except Exception as error:
                 return flash_redirect("dashboard", f"Erro ao enviar justificativa: {str(error)}")
+        return redirect(url_for("dashboard"))
+
+
+@login_required
+def clock_request():
+        try:
+                entry_date = parse_date_arg(request.form.get("entry_date"))
+                stage = request.form.get("stage")
+                direction = request.form.get("direction")
+                proposed_time = parse_time_arg(request.form.get("proposed_time"))
+                reason = request.form.get("reason") or None
+                uow = new_uow()
+                services.create_clock_request(uow, current_user.id, entry_date, stage, direction, proposed_time, reason)
+                flash("Solicitação de ajuste enviada ao seu superior.", "success")
+        except Exception as error:
+                return flash_redirect("dashboard", f"Erro ao enviar solicitação: {str(error)}")
         return redirect(url_for("dashboard"))
 
 

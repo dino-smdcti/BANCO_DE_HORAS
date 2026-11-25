@@ -96,6 +96,7 @@ def metrics_panel():
                 return render_template(
                         "metrics.html",
                         rows=rows,
+                        chart_data=_chart_data(rows),
                         teams=services.list_teams(uow),
                         all_users=services.list_clocking_users(uow),
                         start_date=start_date,
@@ -148,7 +149,26 @@ def _metrics_row(uow, user, start_date, end_date):
                 "conceded": services.format_minutes(metrics["conceded_minutes"]),
                 "balance": services.format_minutes(metrics["balance_minutes"]),
                 "balance_negative": metrics["balance_minutes"] < 0,
+                "worked_min": metrics["worked_minutes"],
+                "expected_min": metrics["expected_minutes"],
+                "missed_min": metrics["missed_minutes"],
+                "conceded_min": metrics["conceded_minutes"],
+                "balance_min": metrics["balance_minutes"],
         }
+
+
+def _chart_data(rows):
+        return [
+                {
+                        "name": row["name"],
+                        "worked": row["worked_min"],
+                        "expected": row["expected_min"],
+                        "missed": row["missed_min"],
+                        "conceded": row["conceded_min"],
+                        "balance": row["balance_min"],
+                }
+                for row in rows
+        ]
 
 
 def _int_or_none(value):
