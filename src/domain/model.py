@@ -323,6 +323,7 @@ class DailyPonto:
         status: PontoStatus = PontoStatus.ON_TIME
         notes: Optional[str] = None
         manager_notes: Optional[str] = None
+        justification: Optional[str] = None
         has_lunch_break: bool = True
         ponto_id: Optional[int] = None
         excused_minutes: int = 0

@@ -60,6 +60,7 @@ def register_routes(app):
         app.add_url_rule("/manager/change-role/<int:user_id>", "change_user_role", change_user_role, methods=["POST"])
         app.add_url_rule("/manager/demote/<int:user_id>", "demote_user", demote_user, methods=["POST"])
         app.add_url_rule("/manager/archive-justification/<int:employee_id>/<string:entry_date>", "archive_justification", archive_justification, methods=["POST"])
+        app.add_url_rule("/manager/review-justification/<int:employee_id>/<string:entry_date>", "review_justification", review_justification, methods=["POST"])
         app.add_url_rule("/manager/archived-justifications", "archived_justifications", archived_justifications)
         app.add_url_rule("/manager/archive-justification-action/<int:employee_id>/<string:entry_date>", "archive_justification_action", archive_justification_action, methods=["POST"])
         app.add_url_rule("/management", "management_panel", management_panel)
@@ -163,6 +164,24 @@ def archived_justifications():
 @handle_errors
 def archive_justification_action(employee_id, entry_date):
         return _archive_justification(employee_id, entry_date)
+
+
+@login_required
+@manager_required
+@handle_errors
+def review_justification(employee_id, entry_date):
+        entry_date = parse_date_arg(entry_date)
+        approved = request.form.get("action") == "approve"
+        uow = new_uow()
+        guard_response = _managed_employee_guard(uow, employee_id)
+        if guard_response:
+                return guard_response
+        try:
+                services.review_justification(uow, current_user.id, employee_id, entry_date, approved)
+                flash("Justificativa aprovada." if approved else "Justificativa rejeitada.", "success")
+        except ValueError as error:
+                flash(str(error), "danger")
+        return redirect(url_for("management_panel"))
 
 
 @login_required
@@ -711,7 +730,7 @@ def _absences(employees):
 def _shows_on_absences_card(entry):
         if entry.status in (PontoStatus.DISMISSED, PontoStatus.CORRECTED):
                 return False
-        return entry.status == PontoStatus.MISSING or bool(entry.notes)
+        return entry.status == PontoStatus.MISSING or bool(entry.notes) or bool(entry.justification)
 
 
 def _dismissed_entries(employees):

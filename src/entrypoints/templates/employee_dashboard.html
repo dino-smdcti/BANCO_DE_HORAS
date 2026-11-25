@@ -36,7 +36,7 @@
                         </thead>
                         <tbody>
                             {% for p in recent_entries %}
-                                <tr class="{% if p.status.value == 'Faltante' %}table-danger-light{% elif p.status.value == 'Justificado' %}table-success-light{% elif p.has_Anomalia %}table-warning-light{% endif %}">
+                                <tr class="{% if p.status.value == 'Faltante' %}table-danger-light{% elif p.status.value == 'Justificado' %}table-success-light{% elif p.has_anomaly %}table-warning-light{% endif %}">
                                     <td>
                                         <button type="button" class="btn btn-sm btn-link p-0 {{ 'text-primary' if p.notes else 'text-secondary' }}" 
                                                 onclick="openNoteModal('{{ p.entry_date }}', '{{ p.notes|replace("'", "\\'") if p.notes else '' }}')">
@@ -121,7 +121,7 @@
                             </td>
                                     <td class="fw-bold text-primary">{{ p.worked_minutes // MINUTES_PER_HOUR }}h {{ p.worked_minutes % MINUTES_PER_HOUR }}m</td>
                                 </tr>
-                                {% if p.justification or (p.has_Anomalia and not p.justification) or p.notes %}
+                                {% if p.justification or (p.has_anomaly and not p.justification) or p.notes %}
                                 <tr class="table-light">
                                     <td colspan="6" class="py-1 px-4">
                                         <div class="d-flex flex-column gap-1">
@@ -134,7 +134,7 @@
                                                         <span class="badge bg-success">Aprovada</span>
                                                     {% endif %}
                                                 </div>
-                                            {% elif p.has_Anomalia %}
+                                            {% elif p.has_anomaly %}
                                                 <div>
                                                     <button class="btn btn-xs btn-warning text-dark py-0" style="font-size: 0.7rem;" onclick="openJustificationModal('{{ p.entry_date }}', '{{ p.justification or '' }}')">
                                                         Justificar
@@ -483,6 +483,32 @@
             </div>
             <div class="modal-footer">
                 <button type="submit" class="btn btn-primary">Salvar Nota</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Justification Modal -->
+<div class="modal fade" id="justificationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form action="{{ url_for('submit_justification') }}" method="POST" class="modal-content">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-header">
+                <h5 class="modal-title">Justificar Ponto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="entry_date" id="just_entry_date">
+                <div class="mb-3">
+                    <label class="form-label">Data: <span id="display_just_date" class="fw-bold"></span></label>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sua Justificativa</label>
+                    <textarea name="justification" id="justification_text" class="form-control" rows="3" required placeholder="Explique o motivo do atraso ou da ausência..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-warning text-dark">Enviar Justificativa</button>
             </div>
         </form>
     </div>

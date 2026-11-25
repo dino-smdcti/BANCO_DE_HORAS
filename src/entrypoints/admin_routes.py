@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import select
 
@@ -17,6 +17,8 @@ def register_routes(app):
         app.add_url_rule("/admin/teams", "teams_page", teams_page)
         app.add_url_rule("/admin/teams/create", "create_team", create_team_route, methods=["POST"])
         app.add_url_rule("/admin/teams/assign", "assign_user_team", assign_team_route, methods=["POST"])
+        app.add_url_rule("/metrics", "metrics_panel", metrics_panel)
+        app.add_url_rule("/report/bulk", "bulk_report", bulk_report)
 
 
 @login_required
@@ -76,6 +78,86 @@ def assign_team_route():
         except ValueError as error:
                 flash(str(error), "danger")
         return redirect(url_for("teams_page"))
+
+
+@login_required
+@admin_required
+@handle_errors
+def metrics_panel():
+        uow = new_uow()
+        with uow:
+                start_date, end_date = _metrics_period(uow)
+                team_id = _int_or_none(request.args.get("team_id"))
+                emp_id = _int_or_none(request.args.get("employee_id"))
+                users = services.list_clocking_users(uow, team_id)
+                if emp_id:
+                        users = [user for user in users if user.user_id == emp_id]
+                rows = [_metrics_row(uow, user, start_date, end_date) for user in users]
+                return render_template(
+                        "metrics.html",
+                        rows=rows,
+                        teams=services.list_teams(uow),
+                        all_users=services.list_clocking_users(uow),
+                        start_date=start_date,
+                        end_date=end_date,
+                        team_id=team_id,
+                        emp_id=emp_id,
+                )
+
+
+@login_required
+@admin_required
+@handle_errors
+def bulk_report():
+        uow = new_uow()
+        try:
+                with uow:
+                        start_date, end_date = _metrics_period(uow)
+                        team_id = _int_or_none(request.args.get("team_id"))
+                        buffer = services.generate_bulk_report_excel(uow, start_date, end_date, team_id)
+                filename = f"relatorio_banco_horas_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.xlsx"
+                return send_file(
+                        buffer,
+                        as_attachment=True,
+                        download_name=filename,
+                        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
+        except Exception as error:
+                flash(f"Erro ao gerar relatório: {str(error)}", "danger")
+                return redirect(url_for("metrics_panel"))
+
+
+def _metrics_period(uow):
+        start_str = request.args.get("start_date")
+        end_str = request.args.get("end_date")
+        start_date = parse_date_arg(start_str) if start_str else services.get_start_analysis_date(uow)
+        end_date = parse_date_arg(end_str) if end_str else date.today()
+        return start_date, end_date
+
+
+def _metrics_row(uow, user, start_date, end_date):
+        metrics = services.compute_period_metrics(user, start_date, end_date)
+        return {
+                "user": user,
+                "name": user.profile.full_name or user.email,
+                "registration": user.profile.registration_number or "-",
+                "team_name": services.team_name_for(uow, user),
+                "worked": services.format_minutes(metrics["worked_minutes"]),
+                "expected": services.format_minutes(metrics["expected_minutes"]),
+                "missed": services.format_minutes(metrics["missed_minutes"]),
+                "conceded": services.format_minutes(metrics["conceded_minutes"]),
+                "balance": services.format_minutes(metrics["balance_minutes"]),
+                "balance_negative": metrics["balance_minutes"] < 0,
+        }
+
+
+def _int_or_none(value):
+        if not value:
+                return None
+        try:
+                return int(value)
+        except (ValueError, TypeError):
+                return None
 
 
 def _render_audit_logs(uow):

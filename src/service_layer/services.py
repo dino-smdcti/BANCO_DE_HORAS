@@ -53,9 +53,12 @@ from src.service_layer.clock_service import (
         remove_missing_excuse,
         review_anomaly_badge,
         review_correction_request,
+        review_justification,
         submit_correction_request,
+        submit_justification,
 )
 from src.service_layer.notifications import add_notification, mark_notifications_as_read
+from src.service_layer.metrics_service import compute_period_metrics, format_minutes, generate_bulk_report_excel, list_clocking_users, team_name_for
 from src.service_layer.permissions import ensure_manager, ensure_managed_user, ensure_not_self
 from src.service_layer.report_service import generate_excel_report
 from src.service_layer.work_report_service import build_work_report
@@ -94,6 +97,7 @@ __all__ = [
         "scoped_update_team",
         "clock_in_out",
         "complete_retroactive_logs",
+        "compute_period_metrics",
         "create_accomplishment",
         "create_idea",
         "create_journey_type",
@@ -119,6 +123,8 @@ __all__ = [
         "ensure_manager",
         "ensure_managed_user",
         "ensure_not_self",
+        "format_minutes",
+        "generate_bulk_report_excel",
         "generate_excel_report",
         "get_accomplishment",
         "get_all_employees",
@@ -133,6 +139,7 @@ __all__ = [
         "list_ideas",
         "list_journey_types",
         "list_kudos",
+        "list_clocking_users",
         "list_pending_corrections",
         "list_s5_audits",
         "list_team_events",
@@ -150,10 +157,13 @@ __all__ = [
         "remove_vacation_day",
         "review_anomaly_badge",
         "review_correction_request",
+        "review_justification",
         "seed_holidays",
         "set_idea_status",
         "set_work_schedule",
         "submit_correction_request",
+        "submit_justification",
+        "team_name_for",
         "toggle_checklist_item",
         "update_credentials",
         "update_journey_type",

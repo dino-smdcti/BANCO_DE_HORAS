@@ -41,6 +41,9 @@ BASE_MIGRATIONS = [
     "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_early_excused BOOLEAN DEFAULT FALSE;",
     "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS lunch_start_early_reviewed BOOLEAN DEFAULT FALSE;",
 
+    # Employee anomaly justification text (reviewed by the manager)
+    "ALTER TABLE daily_pontos ADD COLUMN IF NOT EXISTS justification VARCHAR(1000);",
+
     # Replace "!" password sentinel with an explicit password_set flag
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_set BOOLEAN NOT NULL DEFAULT FALSE;",
     "UPDATE users SET password_set = TRUE WHERE password_hash <> '_unset_password_' AND password_hash <> '!';",

@@ -15,6 +15,7 @@ def register_routes(app):
         app.add_url_rule("/complete-profile", "complete_profile", complete_profile, methods=["GET", "POST"])
         app.add_url_rule("/profile", "profile", profile, methods=["GET", "POST"])
         app.add_url_rule("/submit-correction", "submit_correction", submit_correction, methods=["POST"])
+        app.add_url_rule("/submit-justification", "submit_justification", submit_justification, methods=["POST"])
         app.add_url_rule("/notifications/read", "mark_notifications_read", mark_notifications_read, methods=["POST"])
         app.add_url_rule("/clock", "clock", clock, methods=["POST"])
         app.add_url_rule("/update-note", "update_note", update_note, methods=["POST"])
@@ -77,6 +78,18 @@ def submit_correction():
                 flash("Pedido de correção enviado para análise.", "success")
         except Exception as error:
                 return flash_redirect("dashboard", f"Erro ao enviar correção: {str(error)}")
+
+
+@login_required
+def submit_justification():
+        try:
+                entry_date = parse_date_arg(request.form.get("entry_date"))
+                uow = new_uow()
+                services.submit_justification(uow, current_user.id, entry_date, request.form.get("justification"))
+                flash("Justificativa enviada para análise.", "success")
+        except Exception as error:
+                return flash_redirect("dashboard", f"Erro ao enviar justificativa: {str(error)}")
+        return redirect(url_for("dashboard"))
 
 
 @login_required

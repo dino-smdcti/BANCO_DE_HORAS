@@ -260,6 +260,7 @@ daily_pontos = Table(
     Column("status", SQLEnum(PontoStatus), default=PontoStatus.ON_TIME),
     Column("notes", String(NOTES_COLUMN_LENGTH), nullable=True),
     Column("manager_notes", String(MANAGER_NOTES_COLUMN_LENGTH), nullable=True),
+    Column("justification", String(NOTES_COLUMN_LENGTH), nullable=True),
     Column("has_lunch_break", Boolean, default=True),
     Column("arrival_late", Boolean, default=False),
     Column("lunch_start_late", Boolean, default=False),

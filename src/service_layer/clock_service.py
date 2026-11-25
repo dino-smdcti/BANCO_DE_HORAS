@@ -99,6 +99,44 @@ def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id:
                 _perform_dismiss(uow, manager_id, employee_id, entry_date)
 
 
+def submit_justification(uow: AbstractUnitOfWork, user_id: int, entry_date, justification: str):
+        """Employee submits a justification for an anomalous day (late/missing).
+
+        The justification is stored for the manager to review; the day's status is
+        left untouched until the manager approves or rejects it.
+        """
+        with uow:
+                user = _require_user(uow, user_id)
+                ponto = _ponto_for(user, entry_date)
+                if not ponto:
+                        raise ValueError("Registro não encontrado.")
+                if not justification or not justification.strip():
+                        raise ValueError("A justificativa é obrigatória.")
+                ponto.justification = justification.strip()
+                log_action(uow, user_id, "SUBMIT_JUSTIFICATION", target_id=user_id, details=f"Data: {entry_date}")
+
+
+def review_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, entry_date, approved: bool, email_sender=None):
+        """Manager approves (JUSTIFIED) or rejects (LATE/REJECTED) an employee's justification."""
+        with uow:
+                ensure_manager(uow, manager_id)
+                ensure_managed_user(uow, manager_id, employee_id)
+                user = _require_user(uow, employee_id)
+                ponto = _ponto_for(user, entry_date)
+                if not ponto:
+                        raise ValueError("Registro não encontrado.")
+                if approved:
+                        ponto.status = PontoStatus.JUSTIFIED
+                        add_notification(uow, employee_id, f"Sua justificativa para {entry_date} foi APROVADA.", email_sender=email_sender)
+                else:
+                        has_late = ponto.arrival_late or ponto.lunch_start_late or ponto.lunch_end_late or ponto.departure_early or ponto.lunch_start_early
+                        ponto.status = PontoStatus.LATE if has_late else PontoStatus.REJECTED
+                        ponto.justification = None
+                        add_notification(uow, employee_id, f"Sua justificativa para {entry_date} foi REJEITADA.", email_sender=email_sender)
+                log_action(uow, manager_id, "REVIEW_JUSTIFICATION", target_id=employee_id, details=f"Data: {entry_date}, Aprovado: {approved}")
+
+
+
 def remove_missing_excuse(uow: AbstractUnitOfWork, manager_id: int, employee_id: int, target_date):
         with uow:
                 _unregister_missing_excuse(uow, manager_id, employee_id, target_date)

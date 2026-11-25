@@ -58,19 +58,44 @@
                             {% endif %}
                         </td>
                         <td>
+                            {% if p.justification %}
+                                <div>
+                                    <strong>Justificativa:</strong> {{ p.justification }}
+                                    {% if p.status.value == 'Justificado' %}
+                                        <span class="badge bg-success">Aprovada</span>
+                                    {% elif p.status.value not in ['Dispensado', 'Corrigido'] %}
+                                        <span class="badge bg-warning text-dark">Em análise</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
                             {% if p.notes %}
                                 <div>{{ p.notes }}</div>
-                                {% if p.manager_notes %}
-                                    <div class="text-muted small"><strong>Nota do gestor:</strong> {{ p.manager_notes }}</div>
-                                {% endif %}
-                            {% elif p.manager_notes %}
+                            {% endif %}
+                            {% if p.manager_notes %}
                                 <div class="text-muted small"><strong>Nota do gestor:</strong> {{ p.manager_notes }}</div>
-                            {% else %}
+                            {% endif %}
+                            {% if not p.justification and not p.notes and not p.manager_notes %}
                                 <span class="text-muted">—</span>
                             {% endif %}
                         </td>
                         <td class="text-end text-nowrap">
-                            {% if p.notes %}
+                            {% if p.justification and p.status.value not in ['Justificado', 'Dispensado', 'Corrigido'] %}
+                            <form action="{{ url_for('review_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Aprovar justificativa">
+                                    <i class="bi bi-check-lg"></i> Aprovar
+                                </button>
+                            </form>
+                            <form action="{{ url_for('review_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline" onsubmit="return confirm('Rejeitar esta justificativa?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Rejeitar justificativa">
+                                    <i class="bi bi-x-lg"></i> Rejeitar
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if p.justification or p.notes %}
                             <form action="{{ url_for('archive_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline" onsubmit="return confirm('Arquivar esta justificativa?')">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-outline-secondary" title="Arquivar justificativa">
