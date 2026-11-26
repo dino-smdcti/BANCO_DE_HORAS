@@ -38,6 +38,12 @@
             <!-- Always-visible right-side actions (notification + exit/login) -->
             <div class="d-flex align-items-center gap-2 ms-auto order-lg-last navbar-actions">
                 {% if current_user.is_authenticated %}
+                    {% if WORKFORCE_ENABLED %}
+                    <button type="button" id="appModeSwitch" class="nav-link app-mode-switch text-white" data-mode="{{ data_app_mode }}">
+                        <span class="app-mode-switch-label">{{ 'Voltar ao Ponto' if data_app_mode == 'work' else 'Workforce' }}</span>
+                        <span class="app-mode-switch-track"><span class="app-mode-switch-knob"></span></span>
+                    </button>
+                    {% endif %}
                     <a class="nav-link position-relative p-2 text-white" href="#" id="notifDropdown" role="button" data-bs-toggle="modal" data-bs-target="#notifModal" onclick="markReadTrigger()">
                         <i class="bi bi-bell" style="font-size: 1.35rem;"></i>
                         <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ 'd-none' if not (user_notifs_count > 0) }}">
@@ -108,10 +114,6 @@
                                     <li><a class="dropdown-item" href="{{ url_for('work_exec') }}"><i class="bi bi-bar-chart-steps me-1"></i> Executivo</a></li>
                                 </ul>
                             </li>
-<button type="button" id="appModeSwitch" class="nav-link app-mode-switch text-white" data-mode="work">
-                                <span class="app-mode-switch-label">Voltar ao Ponto</span>
-                                <span class="app-mode-switch-track"><span class="app-mode-switch-knob"></span></span>
-                            </button>
                             {% endif %}
                         {% else %}
                             {% if current_user.role in MANAGEMENT_ROLES %}
@@ -136,12 +138,6 @@
                             <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('dashboard') }}">
                                 <i class="bi bi-calendar-check"></i> <span>Ponto</span>
                             </a>
-                            {% if WORKFORCE_ENABLED %}
-<button type="button" id="appModeSwitch" class="nav-link app-mode-switch text-white" data-mode="clock">
-                                <span class="app-mode-switch-label">Workforce</span>
-                                <span class="app-mode-switch-track"><span class="app-mode-switch-knob"></span></span>
-                            </button>
-                            {% endif %}
                             <a class="nav-link text-white d-flex align-items-center gap-1" href="{{ url_for('profile') }}">
                                 <i class="bi bi-person-gear"></i> <span>Dados</span>
                             </a>

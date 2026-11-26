@@ -275,6 +275,11 @@ html, body {
         padding: 0.35rem !important;
     }
 
+    /* On mobile, collapse the mode switch to just the toggle track (label hidden) */
+    .app-mode-switch .app-mode-switch-label {
+        display: none;
+    }
+
     /* Collapsible nav links - stack nicely with spacing */
     .navbar-collapse .navbar-nav .nav-link {
         font-size: var(--font-md);
