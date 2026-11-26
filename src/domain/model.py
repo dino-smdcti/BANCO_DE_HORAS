@@ -70,7 +70,7 @@ class TeamTask:
         assignee_id: Optional[int] = None
         due_date: Optional[date] = None
         event_id: Optional[int] = None
-        status: str = "todo"
+        status: str = "backlog"
         created_by: Optional[int] = None
         created_at: datetime = field(default_factory=datetime.now)
         task_id: Optional[int] = None

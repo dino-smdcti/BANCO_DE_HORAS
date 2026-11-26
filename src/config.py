@@ -338,12 +338,44 @@ CORRECTION_STATUS_PENDING = "pending"
 CORRECTION_STATUS_APPROVED = "approved"
 CORRECTION_STATUS_REJECTED = "rejected"
 
-# Workforce task statuses.
-TASK_STATUSES = ["todo", "in_progress", "done", "cancelled"]
-TASK_STATUS_TODO = "todo"
-TASK_STATUS_IN_PROGRESS = "in_progress"
+# Workforce task statuses — these double as the kanban board stages.
+TASK_STATUS_BACKLOG = "backlog"
+TASK_STATUS_FOCUS_WEEK = "focus_week"
+TASK_STATUS_IN_EXECUTION = "in_execution"
+TASK_STATUS_PENDING_APPROVAL = "pending_approval"
+TASK_STATUS_WAITING = "waiting"
 TASK_STATUS_DONE = "done"
 TASK_STATUS_CANCELLED = "cancelled"
+
+TASK_STATUSES = [
+    TASK_STATUS_BACKLOG,
+    TASK_STATUS_FOCUS_WEEK,
+    TASK_STATUS_IN_EXECUTION,
+    TASK_STATUS_PENDING_APPROVAL,
+    TASK_STATUS_WAITING,
+    TASK_STATUS_DONE,
+    TASK_STATUS_CANCELLED,
+]
+
+# Kanban board column order (excludes the archived "cancelled" column).
+BOARD_STAGES = [
+    TASK_STATUS_BACKLOG,
+    TASK_STATUS_FOCUS_WEEK,
+    TASK_STATUS_IN_EXECUTION,
+    TASK_STATUS_PENDING_APPROVAL,
+    TASK_STATUS_WAITING,
+    TASK_STATUS_DONE,
+]
+
+TASK_STATUS_LABELS = {
+    TASK_STATUS_BACKLOG: "Backlog",
+    TASK_STATUS_FOCUS_WEEK: "Foco da Semana",
+    TASK_STATUS_IN_EXECUTION: "Em Execução",
+    TASK_STATUS_PENDING_APPROVAL: "Aguardando Aprovação",
+    TASK_STATUS_WAITING: "Aguardando",
+    TASK_STATUS_DONE: "Concluído",
+    TASK_STATUS_CANCELLED: "Cancelado",
+}
 
 # Workforce idea/kaizen statuses (KAIZEN uses `implemented`).
 IDEA_STATUSES = ["open", "under_review", "implemented", "declined"]

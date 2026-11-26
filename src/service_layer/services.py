@@ -18,6 +18,7 @@ from src.service_layer.culture_service import (
         list_wiki_articles,
         update_wiki_article,
 )
+from src.service_layer.dashboard_service import dashboard_metrics
 from src.service_layer.exec_service import list_exec_kpis
 from src.service_layer.attestation_service import add_attestation, remove_attestation_day
 from src.service_layer.facultativo_service import add_facultativo
@@ -112,6 +113,7 @@ __all__ = [
         "create_team_event",
         "create_task",
         "create_wiki_article",
+        "dashboard_metrics",
         "delete_accomplishment",
         "delete_idea",
         "delete_journey_type",

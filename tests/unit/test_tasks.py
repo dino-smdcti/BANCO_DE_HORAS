@@ -129,12 +129,19 @@ def test_update_status_manager_and_assignee_allowed(uow):
         assignee = _register_actor(uow, "empS@test.com", UserRole.EMPLOYEE.value, team_a)
         task_id = _create(uow, admin, team_a, "Status", assignee_id=assignee)
 
-        update_task_status(uow, assignee, task_id, "done")
+        # Assignee moves across working stages and submits for approval.
+        update_task_status(uow, assignee, task_id, "in_execution")
+        assert _task(uow, task_id).status == "in_execution"
+        update_task_status(uow, assignee, task_id, "pending_approval")
+        assert _task(uow, task_id).status == "pending_approval"
+
+        # Only a manager approves (conclude).
+        update_task_status(uow, admin, task_id, "done")
         assert _task(uow, task_id).status == "done"
 
         task2 = _create(uow, admin, team_a, "Status2", assignee_id=assignee)
-        update_task_status(uow, admin, task2, "in_progress")
-        assert _task(uow, task2).status == "in_progress"
+        with pytest.raises(PermissionError):
+                update_task_status(uow, assignee, task2, "done")
 
 
 def test_status_invalid_rejected(uow):
@@ -217,14 +224,14 @@ def test_done_requires_all_checklist_items(uow):
                 i2 = add_checklist_item(uow, assignee, task_id, "Passo 2").checklist_item_id
 
         with pytest.raises(ValueError):
-                update_task_status(uow, assignee, task_id, "done")
+                update_task_status(uow, admin, task_id, "done")
 
         toggle_checklist_item(uow, assignee, task_id, i1, True)
         with pytest.raises(ValueError):
-                update_task_status(uow, assignee, task_id, "done")
+                update_task_status(uow, admin, task_id, "done")
 
 
-def test_task_auto_completes_when_all_items_done(uow):
+def test_task_auto_submits_for_approval_when_all_items_done(uow):
         admin = _register_admin(uow)
         team_a, _ = _setup_teams(uow, admin)
         assignee = _register_actor(uow, "empAuto@test.com", UserRole.EMPLOYEE.value, team_a)
@@ -234,12 +241,12 @@ def test_task_auto_completes_when_all_items_done(uow):
                 i2 = add_checklist_item(uow, assignee, task_id, "B").checklist_item_id
 
         toggle_checklist_item(uow, assignee, task_id, i1, True)
-        assert _task(uow, task_id).status != "done"
+        assert _task(uow, task_id).status != "pending_approval"
         toggle_checklist_item(uow, assignee, task_id, i2, True)
-        assert _task(uow, task_id).status == "done"
+        assert _task(uow, task_id).status == "pending_approval"
 
         toggle_checklist_item(uow, assignee, task_id, i1, False)
-        assert _task(uow, task_id).status == "in_progress"
+        assert _task(uow, task_id).status == "in_execution"
 
 
 def _create_event_task(uow, admin, team_id, title, event_id):

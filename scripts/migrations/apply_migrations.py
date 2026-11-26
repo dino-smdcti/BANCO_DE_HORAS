@@ -69,6 +69,11 @@ BASE_MIGRATIONS = [
     # Tasks as objectives linked to a calendar event (workforce expand): tasks can
     # refer to an event they help deliver. Nullable so existing tasks stay valid.
     "ALTER TABLE team_tasks ADD COLUMN IF NOT EXISTS event_id INTEGER REFERENCES team_events(id);",
+
+    # Kanban board stages: rename the legacy task statuses to the new board stage
+    # values (backlog / in_execution). "done" and "cancelled" are unchanged.
+    "UPDATE team_tasks SET status = 'backlog' WHERE status = 'todo';",
+    "UPDATE team_tasks SET status = 'in_execution' WHERE status = 'in_progress';",
 ]
 
 

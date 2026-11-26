@@ -1,7 +1,7 @@
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from src.config import WORKFORCE_ENABLED
+from src.config import BOARD_STAGES, TASK_STATUS_LABELS, TASK_STATUSES, WORKFORCE_ENABLED
 from src.entrypoints.decorators import handle_errors, manager_required
 from src.entrypoints.web_helpers import INVALID_DATE, is_management_role, new_uow, parse_date
 from src.service_layer import services
@@ -70,6 +70,11 @@ def work_dashboard():
                 in_scope = [k for k in kpis if k["team_id"] in scoped_ids]
                 summary = _dashboard_summary(in_scope)
                 recent = _recent_activity(uow, scoped_ids)
+                tasks = services.list_tasks(uow, current_user.id)
+                tasks_by_stage = _group_tasks_by_stage(tasks)
+                stage_counts = {stage: len(tasks_by_stage.get(stage, [])) for stage in BOARD_STAGES}
+                task_stage_map = {task.task_id: _normalise_stage(task.status) for task in tasks}
+                metrics = services.dashboard_metrics(uow, current_user.id)
                 return render_template(
                         "work_dashboard.html",
                         kpis=in_scope,
@@ -78,7 +83,34 @@ def work_dashboard():
                         team_labels=team_labels,
                         user_labels=user_labels,
                         user_role=current_user.role,
+                        board_stages=BOARD_STAGES,
+                        stage_labels=TASK_STATUS_LABELS,
+                        tasks_by_stage=tasks_by_stage,
+                        stage_counts=stage_counts,
+                        task_stage_map=task_stage_map,
+                        metrics=metrics,
                 )
+
+
+def _normalise_stage(status):
+        """Map legacy task statuses to the current board stages."""
+        legacy = {"todo": "backlog", "in_progress": "in_execution"}
+        return legacy.get(status, status)
+
+
+def _group_tasks_by_stage(tasks):
+        """Bucket tasks into board columns, newest first within each column."""
+        grouped = {stage: [] for stage in BOARD_STAGES}
+        for task in tasks:
+                stage = _normalise_stage(task.status)
+                if stage in grouped:
+                        grouped[stage].append(task)
+        for stage in grouped:
+                grouped[stage].sort(
+                        key=lambda t: (t.created_at is None, t.created_at),
+                        reverse=True,
+                )
+        return grouped
 
 
 def _dashboard_summary(kpis):
@@ -181,6 +213,8 @@ def work_tasks():
                         event_labels=event_labels,
                         task_progress=task_progress,
                         user_role=current_user.role,
+                        board_stages=BOARD_STAGES,
+                        stage_labels=TASK_STATUS_LABELS,
                 )
 
 
@@ -224,7 +258,7 @@ def work_tasks_status(task_id):
                 flash("Status atualizado.", "success")
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
-        return redirect(url_for("work_tasks"))
+        return redirect(request.referrer or url_for("work_tasks"))
 
 
 @login_required

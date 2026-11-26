@@ -1,13 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 {% set guide_items = [
-    'O Painel resume as atividades de todos os times no seu escopo.',
-    'Técnicos e servidores veem apenas o próprio time; gestores e admins veem o que gerem.',
-    'Use o Executivo para análises por time; use Relatórios para exportar períodos.',
+    'O Painel reúne o Kanban e os indicadores de todos os times no seu escopo.',
+    'Arraste os cartões entre as colunas (ou use a seta de cada cartão) para mover a tarefa de estágio.',
+    'A tarefa entra em "Aguardando Aprovação" quando o checklist é concluído; só um gestor aprova (Concluído) ou devolve.',
+    'Os gráficos abaixo resumem tarefas, ideias, likes e auditorias 5S.',
 ] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0"><i class="bi bi-speedometer2"></i> Painel Workforce</h1>
     <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('work_tasks') }}"><i class="bi bi-list-check"></i> Tarefas</a>
         <a class="btn btn-outline-primary" href="{{ url_for('work_exec') }}"><i class="bi bi-bar-chart-line"></i> Executivo</a>
     </div>
 </div>
@@ -22,10 +24,79 @@
     <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.members }}</div><small class="text-muted">Membros</small></div></div></div>
     <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.open_tasks }}</div><small class="text-muted">Tarefas abertas</small></div></div></div>
     <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.open_ideas }}</div><small class="text-muted">Ideias abertas</small></div></div></div>
-    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.accomplishments }}</div><small class="text-muted">Conquistas</small></div></div></div>
-    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.kudos }}</div><small class="text-muted">Kudos</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.accomplishments }}</div><small class="text-muted">Metas</small></div></div></div>
+    <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.kudos }}</div><small class="text-muted">Likes</small></div></div></div>
     <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.implemented_ideas }}</div><small class="text-muted">Ideias implementadas</small></div></div></div>
     <div class="col-6 col-md-3"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ summary.avg_5s }}</div><small class="text-muted">5S (média)</small></div></div></div>
+</div>
+
+<!-- Kanban de gestão rápida -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header"><i class="bi bi-kanban"></i> Kanban de Gestão</div>
+    <div class="card-body p-2">
+        <div class="kanban-board">
+            {% for stage in board_stages %}
+            <div class="kanban-col" data-stage="{{ stage }}">
+                <div class="kanban-col-header">
+                    {{ stage_labels[stage] }}
+                    <span class="badge text-bg-light">{{ stage_counts.get(stage, 0) }}</span>
+                </div>
+                <div class="kanban-col-body" data-stage="{{ stage }}">
+                    {% for task in tasks_by_stage.get(stage, []) %}
+                    <div class="kanban-card" draggable="true" data-task-id="{{ task.task_id }}">
+                        <div class="kanban-card-title">{{ task.title }}</div>
+                        {% if task.description %}<div class="kanban-card-desc">{{ task.description }}</div>{% endif %}
+                        <div class="kanban-card-meta">
+                            <i class="bi bi-diagram-3"></i> {{ team_labels.get(task.team_id, '—') }}
+                            {% if task.assignee_id %} · <i class="bi bi-person"></i> {{ user_labels.get(task.assignee_id, '—') }}{% endif %}
+                            {% if task.due_date %} · <i class="bi bi-calendar-event"></i> {{ task.due_date.strftime('%d/%m/%Y') }}{% endif %}
+                        </div>
+                        <form class="kanban-move-form" method="POST" action="{{ url_for('work_tasks_status', task_id=task.task_id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" title="Mover tarefa">
+                                {% for s in board_stages %}
+                                <option value="{{ s }}" {% if task_stage_map.get(task.task_id, task.status) == s %}selected{% endif %}>{{ stage_labels[s] }}</option>
+                                {% endfor %}
+                                <option value="cancelled" {% if task_stage_map.get(task.task_id, task.status) == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                            </select>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="kanban-empty">—</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard de dados -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">Tarefas por estágio</div>
+            <div class="card-body"><div class="chart-box"><canvas id="chartTasks"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">Ideias por status</div>
+            <div class="card-body"><div class="chart-box"><canvas id="chartIdeas"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">Likes por time</div>
+            <div class="card-body"><div class="chart-box"><canvas id="chartLikes"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">5S (média por mês)</div>
+            <div class="card-body"><div class="chart-box"><canvas id="chart5s"></canvas></div></div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-3 mb-4">
@@ -40,7 +111,7 @@
                             <th class="text-center">Membros</th>
                             <th class="text-center">Tarefas</th>
                             <th class="text-center">Ideias</th>
-                            <th class="text-center">Conquistas</th>
+                            <th class="text-center">Metas</th>
                             <th class="text-center">5S</th>
                             <th></th>
                         </tr>
@@ -88,7 +159,7 @@
     <div class="card-body">
         <div class="row g-2">
             <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_tasks') }}"><i class="bi bi-check2-square"></i> Tarefas</a></div>
-            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_accomplishments') }}"><i class="bi bi-trophy"></i> Conquistas</a></div>
+            <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_accomplishments') }}"><i class="bi bi-trophy"></i> Metas</a></div>
             <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_ideas') }}"><i class="bi bi-lightbulb"></i> Ideias</a></div>
             <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_teams') }}"><i class="bi bi-diagram-3"></i> Equipes</a></div>
             <div class="col-md-4"><a class="btn btn-outline-primary w-100" href="{{ url_for('work_5s') }}"><i class="bi bi-clipboard-check"></i> 5S</a></div>
@@ -98,4 +169,102 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    // --- Kanban drag-and-drop (desktop) with a select fallback (touch/mobile) ---
+    var cards = document.querySelectorAll('.kanban-card');
+    var cols = document.querySelectorAll('.kanban-col');
+
+    cards.forEach(function (card) {
+        card.addEventListener('dragstart', function (e) {
+            e.dataTransfer.setData('text/plain', card.getAttribute('data-task-id'));
+            card.classList.add('dragging');
+        });
+        card.addEventListener('dragend', function () {
+            card.classList.remove('dragging');
+        });
+    });
+
+    cols.forEach(function (col) {
+        col.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            col.classList.add('drag-over');
+        });
+        col.addEventListener('dragleave', function () {
+            col.classList.remove('drag-over');
+        });
+        col.addEventListener('drop', function (e) {
+            e.preventDefault();
+            col.classList.remove('drag-over');
+            var taskId = e.dataTransfer.getData('text/plain');
+            var card = document.querySelector('.kanban-card[data-task-id="' + taskId + '"]');
+            if (!card) return;
+            var form = card.querySelector('.kanban-move-form');
+            var select = form.querySelector('select[name="status"]');
+            select.value = col.getAttribute('data-stage');
+            form.submit();
+        });
+    });
+
+    // --- Charts ---
+    var metrics = {{ metrics | tojson }};
+    var palette = ['#2E5C8A', '#3E7CB1', '#233A5C', '#6FA8DC', '#1F2A44', '#8BB8E0', '#4A6FA5', '#A3C4E8'];
+
+    function doughnut(id, series) {
+        new Chart(document.getElementById(id), {
+            type: 'doughnut',
+            data: {
+                labels: series.map(function (s) { return s.label; }),
+                datasets: [{ data: series.map(function (s) { return s.value; }), backgroundColor: palette }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    function bar(id, series) {
+        new Chart(document.getElementById(id), {
+            type: 'bar',
+            data: {
+                labels: series.map(function (s) { return s.label; }),
+                datasets: [{ data: series.map(function (s) { return s.value; }), backgroundColor: '#2E5C8A' }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+            }
+        });
+    }
+
+    function line(id, series) {
+        new Chart(document.getElementById(id), {
+            type: 'line',
+            data: {
+                labels: series.map(function (s) { return s.label; }),
+                datasets: [{
+                    data: series.map(function (s) { return s.avg; }),
+                    borderColor: '#2FA084', backgroundColor: 'rgba(47, 160, 132, 0.15)',
+                    fill: true, tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, max: 100 } }
+            }
+        });
+    }
+
+    doughnut('chartTasks', metrics.task_stage_counts);
+    doughnut('chartIdeas', metrics.idea_status_counts);
+    bar('chartLikes', metrics.likes_by_team);
+    line('chart5s', metrics.s5_trend);
+})();
+</script>
 {% endblock %}

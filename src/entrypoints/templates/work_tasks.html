@@ -90,8 +90,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <h5 class="card-title mb-1">{{ task.title }}</h5>
-                    <span class="badge {{ 'bg-success' if task.status == 'done' else 'bg-warning text-dark' if task.status == 'in_progress' else 'bg-secondary text-white' if task.status == 'cancelled' else 'bg-primary' }}">
-                        {% if task.status == 'done' %}Concluída{% elif task.status == 'in_progress' %}Em andamento{% elif task.status == 'cancelled' %}Cancelada{% else %}A fazer{% endif %}
+                    <span class="badge {{ 'bg-success' if task.status == 'done' else 'bg-warning text-dark' if task.status == 'pending_approval' else 'bg-danger' if task.status == 'cancelled' else 'bg-info text-dark' if task.status == 'focus_week' else 'bg-primary' if task.status == 'in_execution' else 'bg-secondary text-white' }}">
+                        {{ stage_labels.get(task.status, task.status) }}
                     </span>
                 </div>
                 {% if task.description %}
@@ -153,10 +153,10 @@
                     <form method="POST" action="{{ url_for('work_tasks_status', task_id=task.task_id) }}" class="d-flex align-items-center gap-1">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <option value="todo" {% if task.status == 'todo' %}selected{% endif %}>A fazer</option>
-                            <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>Em andamento</option>
-                            <option value="done" {% if task.status == 'done' %}selected{% endif %}>Concluída</option>
-                            <option value="cancelled" {% if task.status == 'cancelled' %}selected{% endif %}>Cancelada</option>
+                            {% for stage in board_stages %}
+                            <option value="{{ stage }}" {% if task.status == stage %}selected{% endif %}>{{ stage_labels[stage] }}</option>
+                            {% endfor %}
+                            <option value="cancelled" {% if task.status == 'cancelled' %}selected{% endif %}>Cancelado</option>
                         </select>
                     </form>
                     {% endif %}

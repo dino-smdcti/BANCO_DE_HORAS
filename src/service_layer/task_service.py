@@ -5,7 +5,13 @@ from src.service_layer.audit import log_action
 from src.service_layer.notifications import add_notification
 from src.service_layer.permissions import managed_team_ids, scoped_team_ids
 from src.service_layer.unit_of_work import AbstractUnitOfWork
-from src.config import TASK_STATUSES
+from src.config import (
+    TASK_STATUSES,
+    TASK_STATUS_DONE,
+    TASK_STATUS_CANCELLED,
+    TASK_STATUS_PENDING_APPROVAL,
+    TASK_STATUS_IN_EXECUTION,
+)
 
 
 def _validate_status(status: str):
@@ -130,11 +136,27 @@ def update_task_status(uow: AbstractUnitOfWork, actor_id: int, task_id: int, sta
         with uow:
                 _validate_status(status)
                 task = _get_managed_or_assigned_task(uow, actor_id, task_id)
-                if status == "done" and _incomplete_items(task):
-                        raise ValueError("Conclua todos os itens do checklist antes de marcar a tarefa como concluída.")
+                _ensure_status_permission(uow, actor_id, task, status)
+                if status == TASK_STATUS_DONE and _incomplete_items(task):
+                        raise ValueError("Conclua todos os itens do checklist antes de concluir a tarefa.")
                 uow.users.update_task(task_id, status=status)
                 uow.commit()
                 log_action(uow, actor_id, "UPDATE_TASK_STATUS", target_id=task_id, details=f"Task {task_id} -> {status}")
+
+
+def _ensure_status_permission(uow: AbstractUnitOfWork, actor_id: int, task: TeamTask, status: str):
+        """Kanban approval gate.
+
+        Non-managers (the assignee and team members) can move a task freely
+        across the working stages and submit it for approval, but only a manager
+        can conclude/cancel it or move it out of the approval stage.
+        """
+        if task.team_id in _scoped_teams(uow, actor_id):
+                return
+        if status in (TASK_STATUS_DONE, TASK_STATUS_CANCELLED):
+                raise PermissionError("Concluir ou cancelar a tarefa exige aprovação do gestor.")
+        if task.status == TASK_STATUS_PENDING_APPROVAL and status != TASK_STATUS_PENDING_APPROVAL:
+                raise PermissionError("Somente um gestor pode aprovar ou devolver esta tarefa.")
 
 
 def edit_task(
@@ -199,8 +221,8 @@ def add_checklist_item(uow: AbstractUnitOfWork, actor_id: int, task_id: int, lab
                 task = _get_managed_or_assigned_task(uow, actor_id, task_id)
                 item = TaskChecklistItem(task_id=task_id, label=label)
                 uow.users.add_checklist_item(item)
-                if task.status == "done":
-                        uow.users.update_task(task_id, status="in_progress")
+                if task.status in (TASK_STATUS_DONE, TASK_STATUS_PENDING_APPROVAL):
+                        uow.users.update_task(task_id, status=TASK_STATUS_IN_EXECUTION)
                 uow.commit()
                 log_action(uow, actor_id, "ADD_TASK_ITEM", target_id=task_id, details=f"Item: {label}")
                 return item
@@ -211,10 +233,10 @@ def toggle_checklist_item(uow: AbstractUnitOfWork, actor_id: int, task_id: int, 
                 task = _get_managed_or_assigned_task(uow, actor_id, task_id)
                 uow.users.set_checklist_item_done(item_id, done)
                 incomplete = _incomplete_items(task)
-                if not incomplete and task.status != "done":
-                        uow.users.update_task(task_id, status="done")
-                elif incomplete and task.status == "done":
-                        uow.users.update_task(task_id, status="in_progress")
+                if not incomplete and task.status not in (TASK_STATUS_DONE, TASK_STATUS_PENDING_APPROVAL):
+                        uow.users.update_task(task_id, status=TASK_STATUS_PENDING_APPROVAL)
+                elif incomplete and task.status in (TASK_STATUS_DONE, TASK_STATUS_PENDING_APPROVAL):
+                        uow.users.update_task(task_id, status=TASK_STATUS_IN_EXECUTION)
                 uow.commit()
                 log_action(uow, actor_id, "TOGGLE_TASK_ITEM", target_id=task_id, details=f"Item {item_id} done={done}")
 
@@ -224,7 +246,7 @@ def remove_checklist_item(uow: AbstractUnitOfWork, actor_id: int, task_id: int, 
                 task = _get_managed_or_assigned_task(uow, actor_id, task_id)
                 item = next((i for i in (task.checklist_items or []) if i.checklist_item_id == item_id), None)
                 uow.users.delete_checklist_item(item_id)
-                if (item and not item.done) and task.status == "done":
-                        uow.users.update_task(task_id, status="in_progress")
+                if (item and not item.done) and task.status in (TASK_STATUS_DONE, TASK_STATUS_PENDING_APPROVAL):
+                        uow.users.update_task(task_id, status=TASK_STATUS_IN_EXECUTION)
                 uow.commit()
                 log_action(uow, actor_id, "DELETE_TASK_ITEM", target_id=task_id, details=f"Item {item_id}")

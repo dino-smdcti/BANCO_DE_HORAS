@@ -80,7 +80,7 @@ team_tasks = Table(
     Column("assignee_id", Integer, ForeignKey("users.id"), nullable=True),
     Column("due_date", Date, nullable=True),
     Column("event_id", Integer, ForeignKey("team_events.id"), nullable=True),
-    Column("status", String(CORRECTION_STATUS_COLUMN_LENGTH), default="todo", nullable=False),
+    Column("status", String(CORRECTION_STATUS_COLUMN_LENGTH), default="backlog", nullable=False),
     Column("created_by", Integer, ForeignKey("users.id"), nullable=True),
     Column("created_at", DateTime, default=datetime.now, nullable=False),
 )

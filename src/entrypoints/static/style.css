@@ -443,3 +443,78 @@ html, body {
     color: var(--primary);
 }
 
+/* Workforce kanban board (horizontally scrollable on all screens) */
+.kanban-board {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+}
+.kanban-col {
+    flex: 0 0 min(260px, 85vw);
+    background-color: var(--bg-color);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+.kanban-col-header {
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.kanban-col-body {
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-height: 90px;
+}
+.kanban-card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 0.5rem 0.6rem;
+    cursor: grab;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.kanban-card.dragging {
+    opacity: 0.5;
+}
+.kanban-col.drag-over .kanban-col-body {
+    outline: 2px dashed var(--primary);
+    outline-offset: -2px;
+}
+.kanban-card-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.kanban-card-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0.25rem 0;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.kanban-card-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+}
+.kanban-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 0.5rem;
+}
+.chart-box {
+    position: relative;
+    height: 260px;
+}
+
