@@ -1,10 +1,13 @@
 """Facade re-exporting the service-layer use cases under the historic `services` namespace."""
 from src.service_layer.accomplishment_service import (
+        META_STATUS_LABELS,
         create_accomplishment,
         delete_accomplishment,
         edit_accomplishment,
         get_accomplishment,
         list_accomplishments,
+        meta_leaderboard,
+        meta_status,
 )
 from src.service_layer.culture_service import (
         create_team_event,
@@ -87,6 +90,7 @@ from src.service_layer.user_service import (
 )
 
 __all__ = [
+        "META_STATUS_LABELS",
         "add_attestation",
         "add_checklist_item",
         "add_facultativo",
@@ -161,6 +165,8 @@ __all__ = [
         "list_wiki_articles",
         "manual_ponto_correction",
         "mark_notifications_as_read",
+        "meta_leaderboard",
+        "meta_status",
         "promote_to_manager",
         "register_user",
         "remove_attestation_day",

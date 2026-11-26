@@ -727,7 +727,7 @@ class TestWorkAccomplishments:
         _login(client, uid)
         r = client.get("/work/accomplishments")
         assert r.status_code == 200
-        assert "Conquistas".encode("utf-8") in r.data
+        assert "Metas".encode("utf-8") in r.data
 
     def test_accomplishments_page_shows_created_accomplishment(self, client, uow):
         emp_id = _create_user(uow, "emp_wa2@test.com", role="employee")
@@ -926,23 +926,23 @@ class TestWorkWiki:
         assert "<h1>início</h1>".encode("utf-8") not in r.data
 
 
-class TestWorkKudos:
-    def test_kudos_page_renders_for_employee(self, client, uow):
+class TestWorkLikes:
+    def test_likes_page_renders_for_employee(self, client, uow):
         uid = _create_user(uow, "emp_kud@test.com", role="employee")
         _login(client, uid)
-        r = client.get("/work/culture/kudos")
+        r = client.get("/work/culture/likes")
         assert r.status_code == 200
 
-    def test_kudos_create_and_show(self, client, uow):
+    def test_likes_create_and_show(self, client, uow):
         giver = _create_user(uow, "giver_kud@test.com", role="employee")
         receiver = _create_user(uow, "receiver_kud@test.com", role="employee")
         with uow:
             receiver_obj = uow.users.get_user_by_id(receiver)
             team_id = receiver_obj.team_id
         _login(client, giver)
-        r = client.post("/work/culture/kudos/create", data={"team_id": str(team_id), "receiver_id": str(receiver), "message": "Mandou bem"})
+        r = client.post("/work/culture/likes/create", data={"team_id": str(team_id), "receiver_id": str(receiver), "message": "Mandou bem"})
         assert r.status_code == 302
-        r = client.get("/work/culture/kudos")
+        r = client.get("/work/culture/likes")
         assert "Mandou bem".encode("utf-8") in r.data
 
 
@@ -1175,7 +1175,7 @@ class TestWorkGuides:
         "/work/teams",
         "/work/5s",
         "/work/culture/wiki",
-        "/work/culture/kudos",
+        "/work/culture/likes",
         "/work/culture/events",
         "/work/exec",
         "/work/reports",

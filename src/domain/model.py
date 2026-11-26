@@ -87,12 +87,14 @@ class TaskChecklistItem:
 
 @dataclass
 class Accomplishment:
-        """A team accomplishment recorded over a date period (open-ended allowed)."""
+        """A team goal ("meta") recorded over a period, with a target date and points."""
         team_id: int
         title: str
         description: Optional[str] = None
         start_date: date = None
         end_date: Optional[date] = None
+        target_date: Optional[date] = None
+        points: int = 0
         achieved_by_user_id: Optional[int] = None
         created_by: Optional[int] = None
         created_at: datetime = field(default_factory=datetime.now)

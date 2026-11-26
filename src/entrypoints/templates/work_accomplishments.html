@@ -1,19 +1,41 @@
 {% extends "base.html" %}
 {% block content %}
 {% set guide_items = [
-    'Conquistas registram metas e marcos atingidos pelos times.',
-    'Gestores e admin criam conquistas com período e responsáveis.',
-    'Visíveis no time e no Executivo para acompanhamento da evolução.',
+    'Metas são objetivos com data-alvo e pontos, para gamificar o desempenho do time.',
+    'Gestores e admins criam metas com início, data-alvo, pontos e responsável.',
+    'Uma meta vira "Atingida" quando ganha data de fim; sem data de fim e com a data-alvo vencida, fica "Atrasada".',
+    'O placar soma os pontos das metas atingidas por cada pessoa.',
 ] %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0"><i class="bi bi-trophy"></i> Conquistas</h1>
+    <h1 class="h3 mb-0"><i class="bi bi-trophy"></i> Metas</h1>
     {% if user_role in MANAGEMENT_ROLES %}
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createAccomplishmentModal">
-        <i class="bi bi-plus-lg"></i> Nova conquista
+        <i class="bi bi-plus-lg"></i> Nova meta
     </button>
     {% endif %}
 </div>
 {% include "_work_guide.html" %}
+
+{% if leaderboard %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header"><i class="bi bi-bar-chart-line"></i> Placar de pontos</div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>Pessoa</th><th class="text-center">Pontos</th></tr>
+            </thead>
+            <tbody>
+                {% for row in leaderboard %}
+                <tr>
+                    <td>{% if loop.first %}<i class="bi bi-trophy-fill text-warning"></i> {% endif %}{{ row.name }}</td>
+                    <td class="text-center fw-bold">{{ row.points }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
 
 {% if user_role in MANAGEMENT_ROLES %}
 <div class="modal fade" id="createAccomplishmentModal" tabindex="-1">
@@ -22,7 +44,7 @@
             <form method="POST" action="{{ url_for('work_accomplishments_create') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">Nova conquista</h5>
+                    <h5 class="modal-title">Nova meta</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -59,8 +81,18 @@
                             <input type="date" name="start_date" class="form-control" required>
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label">Fim <small class="text-muted">(opcional)</small></label>
+                            <label class="form-label">Data-alvo</label>
+                            <input type="date" name="target_date" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Fim <small class="text-muted">(quando atingida)</small></label>
                             <input type="date" name="end_date" class="form-control">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Pontos</label>
+                            <input type="number" name="points" class="form-control" value="0" min="0">
                         </div>
                     </div>
                 </div>
@@ -76,7 +108,7 @@
 
 {% if not accomplishments %}
 <div class="card shadow-sm">
-    <div class="card-body text-center text-muted py-5">Nenhuma conquista registrada.</div>
+    <div class="card-body text-center text-muted py-5">Nenhuma meta registrada.</div>
 </div>
 {% else %}
 <div class="row">
@@ -86,8 +118,9 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start">
                     <h5 class="card-title mb-1"><i class="bi bi-trophy text-warning"></i> {{ acc.title }}</h5>
-                    <span class="badge {{ 'bg-success' if acc.end_date else 'bg-info text-dark' }}">
-                        {% if acc.end_date %}Concluída{% else %}Em andamento{% endif %}
+                    {% set status = status_map.get(acc.accomplishment_id, 'em_andamento') %}
+                    <span class="badge {{ 'bg-success' if status == 'atingida' else 'bg-danger' if status == 'atrasada' else 'bg-info text-dark' }}">
+                        {{ status_labels.get(status, status) }}
                     </span>
                 </div>
                 {% if acc.description %}
@@ -99,11 +132,15 @@
                     · <i class="bi bi-person"></i> {{ user_labels.get(acc.achieved_by_user_id, '—') }}
                     {% endif %}
                     · <i class="bi bi-calendar-range"></i>
-                    {{ acc.start_date.strftime('%d/%m/%Y') }}
+                    {{ acc.start_date.strftime('%d/%m/%Y') if acc.start_date }}
+                    {% if acc.target_date %}
+                    <span class="text-muted">→ alvo {{ acc.target_date.strftime('%d/%m/%Y') }}</span>
+                    {% endif %}
                     {% if acc.end_date %}
-                    → {{ acc.end_date.strftime('%d/%m/%Y') }}
-                    {% else %}
-                    → em aberto
+                    → atingida {{ acc.end_date.strftime('%d/%m/%Y') }}
+                    {% endif %}
+                    {% if acc.points %}
+                    · <i class="bi bi-star-fill text-warning"></i> {{ acc.points }} pts
                     {% endif %}
                 </div>
 
@@ -114,7 +151,7 @@
                     </button>
                     <form method="POST" action="{{ url_for('work_accomplishments_delete', accomplishment_id=acc.accomplishment_id) }}" class="d-inline">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir esta conquista?');"><i class="bi bi-trash"></i></button>
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Excluir esta meta?');"><i class="bi bi-trash"></i></button>
                     </form>
                 </div>
 
@@ -124,7 +161,7 @@
                             <form method="POST" action="{{ url_for('work_accomplishments_edit', accomplishment_id=acc.accomplishment_id) }}">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">Editar conquista</h5>
+                                    <h5 class="modal-title">Editar meta</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
@@ -151,14 +188,30 @@
                                             <input type="date" name="start_date" class="form-control" value="{{ acc.start_date.isoformat() }}" required>
                                         </div>
                                         <div class="col-6 mb-3">
-                                            <label class="form-label">Fim <small class="text-muted">(opcional)</small></label>
+                                            <label class="form-label">Data-alvo</label>
+                                            <input type="date" name="target_date" class="form-control" value="{{ acc.target_date.isoformat() if acc.target_date else '' }}">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label">Fim</label>
                                             <input type="date" name="end_date" class="form-control" value="{{ acc.end_date.isoformat() if acc.end_date else '' }}">
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label">Pontos</label>
+                                            <input type="number" name="points" class="form-control" value="{{ acc.points }}" min="0">
                                         </div>
                                     </div>
                                     {% if acc.end_date %}
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" name="clear_end_date" value="on" id="clearEnd{{ acc.accomplishment_id }}">
                                         <label class="form-check-label" for="clearEnd{{ acc.accomplishment_id }}">Reabrir (sem data de fim)</label>
+                                    </div>
+                                    {% endif %}
+                                    {% if acc.target_date %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="clear_target_date" value="on" id="clearTarget{{ acc.accomplishment_id }}">
+                                        <label class="form-check-label" for="clearTarget{{ acc.accomplishment_id }}">Remover data-alvo</label>
                                     </div>
                                     {% endif %}
                                 </div>

@@ -184,8 +184,11 @@ class AbstractRepository(ABC):
                 description: Optional[str] = None,
                 start_date=None,
                 end_date=None,
+                target_date=None,
+                points: Optional[int] = None,
                 achieved_by_user_id: Optional[int] = None,
                 clear_end_date: bool = False,
+                clear_target_date: bool = False,
         ):
                 pass
 
@@ -598,8 +601,11 @@ class SqlAlchemyRepository(AbstractRepository):
                 description: Optional[str] = None,
                 start_date=None,
                 end_date=None,
+                target_date=None,
+                points: Optional[int] = None,
                 achieved_by_user_id: Optional[int] = None,
                 clear_end_date: bool = False,
+                clear_target_date: bool = False,
         ):
                 values = {}
                 if title is not None:
@@ -612,6 +618,12 @@ class SqlAlchemyRepository(AbstractRepository):
                         values["end_date"] = None
                 elif end_date is not None:
                         values["end_date"] = end_date
+                if clear_target_date:
+                        values["target_date"] = None
+                elif target_date is not None:
+                        values["target_date"] = target_date
+                if points is not None:
+                        values["points"] = points
                 if achieved_by_user_id is not None:
                         values["achieved_by_user_id"] = achieved_by_user_id
                 if values:

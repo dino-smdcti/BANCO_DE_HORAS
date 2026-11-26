@@ -39,9 +39,9 @@ def register_routes(app):
         app.add_url_rule("/work/culture/wiki/create", "work_culture_wiki_create", work_culture_wiki_create, methods=["POST"])
         app.add_url_rule("/work/culture/wiki/<int:wiki_article_id>/update", "work_culture_wiki_update", work_culture_wiki_update, methods=["POST"])
         app.add_url_rule("/work/culture/wiki/<int:wiki_article_id>/delete", "work_culture_wiki_delete", work_culture_wiki_delete, methods=["POST"])
-        app.add_url_rule("/work/culture/kudos", "work_culture_kudos", work_culture_kudos)
-        app.add_url_rule("/work/culture/kudos/create", "work_culture_kudos_create", work_culture_kudos_create, methods=["POST"])
-        app.add_url_rule("/work/culture/kudos/<int:kudo_id>/delete", "work_culture_kudos_delete", work_culture_kudos_delete, methods=["POST"])
+        app.add_url_rule("/work/culture/likes", "work_culture_likes", work_culture_likes)
+        app.add_url_rule("/work/culture/likes/create", "work_culture_likes_create", work_culture_likes_create, methods=["POST"])
+        app.add_url_rule("/work/culture/likes/<int:kudo_id>/delete", "work_culture_likes_delete", work_culture_likes_delete, methods=["POST"])
         app.add_url_rule("/work/culture/events", "work_culture_events", work_culture_events)
         app.add_url_rule("/work/culture/events/create", "work_culture_events_create", work_culture_events_create, methods=["POST"])
         app.add_url_rule("/work/culture/events/<int:event_id>/delete", "work_culture_events_delete", work_culture_events_delete, methods=["POST"])
@@ -345,6 +345,8 @@ def work_accomplishments():
                 team_labels = {team.team_id: team.name for team in all_teams}
                 user_labels = {u.user_id: (u.profile.full_name or u.email) for u in all_users}
                 users = sorted(all_users, key=lambda u: (u.profile.full_name or u.email).lower())
+                status_map = {acc.accomplishment_id: services.meta_status(acc) for acc in accomplishments}
+                leaderboard = services.meta_leaderboard(uow, current_user.id)
                 return render_template(
                         "work_accomplishments.html",
                         accomplishments=accomplishments,
@@ -353,6 +355,9 @@ def work_accomplishments():
                         team_labels=team_labels,
                         user_labels=user_labels,
                         user_role=current_user.role,
+                        status_map=status_map,
+                        status_labels=services.META_STATUS_LABELS,
+                        leaderboard=leaderboard,
                 )
 
 
@@ -370,9 +375,11 @@ def work_accomplishments_create():
                         description=request.form.get("description"),
                         start_date=_optional_date(request.form.get("start_date")),
                         end_date=_optional_date(request.form.get("end_date")),
+                        target_date=_optional_date(request.form.get("target_date")),
+                        points=request.form.get("points") or 0,
                         achieved_by_user_id=request.form.get("achieved_by_user_id") or None,
                 )
-                flash("Conquista registrada.", "success")
+                flash("Meta registrada.", "success")
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_accomplishments"))
@@ -392,10 +399,13 @@ def work_accomplishments_edit(accomplishment_id):
                         description=request.form.get("description") or None,
                         start_date=_optional_date(request.form.get("start_date")),
                         end_date=_optional_date(request.form.get("end_date")),
+                        target_date=_optional_date(request.form.get("target_date")),
+                        points=request.form.get("points") or None,
                         achieved_by_user_id=request.form.get("achieved_by_user_id") or None,
                         clear_end_date=request.form.get("clear_end_date") in ("1", "true", "on"),
+                        clear_target_date=request.form.get("clear_target_date") in ("1", "true", "on"),
                 )
-                flash("Conquista atualizada.", "success")
+                flash("Meta atualizada.", "success")
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_accomplishments"))
@@ -408,7 +418,7 @@ def work_accomplishments_delete(accomplishment_id):
         uow = new_uow()
         try:
                 services.delete_accomplishment(uow, current_user.id, accomplishment_id)
-                flash("Conquista excluída.", "success")
+                flash("Meta excluída.", "success")
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
         return redirect(url_for("work_accomplishments"))
@@ -705,14 +715,14 @@ def work_culture_wiki_delete(wiki_article_id):
 
 @login_required
 @handle_errors
-def work_culture_kudos():
+def work_culture_likes():
         uow = new_uow()
         with uow:
                 kudos = services.list_kudos(uow, current_user.id)
                 all_teams, team_labels, user_labels, users = _culture_context(uow)
                 scoped_teams = _scoped_team_list(uow, all_teams)
                 return render_template(
-                        "work_culture_kudos.html",
+                        "work_culture_likes.html",
                         kudos=kudos,
                         scoped_teams=scoped_teams,
                         team_labels=team_labels,
@@ -725,7 +735,7 @@ def work_culture_kudos():
 
 @login_required
 @handle_errors
-def work_culture_kudos_create():
+def work_culture_likes_create():
         uow = new_uow()
         try:
                 team_id = request.form.get("team_id")
@@ -739,22 +749,22 @@ def work_culture_kudos_create():
                         receiver_id=request.form.get("receiver_id"),
                         message=request.form.get("message"),
                 )
-                flash("Kudos enviado.", "success")
+                flash("Like enviado.", "success")
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
-        return redirect(url_for("work_culture_kudos"))
+        return redirect(url_for("work_culture_likes"))
 
 
 @login_required
 @handle_errors
-def work_culture_kudos_delete(kudo_id):
+def work_culture_likes_delete(kudo_id):
         uow = new_uow()
         try:
                 services.delete_kudo(uow, current_user.id, kudo_id)
-                flash("Kudos excluído.", "success")
+                flash("Like excluído.", "success")
         except (ValueError, PermissionError) as error:
                 flash(str(error), "danger")
-        return redirect(url_for("work_culture_kudos"))
+        return redirect(url_for("work_culture_likes"))
 
 
 @login_required

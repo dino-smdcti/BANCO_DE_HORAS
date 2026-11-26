@@ -13,6 +13,8 @@ from src.service_layer.accomplishment_service import (
         edit_accomplishment,
         get_accomplishment,
         list_accomplishments,
+        meta_leaderboard,
+        meta_status,
 )
 from src.service_layer.team_service import create_team
 from src.service_layer.unit_of_work import SqlAlchemyUnitOfWork
@@ -56,6 +58,8 @@ def _create(uow, admin, team_id, title, **kwargs):
                         uow, admin, team_id=team_id, title=title,
                         start_date=kwargs.get("start_date", date(2026, 1, 1)),
                         end_date=kwargs.get("end_date"),
+                        target_date=kwargs.get("target_date"),
+                        points=kwargs.get("points"),
                         achieved_by_user_id=kwargs.get("achieved_by_user_id"),
                 )
                 return acc.accomplishment_id
@@ -159,3 +163,27 @@ def test_delete_accomplishment_manager_only(uow):
                 delete_accomplishment(uow, assignee, acc_id)
         delete_accomplishment(uow, admin, acc_id)
         assert _acc(uow, acc_id) is None
+
+
+def test_meta_status_derivation(uow):
+        admin = _register_admin(uow)
+        team_a, _ = _setup_teams(uow, admin)
+        achieved = _create(uow, admin, team_a, "Atingida", end_date=date(2026, 1, 31))
+        late = _create(uow, admin, team_a, "Atrasada", target_date=date(2020, 1, 1))
+        ongoing = _create(uow, admin, team_a, "Em andamento", target_date=date(2099, 1, 1))
+
+        assert meta_status(_acc(uow, achieved)) == "atingida"
+        assert meta_status(_acc(uow, late)) == "atrasada"
+        assert meta_status(_acc(uow, ongoing)) == "em_andamento"
+
+
+def test_meta_leaderboard_sums_points(uow):
+        admin = _register_admin(uow)
+        team_a, _ = _setup_teams(uow, admin)
+        emp = _register_actor(uow, "empL@test.com", UserRole.EMPLOYEE.value, team_a)
+        _create(uow, admin, team_a, "Meta 1", achieved_by_user_id=emp, end_date=date(2026, 1, 1), points=10)
+        _create(uow, admin, team_a, "Meta 2", achieved_by_user_id=emp, end_date=date(2026, 2, 1), points=5)
+
+        leaderboard = meta_leaderboard(uow, admin)
+        assert len(leaderboard) == 1
+        assert leaderboard[0]["points"] == 15

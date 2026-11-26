@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 {% set guide_items = [
-    'Os relatórios reúnem, no período e times selecionados, tarefas, conquistas, ideias, 5S, kudos, eventos e wiki.',
+    'Os relatórios reúnem, no período e times selecionados, tarefas, metas, ideias, 5S, likes, eventos e wiki.',
     'Use o filtro de período e time para restringir o conteúdo.',
     'O botão Imprimir gera um PDF/editável limpo para exportar.'
 ] %}
@@ -50,10 +50,10 @@
 
 <div class="row g-2 mb-4">
     <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.tasks }}</div><small class="text-muted">Tarefas</small></div></div></div>
-    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.accomplishments }}</div><small class="text-muted">Conquistas</small></div></div></div>
+    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.accomplishments }}</div><small class="text-muted">Metas</small></div></div></div>
     <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.ideas }}</div><small class="text-muted">Ideias</small></div></div></div>
     <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.s5 }}</div><small class="text-muted">Auditorias 5S</small></div></div></div>
-    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.kudos }}</div><small class="text-muted">Kudos</small></div></div></div>
+    <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.kudos }}</div><small class="text-muted">Likes</small></div></div></div>
     <div class="col-6 col-md-2"><div class="card shadow-sm text-center"><div class="card-body"><div class="fs-3 fw-bold">{{ report.totals.events }}</div><small class="text-muted">Eventos</small></div></div></div>
 </div>
 
@@ -84,10 +84,10 @@
 {% endmacro %}
 
 {{ section('bi-check2-square', 'Tarefas', report.sections.tasks, 'Sem tarefas no período.') }}
-{{ section('bi-trophy', 'Conquistas', report.sections.accomplishments, 'Sem conquistas no período.') }}
+{{ section('bi-trophy', 'Metas', report.sections.accomplishments, 'Sem metas no período.') }}
 {{ section('bi-lightbulb', 'Ideias', report.sections.ideas, 'Sem ideias no período.') }}
 {{ section('bi-clipboard-check', 'Auditorias 5S', report.sections.s5, 'Sem auditorias 5S no período.') }}
-{{ section('bi-heart', 'Kudos', report.sections.kudos, 'Sem kudos no período.') }}
+{{ section('bi-heart', 'Likes', report.sections.kudos, 'Sem likes no período.') }}
 {{ section('bi-calendar-event', 'Eventos', report.sections.events, 'Sem eventos no período.') }}
 {{ section('bi-journal-text', 'Artigos da Wiki', report.sections.wiki, 'Sem artigos no período.') }}
 

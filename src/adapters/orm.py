@@ -103,6 +103,8 @@ accomplishments = Table(
     Column("description", String(NOTES_COLUMN_LENGTH), nullable=True),
     Column("start_date", Date, nullable=False),
     Column("end_date", Date, nullable=True),
+    Column("target_date", Date, nullable=True),
+    Column("points", Integer, default=0, nullable=False),
     Column("achieved_by_user_id", Integer, ForeignKey("users.id"), nullable=True),
     Column("created_by", Integer, ForeignKey("users.id"), nullable=True),
     Column("created_at", DateTime, default=datetime.now, nullable=False),

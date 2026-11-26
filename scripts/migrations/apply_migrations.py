@@ -74,6 +74,10 @@ BASE_MIGRATIONS = [
     # values (backlog / in_execution). "done" and "cancelled" are unchanged.
     "UPDATE team_tasks SET status = 'backlog' WHERE status = 'todo';",
     "UPDATE team_tasks SET status = 'in_execution' WHERE status = 'in_progress';",
+
+    # Metas (gamified accomplishments): a goal target date and a points reward.
+    "ALTER TABLE accomplishments ADD COLUMN IF NOT EXISTS target_date DATE;",
+    "ALTER TABLE accomplishments ADD COLUMN IF NOT EXISTS points INTEGER NOT NULL DEFAULT 0;",
 ]
 
 
