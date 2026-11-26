@@ -420,6 +420,44 @@ class TestAbsencesCard:
         body = client.get("/management").data.decode("utf-8")
         assert "12/05/2026" not in body
 
+    def test_bulk_delete_removes_multiple_entries(self, client, uow):
+        mgr = _create_manager(uow)
+        emp1 = _create_user(uow, "emp_bdel1@test.com", complete_profile=True, with_schedule=True)
+        emp2 = _create_user(uow, "emp_bdel2@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp1, date(2026, 6, 1), status=PontoStatus.MISSING)
+        _add_ponto(uow, emp2, date(2026, 6, 2), status=PontoStatus.MISSING)
+        _login(client, mgr)
+        r = client.post(
+            "/manager/bulk-delete-ponto",
+            data={"items": [f"{emp1}:{date(2026, 6, 1)}", f"{emp2}:{date(2026, 6, 2)}"]},
+        )
+        assert r.status_code == 302
+        body = client.get("/management").data.decode("utf-8")
+        assert "01/06/2026" not in body
+        assert "02/06/2026" not in body
+
+    def test_bulk_archive_dismisses_multiple_entries(self, client, uow):
+        mgr = _create_manager(uow)
+        emp1 = _create_user(uow, "emp_barch1@test.com", complete_profile=True, with_schedule=True)
+        emp2 = _create_user(uow, "emp_barch2@test.com", complete_profile=True, with_schedule=True)
+        _add_ponto(uow, emp1, date(2026, 6, 3), status=PontoStatus.MISSING, notes="Atestado A")
+        _add_ponto(uow, emp2, date(2026, 6, 4), status=PontoStatus.MISSING, notes="Atestado B")
+        _login(client, mgr)
+        r = client.post(
+            "/manager/bulk-archive-justification",
+            data={"items": [f"{emp1}:{date(2026, 6, 3)}", f"{emp2}:{date(2026, 6, 4)}"]},
+        )
+        assert r.status_code == 302
+        body = client.get("/management").data.decode("utf-8")
+        assert "03/06/2026" not in body
+        assert "04/06/2026" not in body
+
+    def test_bulk_action_requires_selection(self, client, uow):
+        mgr = _create_manager(uow)
+        _login(client, mgr)
+        r = client.post("/manager/bulk-delete-ponto", data={}, follow_redirects=True)
+        assert r.status_code == 200
+
 
 # ===================================================================
 # 9. AUDIT LOGS PAGE

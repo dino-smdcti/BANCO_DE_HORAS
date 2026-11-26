@@ -100,6 +100,39 @@ def dismiss_justification(uow: AbstractUnitOfWork, manager_id: int, employee_id:
                 _perform_dismiss(uow, manager_id, employee_id, entry_date)
 
 
+def bulk_delete_ponto_entries(uow: AbstractUnitOfWork, manager_id: int, items):
+        """Delete several ponto entries at once.
+
+        ``items`` is an iterable of ``(employee_id, entry_date)`` tuples. Each
+        entry goes through the same guarded path as the single delete, so the
+        per-employee permission checks still apply. Returns the number of
+        records actually deleted.
+        """
+        with uow:
+                deleted = 0
+                for employee_id, entry_date in items:
+                        deleted += _perform_delete_ponto(uow, manager_id, employee_id, entry_date)
+                return deleted
+
+
+def bulk_dismiss_justifications(uow: AbstractUnitOfWork, manager_id: int, items):
+        """Archive (dismiss) several justifications at once.
+
+        ``items`` is an iterable of ``(employee_id, entry_date)`` tuples. Missing
+        records are skipped while permission errors propagate. Returns the number
+        of records archived.
+        """
+        with uow:
+                dismissed = 0
+                for employee_id, entry_date in items:
+                        try:
+                                _perform_dismiss(uow, manager_id, employee_id, entry_date)
+                                dismissed += 1
+                        except ValueError:
+                                continue
+                return dismissed
+
+
 def submit_justification(uow: AbstractUnitOfWork, user_id: int, entry_date, justification: str):
         """Employee submits a justification for an anomalous day (late/missing).
 
@@ -428,12 +461,13 @@ def _perform_delete_ponto(uow, manager_id, employee_id, entry_date):
         user = _require_user(uow, employee_id)
         matching = [entry for entry in user.time_entries if entry.entry_date == entry_date]
         if not matching:
-                return
+                return 0
         for entry in matching:
                 user.time_entries.remove(entry)
                 uow.session.delete(entry)
         manager_name = manager.profile.full_name or manager.email
         log_action(uow, manager_id, "DELETE_PONTO", target_id=employee_id, details=f"Excluído(s) {len(matching)} registro(s) para {entry_date} por {manager_name}")
+        return len(matching)
 
 
 def _perform_dismiss(uow, manager_id, employee_id, entry_date):

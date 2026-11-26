@@ -24,10 +24,27 @@
             </div>
         </form>
 
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkAbsenceAction('delete')">
+                <i class="bi bi-trash"></i> Excluir selecionados
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="bulkAbsenceAction('archive')">
+                <i class="bi bi-archive"></i> Arquivar selecionados
+            </button>
+            <span class="text-muted small" id="bulkSelectionCount"></span>
+        </div>
+
+        <form id="bulkAbsenceForm" method="POST" style="display: none;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        </form>
+
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
+                        <th style="width: 36px;">
+                            <input type="checkbox" class="form-check-input" id="selectAllAbsences" title="Selecionar todos" onchange="toggleAllAbsences(this)">
+                        </th>
                         <th>Funcionário</th>
                         <th>Data</th>
                         <th>Status</th>
@@ -40,6 +57,9 @@
                     {% set p = item.ponto %}
                     {% set emp = item.emp %}
                     <tr>
+                        <td>
+                            <input type="checkbox" class="form-check-input absence-check" name="items" value="{{ emp.user_id }}:{{ p.entry_date }}">
+                        </td>
                         <td>{{ emp.profile.full_name or emp.email }}</td>
                         <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
                         <td>
@@ -110,7 +130,7 @@
                         </td>
                     </tr>
                     {% else %}
-                        <tr><td colspan="5" class="text-center py-4 text-muted">Nenhuma falta ou justificativa pendente.</td></tr>
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Nenhuma falta ou justificativa pendente.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -118,3 +138,54 @@
     </div>
 </div>
 </div>
+
+<script>
+function toggleAllAbsences(master) {
+    document.querySelectorAll('input.absence-check').forEach(function (cb) {
+        cb.checked = master.checked;
+    });
+    updateBulkSelectionCount();
+}
+
+function updateBulkSelectionCount() {
+    const count = document.querySelectorAll('input.absence-check:checked').length;
+    const counter = document.getElementById('bulkSelectionCount');
+    if (counter) {
+        counter.textContent = count > 0 ? count + ' selecionado(s)' : '';
+    }
+}
+
+function bulkAbsenceAction(kind) {
+    const checks = document.querySelectorAll('input.absence-check:checked');
+    if (checks.length === 0) {
+        alert('Selecione ao menos um registro.');
+        return;
+    }
+    const verb = kind === 'delete' ? 'Excluir' : 'Arquivar';
+    if (!confirm(verb + ' ' + checks.length + ' registro(s) selecionado(s)?')) {
+        return;
+    }
+    const form = document.getElementById('bulkAbsenceForm');
+    form.action = kind === 'delete'
+        ? "{{ url_for('bulk_delete_ponto') }}"
+        : "{{ url_for('bulk_archive_justification') }}";
+    form.querySelectorAll('input[name="items"]').forEach(function (input) {
+        input.remove();
+    });
+    checks.forEach(function (cb) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'items';
+        input.value = cb.value;
+        form.appendChild(input);
+    });
+    form.submit();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input.absence-check').forEach(function (cb) {
+        cb.addEventListener('change', updateBulkSelectionCount);
+    });
+    updateBulkSelectionCount();
+});
+</script>

@@ -45,6 +45,8 @@ from src.service_layer.task_service import (
 )
 from src.service_layer.vacation_service import add_vacation, remove_vacation_day
 from src.service_layer.clock_service import (
+        bulk_delete_ponto_entries,
+        bulk_dismiss_justifications,
         clock_in_out,
         delete_ponto_entry,
         dismiss_justification,
@@ -92,6 +94,8 @@ __all__ = [
         "add_vacation",
         "assign_user_team",
         "build_work_report",
+        "bulk_delete_ponto_entries",
+        "bulk_dismiss_justifications",
         "clear_team_lead",
         "team_rollups",
         "update_team",

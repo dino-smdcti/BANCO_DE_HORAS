@@ -86,6 +86,8 @@ def register_routes(app):
         app.add_url_rule("/manager/edit-journey/<int:journey_id>", "edit_journey", edit_journey, methods=["GET", "POST"])
         app.add_url_rule("/manager/delete-journey/<int:journey_id>", "delete_journey", delete_journey, methods=["POST"])
         app.add_url_rule("/manager/delete-ponto/<int:employee_id>/<string:entry_date>", "delete_ponto", delete_ponto, methods=["POST"])
+        app.add_url_rule("/manager/bulk-delete-ponto", "bulk_delete_ponto", bulk_delete_ponto, methods=["POST"])
+        app.add_url_rule("/manager/bulk-archive-justification", "bulk_archive_justification", bulk_archive_justification, methods=["POST"])
         app.add_url_rule("/manager/review-badge/<int:employee_id>/<string:entry_date>/<string:stage>/<string:action>", "review_badge", review_badge, methods=["POST"])
         app.add_url_rule("/manager/save-manager-note", "save_manager_note", save_manager_note, methods=["POST"])
         app.add_url_rule("/manager/complete-retroactive-logs/<int:employee_id>", "complete_retroactive_logs_route", complete_retroactive_logs_route, methods=["POST"])
@@ -539,6 +541,58 @@ def delete_ponto(employee_id, entry_date):
         services.delete_ponto_entry(uow, current_user.id, employee_id, entry_date)
         flash("Registro de ponto excluído.", "warning")
         return _ponto_redirect(employee_id)
+
+
+@login_required
+@manager_required
+@handle_errors
+def bulk_delete_ponto():
+        items = _parse_bulk_items(request.form.getlist("items"))
+        if not items:
+                flash("Nenhum registro selecionado.", "warning")
+                return redirect(url_for("management_panel"))
+        uow = new_uow()
+        try:
+                deleted = services.bulk_delete_ponto_entries(uow, int(current_user.id), items)
+        except PermissionError as error:
+                flash(str(error), "danger")
+                return redirect(url_for("management_panel"))
+        flash(f"{deleted} registro(s) excluído(s) em lote.", "warning")
+        return redirect(url_for("management_panel"))
+
+
+@login_required
+@manager_required
+@handle_errors
+def bulk_archive_justification():
+        items = _parse_bulk_items(request.form.getlist("items"))
+        if not items:
+                flash("Nenhum registro selecionado.", "warning")
+                return redirect(url_for("management_panel"))
+        uow = new_uow()
+        try:
+                archived = services.bulk_dismiss_justifications(uow, int(current_user.id), items)
+        except PermissionError as error:
+                flash(str(error), "danger")
+                return redirect(url_for("management_panel"))
+        flash(f"{archived} justificativa(s) arquivada(s) em lote.", "info")
+        return redirect(url_for("management_panel"))
+
+
+def _parse_bulk_items(raw_items):
+        """Convert ``employee_id:entry_date`` strings into ``(employee_id, date)`` tuples."""
+        items = []
+        for raw in raw_items:
+                if not raw or ":" not in raw:
+                        continue
+                employee_id_str, entry_date_str = raw.split(":", 1)
+                try:
+                        employee_id = int(employee_id_str)
+                        entry_date = parse_date_arg(entry_date_str)
+                except ValueError:
+                        continue
+                items.append((employee_id, entry_date))
+        return items
 
 
 @login_required
