@@ -66,3 +66,20 @@ Milestones from user feedback (this TODO):
 - [x] Document per-phase in this file as each lands
 
 *Discipline: atomic commits, test parity per commit, push only at phase end.*
+
+---
+
+# Workforce Expansion 3 — Kanban, Dashboard de dados, Metas e Likes
+
+| Phase | Milestone | Status |
+|---|---|---|
+| **K** | **Kanban de gestão rápida** no Painel | Task statuses viram estágios do board (`backlog`, `focus_week`, `in_execution`, `pending_approval`, `waiting`, `done`, `cancelled`); drag-and-drop + fallback por select; gate de aprovação (só gestor conclui/cancela ou aprova). |
+| **V** | **Dashboard de dados (gráficos)** no Painel | `dashboard_service` + Chart.js: tarefas por estágio, ideias por status, likes por time, 5S por mês. |
+| **M** | **Conquistas → Metas (gamificadas)** | `target_date` + `points`; status derivado (em andamento/atingida/atrasada); placar de pontos. |
+| **L** | **Kudos → Likes** | Rotas `/work/culture/likes` + labels; domínio/tabela `kudos` mantidos. |
+
+- [x] Kanban + estágios + gate de aprovação (testes de tarefa e dashboard)
+- [x] Dashboard visual com Chart.js (testes de `dashboard_metrics`)
+- [x] Metas com data-alvo, pontos e placar (testes de `meta_status`/`meta_leaderboard`)
+- [x] Likes (rotas + labels) — testes atualizados
+- [x] Suíte verde (446 passed, 7 subtests)
