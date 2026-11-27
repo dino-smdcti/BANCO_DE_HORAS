@@ -1,0 +1,139 @@
+<div class="card shadow border-warning mb-4">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapseJustificativas" aria-expanded="{{ 'true' if request.args.get('emp_filter') or request.args.get('date_filter') else 'false' }}" aria-controls="collapseJustificativas">
+        <h5 class="mb-0">Justificativas</h5>
+        <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse {{ 'show' if request.args.get('emp_filter') or request.args.get('date_filter') }}" id="collapseJustificativas">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="bulkJustificativaAction()">
+                    <i class="bi bi-archive"></i> Arquivar selecionados
+                </button>
+                <span class="text-muted small" id="justificativaSelectionCount"></span>
+            </div>
+
+            <form id="bulkJustificativaForm" method="POST" style="display: none;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 36px;">
+                                <input type="checkbox" class="form-check-input" id="selectAllJustificativas" title="Selecionar todos" onchange="toggleAllJustificativas(this)">
+                            </th>
+                            <th>Funcionário</th>
+                            <th>Data</th>
+                            <th>Justificativa</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in justificativas %}
+                        {% set p = item.ponto %}
+                        {% set emp = item.emp %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input justificativa-check" name="items" value="{{ emp.user_id }}:{{ p.entry_date }}">
+                            </td>
+                            <td>{{ emp.profile.full_name or emp.email }}</td>
+                            <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <div>{{ p.justification }}</div>
+                                {% if p.status.value == 'Justificado' %}
+                                    <span class="badge bg-success">Aprovada</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Em análise</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if p.status.value == 'Justificado' %}
+                                    <span class="badge bg-success">{{ p.status_label }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ p.status_label }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">
+                                {% if p.status.value not in ['Justificado'] %}
+                                <form action="{{ url_for('review_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="action" value="approve">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Aprovar justificativa">
+                                        <i class="bi bi-check-lg"></i> Aprovar
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('review_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline" onsubmit="return confirm('Rejeitar esta justificativa?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="action" value="reject">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Rejeitar justificativa">
+                                        <i class="bi bi-x-lg"></i> Rejeitar
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form action="{{ url_for('archive_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline" onsubmit="return confirm('Arquivar esta justificativa?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Arquivar justificativa">
+                                        <i class="bi bi-archive"></i> Arquivar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                            <tr><td colspan="6" class="text-center py-4 text-muted">Nenhuma justificativa pendente.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAllJustificativas(master) {
+    document.querySelectorAll('input.justificativa-check').forEach(function (cb) {
+        cb.checked = master.checked;
+    });
+    updateJustificativaSelectionCount();
+}
+
+function updateJustificativaSelectionCount() {
+    const count = document.querySelectorAll('input.justificativa-check:checked').length;
+    const counter = document.getElementById('justificativaSelectionCount');
+    if (counter) {
+        counter.textContent = count > 0 ? count + ' selecionado(s)' : '';
+    }
+}
+
+function bulkJustificativaAction() {
+    const checks = document.querySelectorAll('input.justificativa-check:checked');
+    if (checks.length === 0) {
+        alert('Selecione ao menos um registro.');
+        return;
+    }
+    if (!confirm('Arquivar ' + checks.length + ' registro(s) selecionado(s)?')) {
+        return;
+    }
+    const form = document.getElementById('bulkJustificativaForm');
+    form.action = "{{ url_for('bulk_archive_justification') }}";
+    form.querySelectorAll('input[name="items"]').forEach(function (input) {
+        input.remove();
+    });
+    checks.forEach(function (cb) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'items';
+        input.value = cb.value;
+        form.appendChild(input);
+    });
+    form.submit();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input.justificativa-check').forEach(function (cb) {
+        cb.addEventListener('change', updateJustificativaSelectionCount);
+    });
+    updateJustificativaSelectionCount();
+});
+</script>

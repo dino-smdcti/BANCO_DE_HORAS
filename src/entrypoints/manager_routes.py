@@ -70,7 +70,6 @@ def register_routes(app):
         app.add_url_rule("/manager/review-correction/<int:request_id>/<string:action>", "review_correction", review_correction, methods=["POST"])
         app.add_url_rule("/manager/view-logs/<int:employee_id>", "view_employee_logs", view_employee_logs)
         app.add_url_rule("/manager/bulk-fix-ponto/<int:employee_id>", "bulk_fix_ponto", bulk_fix_ponto, methods=["POST"])
-        app.add_url_rule("/manager/fix-ponto/<int:employee_id>", "fix_ponto", fix_ponto, methods=["GET", "POST"])
         app.add_url_rule("/manager/add-vacation/<int:employee_id>", "add_vacation", add_vacation, methods=["POST"])
         app.add_url_rule("/manager/add-attestation/<int:employee_id>", "add_attestation", add_attestation, methods=["POST"])
         app.add_url_rule("/manager/remove-attestation-day/<int:employee_id>/<string:entry_date>", "remove_attestation_day", remove_attestation_day, methods=["POST"])
@@ -293,22 +292,6 @@ def bulk_fix_ponto(employee_id):
         except Exception as error:
                 flash(f"Erro ao processar correções: {str(error)}", "danger")
         return _bulk_redirect(employee_id)
-
-
-@login_required
-@manager_required
-def fix_ponto(employee_id):
-        uow = new_uow()
-        guard_response = _managed_employee_guard(uow, employee_id)
-        if guard_response:
-                return guard_response
-        if request.method == "POST":
-                _apply_fix(uow, employee_id)
-                flash("Registro corrigido manualmente.", "success")
-                return redirect_to_employee_logs(employee_id)
-        with uow:
-                employee = uow.users.get_user_by_id(employee_id)
-                return render_template("fix_ponto.html", employee=employee, today=date.today())
 
 
 @login_required
@@ -805,8 +788,8 @@ def _render_management_panel(uow):
                 employees=employees,
                 today=date.today(),
                 analysis_date=services.get_start_analysis_date(uow),
-                absences=_absences(employees),
-                dismissed_justs=_dismissed_entries(employees),
+                faltas=_faltas(employees),
+                justificativas=_justificativas(employees),
                 pending_corrections=_corrections_display(uow),
                 holidays=_holidays_serialized(uow),
         )
@@ -817,8 +800,17 @@ def _refresh_all(uow, employees):
                 uow.session.refresh(employee)
 
 
-def _absences(employees):
-        result = [{"emp": employee, "ponto": entry} for employee in employees for entry in employee.time_entries if _shows_on_absences_card(entry)]
+def _faltas(employees):
+        result = [{"emp": employee, "ponto": entry} for employee in employees for entry in employee.time_entries if _shows_on_falta(entry)]
+        return _apply_absence_filters(result)
+
+
+def _justificativas(employees):
+        result = [{"emp": employee, "ponto": entry} for employee in employees for entry in employee.time_entries if _shows_on_justificativa(entry)]
+        return _apply_absence_filters(result)
+
+
+def _apply_absence_filters(result):
         emp_filter = request.args.get("emp_filter")
         if emp_filter:
                 result = [item for item in result if item["emp"].user_id == int(emp_filter)]
@@ -829,10 +821,20 @@ def _absences(employees):
         return result
 
 
-def _shows_on_absences_card(entry):
+def _shows_on_falta(entry):
+        """An absence/anomaly that has not been justified, corrected or dismissed."""
         if entry.status in (PontoStatus.DISMISSED, PontoStatus.CORRECTED):
                 return False
-        return entry.status == PontoStatus.MISSING or bool(entry.notes) or bool(entry.justification)
+        if entry.justification:
+                return False
+        return entry.status == PontoStatus.MISSING or bool(entry.notes)
+
+
+def _shows_on_justificativa(entry):
+        """A submitted justification awaiting/after review (not archived)."""
+        if entry.status in (PontoStatus.DISMISSED, PontoStatus.CORRECTED):
+                return False
+        return bool(entry.justification)
 
 
 def _dismissed_entries(employees):
@@ -945,21 +947,6 @@ def _ponto_redirect(employee_id):
         if "management" in referrer:
                 return redirect(url_for("management_panel"))
         return redirect_to_employee_logs(employee_id)
-
-
-def _apply_fix(uow, employee_id):
-        entry_date = parse_date_arg(request.form.get("entry_date"))
-        services.manual_ponto_correction(
-                uow,
-                current_user.id,
-                employee_id,
-                entry_date,
-                parse_time(request.form.get("arrival")),
-                parse_time(request.form.get("lunch_start")),
-                parse_time(request.form.get("lunch_end")),
-                parse_time(request.form.get("departure")),
-                email_sender=flask_app.send_email,
-        )
 
 
 def _send_password_reset(uow, user_id):

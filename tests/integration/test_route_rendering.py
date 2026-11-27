@@ -266,13 +266,6 @@ class TestManagerRoutes:
         r = client.get(f"/manager/view-logs/{emp_id}")
         assert r.status_code == 200
 
-    def test_fix_ponto_page(self, client, uow):
-        mgr_id = _create_user(uow, "mgr_fix@test.com", role="manager")
-        emp_id = _create_user(uow, "emp_fix@test.com")
-        _login(client, mgr_id)
-        r = client.get(f"/manager/fix-ponto/{emp_id}")
-        assert r.status_code == 200
-
     def test_edit_employee_page(self, client, uow):
         mgr_id = _create_user(uow, "mgr_ee@test.com", role="manager")
         emp_id = _create_user(uow, "emp_ee@test.com", complete_profile=True)

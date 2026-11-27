@@ -1,0 +1,138 @@
+<div class="card shadow border-danger mb-4">
+    <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapseFaltas" aria-expanded="{{ 'true' if request.args.get('emp_filter') or request.args.get('date_filter') else 'false' }}" aria-controls="collapseFaltas">
+        <h5 class="mb-0">Faltas</h5>
+        <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse {{ 'show' if request.args.get('emp_filter') or request.args.get('date_filter') }}" id="collapseFaltas">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="bulkFaltaAction('delete')">
+                    <i class="bi bi-trash"></i> Excluir selecionados
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="bulkFaltaAction('archive')">
+                    <i class="bi bi-archive"></i> Arquivar selecionados
+                </button>
+                <span class="text-muted small" id="faltaSelectionCount"></span>
+            </div>
+
+            <form id="bulkFaltaForm" method="POST" style="display: none;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 36px;">
+                                <input type="checkbox" class="form-check-input" id="selectAllFaltas" title="Selecionar todos" onchange="toggleAllFaltas(this)">
+                            </th>
+                            <th>Funcionário</th>
+                            <th>Data</th>
+                            <th>Status</th>
+                            <th>Nota</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in faltas %}
+                        {% set p = item.ponto %}
+                        {% set emp = item.emp %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input falta-check" name="items" value="{{ emp.user_id }}:{{ p.entry_date }}">
+                            </td>
+                            <td>{{ emp.profile.full_name or emp.email }}</td>
+                            <td>{{ p.entry_date.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                {% if p.status.value == 'Faltante' %}
+                                    <span class="badge bg-danger">{{ p.status_label }}</span>
+                                {% elif p.status.value == 'Atrasado' %}
+                                    <span class="badge bg-warning text-dark">{{ p.status_label }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ p.status_label }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if p.notes %}
+                                    <div>{{ p.notes }}</div>
+                                {% endif %}
+                                {% if p.manager_notes %}
+                                    <div class="text-muted small"><strong>Nota do gestor:</strong> {{ p.manager_notes }}</div>
+                                {% endif %}
+                                {% if not p.notes and not p.manager_notes %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-nowrap">
+                                <form action="{{ url_for('archive_justification', employee_id=emp.user_id, entry_date=p.entry_date) }}" method="POST" class="d-inline" onsubmit="return confirm('Arquivar esta falta?')">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Arquivar (dispensar)">
+                                        <i class="bi bi-archive"></i> Arquivar
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-danger" title="Excluir registro"
+                                        onclick="confirmDeletePonto({{ emp.user_id }}, '{{ p.entry_date }}')">
+                                    <i class="bi bi-trash"></i> Excluir
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                            <tr><td colspan="6" class="text-center py-4 text-muted">Nenhuma falta pendente.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleAllFaltas(master) {
+    document.querySelectorAll('input.falta-check').forEach(function (cb) {
+        cb.checked = master.checked;
+    });
+    updateFaltaSelectionCount();
+}
+
+function updateFaltaSelectionCount() {
+    const count = document.querySelectorAll('input.falta-check:checked').length;
+    const counter = document.getElementById('faltaSelectionCount');
+    if (counter) {
+        counter.textContent = count > 0 ? count + ' selecionado(s)' : '';
+    }
+}
+
+function bulkFaltaAction(kind) {
+    const checks = document.querySelectorAll('input.falta-check:checked');
+    if (checks.length === 0) {
+        alert('Selecione ao menos um registro.');
+        return;
+    }
+    const verb = kind === 'delete' ? 'Excluir' : 'Arquivar';
+    if (!confirm(verb + ' ' + checks.length + ' registro(s) selecionado(s)?')) {
+        return;
+    }
+    const form = document.getElementById('bulkFaltaForm');
+    form.action = kind === 'delete'
+        ? "{{ url_for('bulk_delete_ponto') }}"
+        : "{{ url_for('bulk_archive_justification') }}";
+    form.querySelectorAll('input[name="items"]').forEach(function (input) {
+        input.remove();
+    });
+    checks.forEach(function (cb) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'items';
+        input.value = cb.value;
+        form.appendChild(input);
+    });
+    form.submit();
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('input.falta-check').forEach(function (cb) {
+        cb.addEventListener('change', updateFaltaSelectionCount);
+    });
+    updateFaltaSelectionCount();
+});
+</script>
